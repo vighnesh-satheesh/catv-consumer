@@ -10,6 +10,7 @@ from rest_framework.renderers import JSONRenderer
 from django_filters import rest_framework as filters
 from django.db.models import Q, Prefetch, Count
 from indicatorlib import Pattern
+from django.db import transaction, IntegrityError
 
 from .models import (
     User, Case, Indicator, ICO, CaseStatus, Key,
@@ -146,6 +147,16 @@ class DashboardView(APIView):
 
         cases = [
             {
+                "id": "case_my",
+                "count": my_count,
+                "children": [
+                    utils.get_dashboard_item("case_my", "progress", count_dict),
+                    utils.get_dashboard_item("case_my", "confirmed", count_dict),
+                    utils.get_dashboard_item("case_my", "rejected", count_dict),
+                    utils.get_dashboard_item("case_my", "released", count_dict),
+                ]
+            },
+            {
                 "id": "case_all",
                 "count": total_count,
                 "children": [
@@ -155,37 +166,44 @@ class DashboardView(APIView):
                     utils.get_dashboard_item("case_all", "rejected", count_dict),
                     utils.get_dashboard_item("case_all", "released", count_dict),
                 ]
-            },
-            {
-                "id": "case_my",
-                "count": my_count,
-                "children": [
-                    utils.get_dashboard_item("case_my", "progress", count_dict),
-                    utils.get_dashboard_item("case_my", "confirmed", count_dict),
-                    utils.get_dashboard_item("case_my", "rejected", count_dict),
-                    utils.get_dashboard_item("case_my", "released", count_dict),
-                ]
             }
         ]
-        indicators = [
-            {
-                "id": "indicator_attached",
-                "count": Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases__gt = 0).count(),
-                "children": []
-            },
-            {
-                "id": "indicator_unattached",
-                "count":  Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases = 0).count(),
-                "children": []
-            }
-        ]
-
         if user.permission is UserPermission.EXCHANGE:
             for status, cnt in count_dict.items():
                 if status in ['all_new', 'all_progress', 'all_confirmed']:
                     total_count -= cnt
             cases[0]["children"] = cases[0]["children"][3:]
-            cases["all"]["count"] = total_count
+            cases[1]["count"] = total_count
+
+            indicator_attached_filter = Q(num_cases__gt = 0) & \
+                                        (Q(cases__status__in = [CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user = user.pk))
+            indicators = [
+                {
+                    "id": "indicator_attached",
+                    "count": Indicator.objects.annotate(num_cases = Count('cases')).filter(indicator_attached_filter).count(),
+                    "children": []
+                },
+                {
+                    "id": "indicator_unattached",
+                    "count":  Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases = 0).count(),
+                    "children": []
+                }
+            ]
+        else:
+            indicators = [
+                {
+                    "id": "indicator_attached",
+                    "count": Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases__gt = 0).count(),
+                    "children": []
+                },
+                {
+                    "id": "indicator_unattached",
+                    "count":  Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases = 0).count(),
+                    "children": []
+                }
+            ]
+
+
 
         return APIResponse({
             "data": {
@@ -372,16 +390,23 @@ class CaseDetailView(APIView):
         return APIResponse({"data": {}})
 
     def delete(self, request, pk=None):
-        obj = self.get_object(pk)
-        if obj.status != CaseStatus.PROGRESS:
-            raise exceptions.ValidationError("case cannot be deleted.")
-        if obj.owner != request.user:
-            raise exceptions.OwnerRequiredError()
         try:
-            obj.delete()
-        except Case.DoesNotExist:
-            pass
+            with transaction.atomic():
 
+                obj = self.get_object(pk)
+                if obj.status != CaseStatus.PROGRESS:
+                    raise exceptions.ValidationError("case cannot be deleted.")
+                if obj.owner != request.user:
+                    raise exceptions.OwnerRequiredError()
+
+                for indicator in obj.indicators.all():
+                    indicator.cases.remove(obj)
+                    obj.indicators.remove(indicator)
+                indicator.delete()
+        except Case.DoesNotExist:
+            raise exceptions.ValidationError("case does not exist")
+        except IntegrityError:
+            raise exceptions.DataIntegrityError("")
         return APIResponse({"data": {}})
 
 
@@ -393,8 +418,14 @@ class IndicatorFilter(filters.FilterSet):
         fields = ("type",)
 
     def filter_type(self, queryset, name, value):
+        if self.request.user.permission is UserPermission.EXCHANGE:
+            indicator_attached_filter = Q(num_cases__gt = 0) & \
+                                        (Q(cases__status__in = [CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user = self.request.user.pk))
+        else:
+            indicator_attached_filter = Q(num_cases__gt = 0)
+
         if value == 'attached':
-            return queryset.annotate(num_cases = Count('cases')).filter(num_cases__gt = 0)
+            return queryset.annotate(num_cases = Count('cases')).filter(indicator_attached_filter)
         elif value == 'unattached':
             return queryset.annotate(num_cases = Count('cases')).filter(num_cases = 0)
         else:
@@ -476,6 +507,22 @@ class IndicatorDetailView(APIView):
         return APIResponse({
             "data": result_serializer.data
         })
+
+    def delete(self, request, pk=None):
+        try:
+            with transaction.atomic():
+                indicator = self.get_object(pk)
+                for case in indicator.cases.all():
+                    if case.status in [CaseStatus.CONFIRMED, CaseStatus.RELEASED]:
+                        raise exceptions.ValidationError("has confirmed or released attached cases.")
+                    case.indicators.remove(indicator)
+                    indicator.cases.remove(case)
+                indicator.delete()
+        except Indicator.DoesNotExist:
+            raise exceptions.ValidationError("indicator does not exist")
+        except IntegrityError:
+            raise exceptions.DataIntegrityError("")
+        return APIResponse({"data": {}})
 
 
 # /search?q=aa&type=ico&page=1
