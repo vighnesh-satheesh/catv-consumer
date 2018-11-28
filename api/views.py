@@ -170,9 +170,9 @@ class DashboardView(APIView):
         ]
         if user.permission is UserPermission.EXCHANGE:
             for status, cnt in count_dict.items():
-                if status in ['all_new', 'all_progress', 'all_confirmed']:
+                if status in ['case_all_new', 'case_all_progress', 'all_confirmed']:
                     total_count -= cnt
-            cases[0]["children"] = cases[0]["children"][3:]
+            cases[1]["children"] = cases[1]["children"][3:]
             cases[1]["count"] = total_count
 
             indicator_attached_filter = Q(num_cases__gt = 0) & \
