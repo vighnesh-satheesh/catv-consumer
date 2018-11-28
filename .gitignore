@@ -1,0 +1,11 @@
+*.swp
+*.pyc
+__pycache__
+env/
+*.private
+*.public
+.idea/
+static/
+dump.rdb
+celerybeat-schedule
+

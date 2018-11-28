@@ -1,0 +1,9 @@
+Hi {{ nickname }},
+
+Please complete the registration process by clicking the link below. The link below is valid for only 5 minutes.
+
+{{ link }}
+
+Best regards,
+Team Sentinel Protocol
+Uppsala Foundation
