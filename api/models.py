@@ -9,7 +9,7 @@ from django.db import models
 from django.contrib.auth.hashers import (
     check_password, make_password,
 )
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, JSONField
 from django.contrib.postgres.indexes import GistIndex
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
@@ -187,6 +187,19 @@ class EmailSentType(Enum):
     VERIFICATION_RESEND = 'VERIFICATION_RESEND'
     PASSWORD_RESET = 'PASSWORD_RESET'
     VERIFIED = 'VERIFIED'
+    NOTIFICATION = 'NOTIFICATION'
+
+
+class NotificationType(Enum):
+    CASE_STATUS_UPDATED_TO_NEW = 'case_status_updated_to_new'
+    CASE_STATUS_UPDATED_TO_PROGRESS = 'case_status_updated_to_progress'
+    CASE_STATUS_UPDATED_TO_REJECTED = 'case_status_updated_to_rejected'
+    CASE_STATUS_UPDATED_TO_CONFIRMED = 'case_status_updated_to_confirmed'
+    CASE_STATUS_UPDATED_TO_RELEASED = 'case_status_updated_to_released'
+    CASE_UPDATED = 'case_updated'
+    CASE_DELETED = 'case_deleted'
+    COMMENT = 'comment'
+    COMMENT_MENTIONED = 'comment_mentioned'
 
 
 @unique
@@ -491,4 +504,20 @@ class Comment(models.Model):
             models.Index(fields=['case']),
             models.Index(fields=['indicator']),
             models.Index(fields=['ico'])
+        ]
+
+
+class Notification(models.Model):
+    uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name='user')
+    initiator = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name='initiator')
+    target = JSONField(default={})
+    read = models.BooleanField(default=False)
+    created = models.DateTimeField(default=now)
+    type = EnumField(enum=NotificationType, max_length=64)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['created'])
         ]

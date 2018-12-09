@@ -871,8 +871,8 @@ class CasePostSerializer(serializers.ModelSerializer):
             with transaction.atomic():
                 case = models.Case.objects.create(**validated_data)
                 for indi in indicators_data:
-                    if "id" in indi:
-                        indicator = indi["id"]
+                    if "uid" in indi:
+                        indicator = models.Indicator.objects.get(uid=indi["uid"])
                     else:
                         indicator = models.Indicator.objects.create(case=case, **indi)
                     indicator.cases.add(case)
@@ -931,7 +931,6 @@ class CasePostSerializer(serializers.ModelSerializer):
                 # indicators
                 for indi_item in indicators_data:
                     if "uid" in indi_item:
-                        print (indi_item["uid"], indi_item)
                         indicator = models.Indicator.objects.get(uid=indi_item["uid"])
                         if "deleted" in indi_item and indi_item["deleted"] is True:
                             indicator.cases.remove(instance)
@@ -1403,3 +1402,34 @@ class CommentPostSerializer(NonNullModelSerializer):
         except exceptions.DataIntegrityError as err:
             raise err
         return obj
+
+
+class NotificationSerializer(NonNullModelSerializer):
+    user = serializers.SerializerMethodField()
+    initiator = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.Notification
+        fields = ("uid", "user", "initiator", "target", "read", "created", "type")
+
+    def get_user(self, obj):
+        if not obj.user:
+            return {}
+        return {
+            "nickname": obj.user.nickname,
+            "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(obj.user.image) is False else obj.user.image.url,
+            "uid": obj.user.uid
+        }
+
+    def get_initiator(self, obj):
+        if not obj:
+            return {}
+        return {
+            "nickname": obj.initiator.nickname,
+            "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(obj.initiator.image) is False else obj.initiator.image.url,
+            "uid": obj.initiator.uid
+        }
+
+    def get_type(self, obj):
+        return obj.type.value

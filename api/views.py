@@ -13,6 +13,7 @@ from django.db import transaction, IntegrityError
 
 from .models import (
     User, Case, Indicator, ICO, CaseStatus, Key, Comment,
+    Notification, NotificationType,
     AttachedFile, UserPermission, UppwardRewardInfo,
     UserStatus
 )
@@ -25,7 +26,8 @@ from .serializers import (
     UppwardRewardInfoPostSerializer,
     UserDetailSerializer, UserPostSerializer,
     ICFDetailSerializer, ICFPostSerializer,
-    CommentSerializer, CommentPostSerializer
+    CommentSerializer, CommentPostSerializer,
+    NotificationSerializer
 )
 from .throttling import (
     SignUpThrottle, UserLoginThrottle, ChangePasswordThrottle,
@@ -190,17 +192,16 @@ class DashboardView(APIView):
                 }
             ]
 
-
+        notifications = []
+        notification_objs = Notification.objects.filter(user = user.pk)
+        if notification_objs:
+            notifications = NotificationSerializer(notification_objs, many=True).data
 
         return APIResponse({
             "data": {
-                "user": {
-                    "id": user.uid,
-                    "nickname": user.nickname,
-                    "permission": user.permission.value
-                },
                 "cases": cases,
-                "indicators": indicators
+                "indicators": indicators,
+                "notifications": notifications
             }
         })
 
@@ -366,34 +367,69 @@ class CaseDetailView(APIView):
         serializer = CasePostSerializer(obj, data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        if obj.reporter:
+            notification = Notification.objects.create(
+                user=obj.reporter,
+                initiator=request.user,
+                type=NotificationType.CASE_UPDATED,
+                target={
+                    "uid": str(obj.uid),
+                    "title": obj.title,
+                    "type": "case"
+                }
+            )
+
         return APIResponse({
             "data": {}})
 
     def patch(self, request, pk=None):
-        queryset = self.get_object(pk)
-        serializer = CasePatchSerializer(queryset, data=request.data, partial=True, context={"request": request})
+        obj = self.get_object(pk)
+        serializer = CasePatchSerializer(obj, data=request.data, partial=True, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        if obj.reporter:
+            notification = Notification.objects.create(
+                user=obj.reporter,
+                initiator=request.user,
+                type=NotificationType("case_status_updated_to_{0}".format(serializer.data["status"])),
+                target={
+                    "uid": str(obj.uid),
+                    "title": obj.title,
+                    "type": "case"
+                }
+            )
+
         return APIResponse({"data": {}})
 
     def delete(self, request, pk=None):
         try:
             with transaction.atomic():
-
                 obj = self.get_object(pk)
                 if obj.status != CaseStatus.PROGRESS:
                     raise exceptions.ValidationError("case cannot be deleted.")
                 if obj.owner != request.user:
                     raise exceptions.OwnerRequiredError()
-
                 for indicator in obj.indicators.all():
                     indicator.cases.remove(obj)
                     obj.indicators.remove(indicator)
-                indicator.delete()
         except Case.DoesNotExist:
             raise exceptions.ValidationError("case does not exist")
         except IntegrityError:
             raise exceptions.DataIntegrityError("")
+        if obj.reporter:
+            notification = Notification.objects.create(
+                user=obj.reporter,
+                initiator=request.user,
+                type=NotificationType.CASE_DELETED,
+                target={
+                    "uid": str(obj.uid),
+                    "title": obj.title,
+                    "type": "case"
+                }
+            )
+        obj.delete()
+
         return APIResponse({"data": {}})
 
 
@@ -1006,6 +1042,7 @@ class CommentView(APIView):
     def post(self, request, type=None, pk=None, uid=None, format=None):
         if type is None or pk is None:
             raise exceptions.ValidationError("type or uid is not provided.")
+        notification = request.data.pop("notification", [])
         serializer = CommentPostSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -1015,6 +1052,42 @@ class CommentView(APIView):
             "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(request.user.image) is False else request.user.image.url,
             "uid": request.user.uid
         }
+        u = None
+        target = {}
+        if "case" in data:
+            obj = Case.objects.get(id=data["case"])
+            target["uid"] = str(obj.uid)
+            target["title"] = obj.title
+            target["type"] = "case"
+            u = obj.writer
+        if "indicator" in data:
+            obj = Indicator.objects.get(id=data["indicator"])
+            target["uid"] = str(obj.uid)
+            target["title"] = obj.pattern
+            target["type"] = "indicator"
+            u = obj.user
+        if "ico" in data:
+            obj = ICO.objects.get(id=data["ico"])
+            target["uid"] = str(obj.uid)
+            target["title"] = obj.name
+            target["type"] = "ico"
+            u = obj.user
+        if u:
+            Notification.objects.create(
+                user=u,
+                initiator=request.user,
+                type=NotificationType.COMMENT,
+                target=target
+            )
+        if notification:
+            users = User.objects.filter(id__in=notification)
+            for user in users:
+                notification = Notification.objects.create(
+                    user=user,
+                    initiator=request.user,
+                    type=NotificationType.COMMENT_MENTIONED,
+                    target=target
+                )
         return APIResponse({
             "data": data
         })
@@ -1031,3 +1104,29 @@ class CommentView(APIView):
         return APIResponse({"data": {
             "id": comment.pk
         }})
+
+
+class NotificationView(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    model = Notification
+
+    def delete(self, request, uid=None):
+        if uid is None:
+            notification = self.model.objects.filter(user=request.user)
+        else:
+            notification = self.model.objects.filter(user=request.user, uid=uid)
+
+        if notification.exists():
+            notification.delete()
+        else:
+            raise exceptions.ValidationError('nothing to delete')
+        return APIResponse({
+            "data": ""
+        })
+
+    def patch(self, request):
+        self.model.objects.filter(user=request.user).exclude(read=True).update(read=True)
+        return APIResponse({
+            "data": ""
+        })

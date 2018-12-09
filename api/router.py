@@ -44,6 +44,8 @@ if settings.EXPOSE_GENERAL_API:
         url(r'^uppward_reward/?$', views.UppwardRewardInfoView.as_view(), name='uppward-reward-post'),
         url(r'^comment/(?P<type>[a-z\-]+)/(?P<pk>[0-9]+)/(?P<uid>[0-9a-z\-]+)/?$', views.CommentView.as_view(), name='comment-modify'),
         url(r'^comment/(?P<type>[a-z\-]+)/(?P<pk>[0-9]+)/?$', views.CommentView.as_view(), name='comment-view'),
+        url(r'^notification/?$', views.NotificationView.as_view(), name='notification-view-single'),
+        url(r'^notification/(?P<uid>[0-9a-z\-]+)/?$', views.NotificationView.as_view(), name='notification-view-uid'),
     ]
 
 
