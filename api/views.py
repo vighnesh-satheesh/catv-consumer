@@ -379,6 +379,16 @@ class CaseDetailView(APIView):
                     "type": "case"
                 }
             )
+            e = Email()
+            kv = {
+                "nickname": obj.reporter.nickname,
+                "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
+            }
+            SendEmail().delay(kv = kv,
+                  subject = Constants.EMAIL_TITLE["NOTIFICATION_MODIFY_CASE"].format(request.user.nickname),
+                  email_type = e.EMAIL_TYPE["NOTIFICATION"],
+                  sender = e.EMAIL_SENDER["NO-REPLY"],
+                  recipient = [obj.reporter.email])
 
         return APIResponse({
             "data": {}})
@@ -399,6 +409,16 @@ class CaseDetailView(APIView):
                     "type": "case"
                 }
             )
+            e = Email()
+            kv = {
+                "nickname": obj.reporter.nickname,
+                "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
+            }
+            SendEmail().delay(kv = kv,
+                              subject = Constants.EMAIL_TITLE["NOTIFICATION_PATCH_CASE"].format(request.user.nickname, obj.status.value),
+                              email_type = e.EMAIL_TYPE["NOTIFICATION"],
+                              sender = e.EMAIL_SENDER["NO-REPLY"],
+                              recipient = [obj.reporter.email])
 
         return APIResponse({"data": {}})
 
@@ -428,6 +448,16 @@ class CaseDetailView(APIView):
                     "type": "case"
                 }
             )
+            e = Email()
+            kv = {
+                "nickname": obj.reporter.nickname,
+                "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
+            }
+            SendEmail().delay(kv = kv,
+                              subject = Constants.EMAIL_TITLE["NOTIFICATION_DELETE_CASE"].format(request.user.nickname),
+                              email_type = e.EMAIL_TYPE["NOTIFICATION"],
+                              sender = e.EMAIL_SENDER["NO-REPLY"],
+                              recipient = [obj.reporter.email])
         obj.delete()
 
         return APIResponse({"data": {}})
@@ -1054,12 +1084,13 @@ class CommentView(APIView):
         }
         u = None
         target = {}
+        e = Email()
         if "case" in data:
             obj = Case.objects.get(id=data["case"])
             target["uid"] = str(obj.uid)
             target["title"] = obj.title
             target["type"] = "case"
-            u = obj.writer
+            u = obj.reporter
         if "indicator" in data:
             obj = Indicator.objects.get(id=data["indicator"])
             target["uid"] = str(obj.uid)
@@ -1079,6 +1110,16 @@ class CommentView(APIView):
                 type=NotificationType.COMMENT,
                 target=target
             )
+            kv = {
+                "nickname": u.nickname,
+                "link": api_settings.WEB_URL + '/' + target["type"] + '/' + str(obj.uid)
+            }
+            SendEmail().delay(kv = kv,
+                  subject = Constants.EMAIL_TITLE["NOTIFICATION_COMMENT"].format(request.user.nickname),
+                  email_type = e.EMAIL_TYPE["NOTIFICATION"],
+                  sender = e.EMAIL_SENDER["NO-REPLY"],
+                  recipient = [obj.reporter.email])
+
         if notification:
             users = User.objects.filter(id__in=notification)
             for user in users:
@@ -1088,6 +1129,16 @@ class CommentView(APIView):
                     type=NotificationType.COMMENT_MENTIONED,
                     target=target
                 )
+                kv = {
+                    "nickname": u.nickname,
+                    "link": api_settings.WEB_URL + '/' + target["type"] + '/' + str(obj.uid)
+                }
+                SendEmail().delay(kv = kv,
+                    subject = Constants.EMAIL_TITLE["NOTIFICATION_COMMENT_MENTION"].format(request.user.nickname),
+                    email_type = e.EMAIL_TYPE["NOTIFICATION"],
+                    sender = e.EMAIL_SENDER["NO-REPLY"],
+                    recipient = [user.email])
+
         return APIResponse({
             "data": data
         })
