@@ -523,7 +523,7 @@ class IndicatorPostSerializer(NonNullModelSerializer):
     force = serializers.BooleanField(required=False)
     deleted = serializers.BooleanField(required=False)
     uid = serializers.UUIDField(required=False)
-    cases = serializers.ListField()
+    cases = serializers.ListField(required=False)
 
     class Meta:
         model = models.Indicator
@@ -833,15 +833,14 @@ class FileItemSerializer(serializers.Serializer):
 class CasePostSerializer(serializers.ModelSerializer):
     title = serializers.CharField(required=True, max_length=api_settings.CASE_TITLE_MAX_LEN)
     detail = serializers.CharField(required=True, max_length=api_settings.CASE_DETAIL_MAX_LEN)
-    reporter_info = serializers.CharField(required=False, allow_null=True, max_length=api_settings.CASE_REPORTER_MAX_LEN)
+    reporter_info = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=api_settings.CASE_REPORTER_MAX_LEN)
     ico = serializers.PrimaryKeyRelatedField(queryset=models.ICO.objects.all(), required=False)
     indicators = IndicatorPostSerializer(required=False, many=True)
     files = FileItemSerializer(required=False, many=True)
 
     class Meta:
         model = models.Case
-        fields = ("title", "detail", "reporter_info",
-                  "ico", "indicators", "files")
+        fields = ("title", "detail", "reporter_info", "ico", "indicators", "files")
         read_only_fields = ("id", "uid", "created")
 
     def validate_files(self, data):
@@ -867,6 +866,7 @@ class CasePostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         indicators_data = validated_data.pop("indicators", [])
         files_data = validated_data.pop("files", [])
+        print (validated_data)
         try:
             with transaction.atomic():
                 case = models.Case.objects.create(**validated_data)
