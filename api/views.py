@@ -164,17 +164,17 @@ class DashboardView(APIView):
             cases[1]["children"] = cases[1]["children"][3:]
             cases[1]["count"] = total_count
 
-            indicator_attached_filter = Q(num_cases__gt = 0) & \
-                                        (Q(cases__status__in = [CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user = user.pk))
+            indicator_attached_filter = Q(num_cases__gt=0) & \
+                                        (Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user=user.pk))
             indicators = [
                 {
                     "id": "indicator_attached",
-                    "count": Indicator.objects.annotate(num_cases = Count('cases')).filter(indicator_attached_filter).count(),
+                    "count": Indicator.objects.annotate(num_cases=Count('cases')).filter(indicator_attached_filter).count(),
                     "children": []
                 },
                 {
                     "id": "indicator_unattached",
-                    "count":  Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases = 0).count(),
+                    "count":  Indicator.objects.annotate(num_cases=Count('cases')).filter(num_cases=0).count(),
                     "children": []
                 }
             ]
@@ -182,18 +182,18 @@ class DashboardView(APIView):
             indicators = [
                 {
                     "id": "indicator_attached",
-                    "count": Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases__gt = 0).count(),
+                    "count": Indicator.objects.annotate(num_cases=Count('cases')).filter(num_cases__gt=0).count(),
                     "children": []
                 },
                 {
                     "id": "indicator_unattached",
-                    "count":  Indicator.objects.annotate(num_cases = Count('cases')).filter(num_cases = 0).count(),
+                    "count":  Indicator.objects.annotate(num_cases=Count('cases')).filter(num_cases=0).count(),
                     "children": []
                 }
             ]
 
         notifications = []
-        notification_objs = Notification.objects.filter(user = user.pk).order_by('-created')
+        notification_objs = Notification.objects.filter(user=user.pk).order_by('-created')
         if notification_objs:
             notifications = NotificationSerializer(notification_objs, many=True).data
 
@@ -472,15 +472,15 @@ class IndicatorFilter(filters.FilterSet):
 
     def filter_type(self, queryset, name, value):
         if self.request.user.permission is UserPermission.EXCHANGE:
-            indicator_attached_filter = Q(num_cases__gt = 0) & \
-                                        (Q(cases__status__in = [CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user = self.request.user.pk))
+            indicator_attached_filter = Q(num_cases__gt=0) & \
+                                        (Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user=self.request.user.pk))
         else:
-            indicator_attached_filter = Q(num_cases__gt = 0)
+            indicator_attached_filter = Q(num_cases__gt=0)
 
         if value == 'attached':
-            return queryset.annotate(num_cases = Count('cases')).filter(indicator_attached_filter)
+            return queryset.annotate(num_cases=Count('cases')).filter(indicator_attached_filter)
         elif value == 'unattached':
-            return queryset.annotate(num_cases = Count('cases')).filter(num_cases = 0)
+            return queryset.annotate(num_cases=Count('cases')).filter(num_cases=0)
         else:
             raise exceptions.IndicatorNotFound()
 
@@ -508,9 +508,9 @@ class IndicatorView(generics.ListCreateAPIView):
 
     def post(self, request):
         if "indicators" in request.data:
-            serializer = IndicatorPostSerializer(data = request.data["indicators"], many=True)
+            serializer = IndicatorPostSerializer(data=request.data["indicators"], many=True)
         else:
-            serializer = IndicatorPostSerializer(data = request.data)
+            serializer = IndicatorPostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if request.auth is not None:
             indicator_obj = serializer.save(user=request.user)
@@ -550,7 +550,7 @@ class IndicatorDetailView(APIView):
 
     def put(self, request, pk=None):
         obj = self.get_object(pk)
-        case_test_objs = obj.cases.filter(status__in = [CaseStatus.CONFIRMED, CaseStatus.RELEASED])
+        case_test_objs = obj.cases.filter(status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED])
         if len(case_test_objs) > 0:
             raise exceptions.NotAllowedError()
         serializer = IndicatorPostSerializer(obj, data=request.data)
@@ -625,14 +625,16 @@ class SearchView(generics.ListAPIView):
 
     def get_indicator_queryset(self, query):
         objs = []
-        ltree_pattern = Pattern.getMaterializedPathForSelect(query)
+        #filter_queries = Q(pattern_tree__aore=ltree_pattern) | Q(pattern_tree__dore=ltree_pattern)
+        filter_queries = Q(pattern__icontains=query)
 
-        filter_queries = Q(pattern_tree__aore=ltree_pattern) | Q(pattern_tree__dore=ltree_pattern)
-        if self.request.auth:
-            objs = Indicator.objects.filter(filter_queries).order_by('pk')
-        else:
+        if not self.request.auth:
             filter_queries &= Q(case__status=CaseStatus.RELEASED)
-            objs = Indicator.objects.filter(filter_queries).order_by('pk')
+        elif self.request.auth and self.request.user.permission is UserPermission.EXCHANGE:
+            filter_queries &= Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user=self.request.user.pk)
+
+        objs = Indicator.objects.filter(filter_queries).order_by('pk')
+
         return objs
 
     def get_case_queryset(self, query):
@@ -651,6 +653,9 @@ class SearchView(generics.ListAPIView):
             filter_queries |= Q(indicator__pattern__icontains=query)
             filter_queries |= Q(indicator__pattern_subtype__icontains=query)
             filter_queries |= Q(ico__symbol__icontains=query)
+
+        if self.request.user.permission is UserPermission.EXCHANGE:
+            filter_queries &= Q(status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(reporter=self.request.user.pk)
 
         objs = Case.objects \
             .prefetch_related('indicators') \
