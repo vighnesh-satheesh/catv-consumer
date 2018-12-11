@@ -866,7 +866,6 @@ class CasePostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         indicators_data = validated_data.pop("indicators", [])
         files_data = validated_data.pop("files", [])
-        print (validated_data)
         try:
             with transaction.atomic():
                 case = models.Case.objects.create(**validated_data)
