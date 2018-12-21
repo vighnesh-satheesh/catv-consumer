@@ -205,6 +205,7 @@ class IndicatorEnvironment(Enum):
 class IndicatorSecurityCategory(Enum):
     WHITELIST = 'whitelist'
     BLACKLIST = 'blacklist'
+    GRAYLIST = 'graylist'
 
 
 class APIKeyType(Enum):
