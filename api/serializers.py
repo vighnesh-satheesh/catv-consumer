@@ -714,19 +714,24 @@ class ICODetailSerializer(NonNullModelSerializer):
             if len(case_queryset) > 0:
                 blacklist = []
                 whitelist = []
+                graylist = []
                 for case in case_queryset:
                     blacklist.extend(case.indicators.filter(security_category=models.IndicatorSecurityCategory.BLACKLIST))
                     whitelist.extend(case.indicators.filter(security_category=models.IndicatorSecurityCategory.WHITELIST))
+                    graylist.extend(case.indicators.filter(security_category=models.IndicatorSecurityCategory.GRAYLIST))
 
                 white_se = IndicatorListSerializer(whitelist, many=True)
                 black_se = IndicatorListSerializer(blacklist, many=True)
+                graylist_se = IndicatorListSerializer(graylist, many=True)
 
                 return {"whitelist": white_se.data,
-                        "blacklist": black_se.data}
+                        "blacklist": black_se.data,
+                        "graylist": graylist_se.data}
             else:
                 return {
                     "whitelist": [],
-                    "blacklist": []
+                    "blacklist": [],
+                    "graylist": []
                 }
         except models.Case.DoesNotExist:
             pass
