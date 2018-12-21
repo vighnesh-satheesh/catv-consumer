@@ -136,6 +136,7 @@ class CaseStatus(Enum):
 class IndicatorPatternType(Enum):
     NETWORKADDR = 'addr'
     CRYPTOADDR = 'cryptoaddr'
+    FILEHASH = 'filehash'
     OTHER = 'other'
 
 
@@ -159,6 +160,9 @@ class IndicatorPatternSubtype(Enum):
     DOMAIN = 'domain'
     HOSTNAME = 'hostname'
     IPV4 = 'ipv4'
+    # file hash
+    SHA256 = 'sha256'
+    MD5 = 'md5'
     # other
     OTHER = 'other'
 
@@ -170,6 +174,32 @@ class IndicatorPatternSubtype(Enum):
     @classmethod
     def networkaddr_subtypes(cls):
         return [cls.URL, cls.EMAIL, cls.DOMAIN, cls.HOSTNAME, cls.IPV4, cls.OTHER]
+
+    @classmethod
+    def filehash_subtypes(cls):
+        return [cls.SHA256, cls.MD5]
+
+
+class IndicatorVector(Enum):
+    EMAIL = 'email'
+    WEBSITE = 'website'
+    SOCIAL_MEDIA = 'social_media'
+    OTHER = 'other'
+
+    @classmethod
+    def indicator_vector_type(cls):
+        return [cls.EMAIL, cls.WEBSITE, cls.SOCIAL_MEDIA, cls.OTHER]
+
+
+class IndicatorEnvironment(Enum):
+    WINDOWS = 'windows'
+    MACOS = 'macos'
+    IOS = 'ios'
+    ANDROID = 'android'
+
+    @classmethod
+    def indicator_environment_type(cls):
+        return [cls.WINDOWS, cls.MACOS, cls.IOS, cls.ANDROID]
 
 
 class IndicatorSecurityCategory(Enum):
@@ -325,14 +355,15 @@ class Indicator(models.Model):
     cases = models.ManyToManyField(Case, related_name='indicator_cases')
 
     security_category = EnumField(enum=IndicatorSecurityCategory)
-    security_tags = ArrayField(models.CharField(max_length=32, blank=False),
-                               blank=True, null=True,
-                               help_text="comma-separated string. (Phishing, Scam, Malware, Hacks, Exploits)")
+    security_tags = ArrayField(models.CharField(max_length=32, blank=False), blank=True, null=True)
+    vector = ArrayField(EnumField(enum=IndicatorVector), blank=True, null=True)
+    environment = ArrayField(EnumField(enum=IndicatorEnvironment), blank=True, null=True)
 
     pattern = models.CharField(max_length=256)
     pattern_type = EnumField(enum=IndicatorPatternType, blank=False, null=False)
     pattern_subtype = EnumField(enum=IndicatorPatternSubtype, blank=True, null=True)
     pattern_tree = LtreeField(blank=False, null=False)
+
     detail = models.TextField(default='', blank=True, null=True, max_length=api_settings.INDICATOR_DETAIL_MAX_LEN)
     created = models.DateTimeField(default=now)
     updated = models.DateTimeField(auto_now=True)
@@ -359,6 +390,8 @@ class Indicator(models.Model):
         validates.validate_max_length(self.detail, model=True, limit=api_settings.CASE_DETAIL_MAX_LEN, field_name="detail")
         validates.validate_pattern_type_subtype(self.pattern_type, self.pattern_subtype, model=True)
         validates.validate_security_type_tag(self.security_category, self.security_tags, model=True)
+        validates.validate_indicator_vector(self.vector, model=True)
+        validates.validate_indicator_environment(self.vector, model=True)
         return super(Indicator, self).clean()
 
 
