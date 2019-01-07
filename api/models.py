@@ -378,7 +378,7 @@ class Indicator(models.Model):
     environment = ArrayField(EnumField(enum=IndicatorEnvironment, max_length=32), blank=True, null=True)
 
     pattern = models.CharField(max_length=256)
-    pattern_type = EnumField(enum=IndicatorPatternType, blank=False, null=False)
+    pattern_type = EnumField(enum=IndicatorPatternType, blank=False, null=False, max_length=32)
     pattern_subtype = EnumField(enum=IndicatorPatternSubtype, blank=True, null=True)
     pattern_tree = LtreeField(blank=False, null=False)
 
