@@ -137,6 +137,7 @@ class IndicatorPatternType(Enum):
     NETWORKADDR = 'addr'
     CRYPTOADDR = 'cryptoaddr'
     FILEHASH = 'filehash'
+    SOCIALMEDIA = 'socialmedia'
     OTHER = 'other'
 
 
@@ -163,6 +164,12 @@ class IndicatorPatternSubtype(Enum):
     # file hash
     SHA256 = 'sha256'
     MD5 = 'md5'
+    # social media
+    TWITTER = 'twitter'
+    FACEBOOK = 'facebook'
+    YOUTUBE = 'youtube'
+    TELEGRAM = 'telegram'
+
     # other
     OTHER = 'other'
 
@@ -178,6 +185,10 @@ class IndicatorPatternSubtype(Enum):
     @classmethod
     def filehash_subtypes(cls):
         return [cls.SHA256, cls.MD5]
+
+    @classmethod
+    def socialmedia_subtypes(cls):
+        return [cls.TWITTER, cls.FACEBOOK, cls.YOUTUBE, cls.TELEGRAM]
 
 
 class IndicatorVector(Enum):
