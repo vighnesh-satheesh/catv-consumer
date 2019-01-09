@@ -630,8 +630,8 @@ class SearchView(generics.ListAPIView):
         filter_queries |= Q(security_tags__icontains=query)
 
         try:
-            IndicatorPatternSubtype(query)
-            filter_queries |= Q(pattern_subtype=query)
+            IndicatorPatternSubtype(query.lower())
+            filter_queries |= Q(pattern_subtype=query.lower())
         except ValueError:
             pass
 
