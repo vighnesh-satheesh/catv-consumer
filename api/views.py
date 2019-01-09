@@ -15,7 +15,7 @@ from .models import (
     User, Case, Indicator, ICO, CaseStatus, Key, Comment,
     Notification, NotificationType,
     AttachedFile, UserPermission, UppwardRewardInfo,
-    UserStatus
+    UserStatus, IndicatorPatternSubtype
 )
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
@@ -627,6 +627,13 @@ class SearchView(generics.ListAPIView):
         objs = []
         #filter_queries = Q(pattern_tree__aore=ltree_pattern) | Q(pattern_tree__dore=ltree_pattern)
         filter_queries = Q(pattern__icontains=query)
+        filter_queries |= Q(security_tags__icontains=query)
+
+        try:
+            IndicatorPatternSubtype(query.lower())
+            filter_queries |= Q(pattern_subtype=query.lower())
+        except ValueError:
+            pass
 
         if not self.request.auth:
             filter_queries &= Q(case__status=CaseStatus.RELEASED)

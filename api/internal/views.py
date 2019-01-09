@@ -79,13 +79,13 @@ class IndicatorInternalView(APIView):
         if security_category:
             filter_queries &= Q(security_category=security_category)
         if pattern:
-            filter_queries &= Q(pattern=pattern)
+            filter_queries &= Q(pattern__iexact=pattern)
         if pattern_type:
             filter_queries &= Q(pattern_type=pattern_type)
         if pattern_subtype:
             filter_queries &= Q(pattern_subtype=pattern_subtype)
         if security_tags:
-            filter_queries &= Q(security_tags__contains=security_tags)
+            filter_queries &= Q(security_tags__icontains=security_tags)
 
         indicators = Indicator.objects.filter(filter_queries).distinct('id').order_by('pk')
         result_serializer = IndicatorDetailSerializer(indicators, many=True)
