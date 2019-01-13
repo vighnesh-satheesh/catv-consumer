@@ -544,6 +544,7 @@ class IndicatorPostSerializer(NonNullModelSerializer):
     vector = serializers.ListField(child=fields.EnumField(enum=models.IndicatorVector), required=False)
     environment = serializers.ListField(child=fields.EnumField(enum=models.IndicatorEnvironment), required=False)
     force = serializers.BooleanField(required=False)
+    reporter_info = serializers.CharField(required=False)
     deleted = serializers.BooleanField(required=False)
     annotation = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     uid = serializers.UUIDField(required=False)
@@ -552,7 +553,7 @@ class IndicatorPostSerializer(NonNullModelSerializer):
     class Meta:
         model = models.Indicator
         fields = ("id", "uid", "pattern_type", "pattern_subtype", "security_category", "security_tags", "environment",
-                  "vector", "detail", "pattern", "force", "deleted", "cases", "annotation")
+                  "vector", "detail", "pattern", "force", "deleted", "cases", "annotation", "reporter_info")
         read_only_fields = ("id", "uid", "force", "deleted")
 
     def validate(self, data):
