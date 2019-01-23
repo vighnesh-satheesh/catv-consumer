@@ -10,6 +10,9 @@ from django_filters import rest_framework as filters
 from django.db.models import Q, Count
 from django.db import transaction, IntegrityError
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 from .models import (
     User, Case, Indicator, ICO, CaseStatus, Key, Comment,
     Notification, NotificationType,
@@ -330,6 +333,11 @@ class CaseDetailView(APIView):
             raise exceptions.CaseNotFound()
 
     def get(self, request, pk=None):
+        c = DefaultCache()
+        cached_response = c.get_view_cache(request)
+        if cached_response:
+            return APIResponse(cached_response)
+
         obj = self.get_object(pk)
         serializer = CaseDetailSerializer(obj, context={"request": request})
         data = serializer.data
@@ -346,13 +354,14 @@ class CaseDetailView(APIView):
 
         next_status = utils.CASE_STATUS_FSM.next(obj.status, is_super, is_owner)
         permission_data["status"] = [e.value for e in next_status]
-
-        return APIResponse({
-            "data": {
-                "case": data,
-                "case_permission": permission_data
-            }
-        })
+        return APIResponse(
+            c.set_view_cache(request, {
+                "data": {
+                    "case": data,
+                    "case_permission": permission_data
+                }
+            })
+        )
 
     def put(self, request, pk=None):
         obj = self.get_object(pk)
@@ -362,6 +371,8 @@ class CaseDetailView(APIView):
         serializer = CasePostSerializer(obj, data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        c = DefaultCache()
+        c.delete_view_cache(request)
 
         if obj.reporter and obj.reporter.email_notification:
             notification = Notification.objects.create(
@@ -393,6 +404,10 @@ class CaseDetailView(APIView):
         serializer = CasePatchSerializer(obj, data=request.data, partial=True, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        c = DefaultCache()
+        c.delete_view_cache(request)
+
         if obj.reporter and obj.reporter.email_notification:
             notification = Notification.objects.create(
                 user=obj.reporter,
@@ -454,6 +469,9 @@ class CaseDetailView(APIView):
                               sender = e.EMAIL_SENDER["NO-REPLY"],
                               recipient = [obj.reporter.email])
         obj.delete()
+
+        c = DefaultCache()
+        c.delete_view_cache(request)
 
         return APIResponse({"data": {}})
 
@@ -534,14 +552,21 @@ class IndicatorDetailView(APIView):
         return indicator
 
     def get(self, request, pk=None):
+        c = DefaultCache()
+        cached_response = c.get_view_cache(request)
+        if cached_response:
+            return APIResponse(cached_response)
+
         obj = self.get_object(pk)
         serializer = IndicatorDetailSerializer(obj, is_authenticated=True if request.user and request.user.is_authenticated else False)
         data = serializer.data
-        return APIResponse({
-            "data": {
-                "indicator": data
-            }
-        })
+        return APIResponse(
+            c.set_view_cache(request, {
+                "data": {
+                    "indicator": data
+                }
+            })
+        )
 
     def put(self, request, pk=None):
         obj = self.get_object(pk)
@@ -552,6 +577,8 @@ class IndicatorDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         indicator_obj = serializer.save()
         result_serializer = IndicatorSimpleListSerializer(indicator_obj)
+        c = DefaultCache()
+        c.delete_view_cache(request)
         return APIResponse({
             "data": result_serializer.data
         })
@@ -570,15 +597,20 @@ class IndicatorDetailView(APIView):
             raise exceptions.ValidationError("indicator does not exist")
         except IntegrityError:
             raise exceptions.DataIntegrityError("")
+        c = DefaultCache()
+        c.delete_view_cache(request)
         return APIResponse({"data": {}})
 
 
-# /search?q=aa&type=ico&page=1
 class SearchView(generics.ListAPIView):
     authentication_classes = (CachedTokenAuthentication,)
     permission_classes = (AllowAny,)
     pagination_class = CustomPagination
     filter_backends = (filters.DjangoFilterBackend,)
+
+    @method_decorator(cache_page(60 * 5))
+    def dispatch(self, *args, **kwargs):
+        return super(SearchView, self).dispatch(*args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         search_type = self.request.query_params.get("type", "ico")
@@ -601,16 +633,11 @@ class SearchView(generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
-        if page is not None:
-            if request.auth and search_type == "indicator":
-                serializer = serializer_cls(page, many=True, is_authenticated=True)
-            else:
-                serializer = serializer_cls(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = serializer_cls(queryset, many=True)
-        serializer.is_valid(raise_exception=True)
-        return APIResponse(serializer.validated_data)
+        if request.auth and search_type == "indicator":
+            serializer = serializer_cls(page, many=True, is_authenticated=True)
+        else:
+            serializer = serializer_cls(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
     def get_ico_queryset(self, query):
         filter_queries = Q(symbol__istartswith=query)
@@ -691,10 +718,13 @@ class SearchView(generics.ListAPIView):
         return self.paginator.get_paginated_response(data, data_key="items")
 
 
-# /search/autocomplete?type=ico&q=aa
 class AutoCompleteView(APIView):
     authentication_classes = ()
     permission_classes = (AllowAny,)
+
+    @method_decorator(cache_page(60 * 5))
+    def dispatch(self, *args, **kwargs):
+        return super(AutoCompleteView, self).dispatch(*args, **kwargs)
 
     def get(self, request, **kwargs):
         serializer = AutoCompleteSerializer(data=request.GET)
@@ -769,6 +799,10 @@ class ICODetailView(APIView):
     authentication_classes = (CachedTokenAuthentication,)
     permission_classes = (AllowAny,)
     model = ICO
+
+    @method_decorator(cache_page(60 * 5))
+    def dispatch(self, *args, **kwargs):
+        return super(ICODetailView, self).dispatch(*args, **kwargs)
 
     def get(self, request, pk=None):
         try:

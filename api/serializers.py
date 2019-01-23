@@ -23,7 +23,7 @@ from .settings import api_settings
 from .multitoken.tokens_auth import MultiToken
 from .multitoken.crypto import decrypt_message
 from .constants import Constants
-from .cache import UppwardCache
+from .cache.uppward import UppwardCache
 
 class NonNullModelSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
