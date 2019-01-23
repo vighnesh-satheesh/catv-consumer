@@ -1,8 +1,5 @@
 from django.core.cache import caches, cache
 import random, string
-import re
-from urllib.parse import urlparse
-
 
 class DefaultCache:
     def __init__(self):
@@ -48,19 +45,19 @@ class DefaultCache:
         self.set(v, email + "-activate", 60 * 5)
         return v
 
+    def get_view_cache(self, request):
+        c = self.get_cache()
+        key = request.get_full_path()
+        d = c.get(key)
+        return d if d is not None else None
 
-class UppwardCache:
-    def __init__(self):
-        pass
+    def set_view_cache(self, request, value, time=60*60):
+        c = self.get_cache()
+        key = request.get_full_path()
+        c.set(key, value, time)
+        return value
 
-    def invalidate_cache(self, u):
-        c = caches["uppward"]
-        p = re.compile(r"^((https?:\/\/[^\s/$.?#][^\s]*)|((([a-z0-9]|[^\x00-\x7F])([a-z0-9-]|[^\x00-\x7F])*\.)+([a-z]|[^\x00-\x7F])([a-z0-9-]|[^\x00-\x7F]){1,}(:\d{1,5})?(\/.*)?))$", re.IGNORECASE)
-        if p.match(u) != None:
-            url = urlparse(u).netloc.replace("www.", "").lower()
-            d = c.get(url)
-            if d is not None:
-                c.delete(url)
-            d = c.get('www.' + url)
-            if d is not None:
-                c.delete('www' + url)
+    def delete_view_cache(self, request):
+        c = self.get_cache()
+        key = request.get_full_path()
+        c.delete(key)
