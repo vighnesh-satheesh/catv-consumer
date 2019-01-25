@@ -505,7 +505,8 @@ class IndicatorDetailSerializer(NonNullModelSerializer):
 
     def get_icos(self, obj):
         ico_objs = []
-        for c in obj.cases.all():
+        cases = obj.cases.all()
+        for c in cases:
             if c.ico is not None:
                 ico_objs.append(c.ico)
         ico_serializer = ICOListSerializer(ico_objs, many=True)
@@ -1226,7 +1227,8 @@ class CasePatchSerializer(NonNullModelSerializer):
                     (instance.status == models.CaseStatus.RELEASED and \
                      validated_data["status"] == models.CaseStatus.REJECTED):
                     c = UppwardCache()
-                    for indicator in instance.indicators.all():
+                    indicators = instance.indicators.all()
+                    for indicator in indicators:
                         c.invalidate_cache(indicator.pattern)
 
                 ch_serializer.save()

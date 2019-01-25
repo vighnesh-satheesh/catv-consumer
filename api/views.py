@@ -586,7 +586,8 @@ class IndicatorDetailView(APIView):
         try:
             with transaction.atomic():
                 indicator = self.get_object(pk)
-                for case in indicator.cases.all():
+                cases = indicator.cases.all()
+                for case in cases:
                     if case.status in [CaseStatus.CONFIRMED, CaseStatus.RELEASED]:
                         raise exceptions.ValidationError("has confirmed or released attached cases.")
                 CaseIndicator.objects.filter(indicator=indicator).delete()
