@@ -588,8 +588,7 @@ class IndicatorPostSerializer(NonNullModelSerializer):
                     case_instance = models.Case.objects.get(id=case["id"])
                     if case_instance.status not in [models.CaseStatus.NEW, models.CaseStatus.PROGRESS]:
                         raise exceptions.DataIntegrityError("case's status is not 'new' or 'in progress'")
-                    case_instance.indicators.add(indicator)
-                    indicator.cases.add(case_instance)
+                    models.CaseIndicator.objects.create(case=case, indicator=indicator)
         except IntegrityError:
             raise exceptions.DataIntegrityError("data integrity error")
         except exceptions.DataIntegrityError as err:
@@ -616,11 +615,9 @@ class IndicatorPostSerializer(NonNullModelSerializer):
                 for case in cases:
                     case_instance = models.Case.objects.get(id=case["id"])
                     if "deleted" in case:
-                        instance.cases.remove(case_instance)
-                        case_instance.indicators.remove(instance)
+                        models.CaseIndicator.objects.filter(case=case_instance, indicator=instance).delete()
                     if "added" in case:
-                        instance.cases.add(case_instance)
-                        case_instance.indicators.add(instance)
+                        models.CaseIndicator.objects.create(case=case_instance, indicator=instance)
                 instance = super().update(instance, data)
         except IntegrityError:
             raise exceptions.DataIntegrityError()
@@ -912,8 +909,7 @@ class CasePostSerializer(serializers.ModelSerializer):
                         if not reporter_info:
                             indi["reporter_info"] = reporter_info
                         indicator = models.Indicator.objects.create(**indi)
-                    indicator.cases.add(case)
-                    case.indicators.add(indicator)
+                    models.CaseIndicator.objects.create(case=case, indicator=indicator)
 
                 if len(files_data) > api_settings.CASE_ATTACHED_FILE_MAX_LIMIT:
                     raise exceptions.ValidationError({"files": "one case cannot have more than 20 files."})
@@ -970,14 +966,12 @@ class CasePostSerializer(serializers.ModelSerializer):
                     if "uid" in indi_item:
                         indicator = models.Indicator.objects.get(uid=indi_item["uid"])
                         if "deleted" in indi_item and indi_item["deleted"] is True:
-                            indicator.cases.remove(instance)
-                            instance.indicators.remove(indicator)
+                            models.CaseIndicator.objects.filter(case=instance, indicator=indicator).delete()
                             history_log['indicatorRemoved'] = True
                     else:
                         indi_item["case"] = instance
                         indicator = models.Indicator.objects.create(**indi_item)
-                        indicator.cases.add(instance)
-                        instance.indicators.add(indicator)
+                        models.CaseIndicator.objects.create(case=instance, indicator=indicator)
                         history_log['indicatorAdded'] = True
                 # files
                 for file_item in files_data:
