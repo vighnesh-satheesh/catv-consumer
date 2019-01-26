@@ -783,18 +783,18 @@ class CaseSimpleListSerializer(NonNullModelSerializer):
             return None
         return time.mktime(obj.created.timetuple())
 
+
 class CaseListSerializer(NonNullModelSerializer):
     status = fields.EnumField(enum=models.CaseStatus)
     ico = ICOSerializer(read_only=True)
-    detail = fields.TruncatedCharField(truncate_len=api_settings.CASE_LIST_DETAIL_LEN)
     owned_by = serializers.SerializerMethodField()
-    indicator_summary = serializers.SerializerMethodField()
+    indicators = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Case
-        fields = ("id", "uid", "title", "detail", "created", "status", "owned_by", "ico", "indicator_summary")
-        read_only_fields = ("id", "uid", "title", "detail", "created", "status", "owned_by", "ico", "indicator_summary")
+        fields = ("id", "uid", "title", "created", "status", "owned_by", "ico", "indicators")
+        read_only_fields = ("id", "uid", "title", "created", "status", "owned_by", "ico", "indicators")
 
     def get_created(self, obj):
         if obj.created is None:
@@ -809,14 +809,8 @@ class CaseListSerializer(NonNullModelSerializer):
             }
         return None
 
-    def get_indicator_summary(self, obj):
-        indicator_summary = {}
-        indicators = obj.indicators
-        net_objs = indicators.filter(pattern_type = models.IndicatorPatternType.NETWORKADDR)
-        crypto_objs = indicators.filter(pattern_type = models.IndicatorPatternType.CRYPTOADDR)
-        indicator_summary["network_address_count"] = net_objs.count()
-        indicator_summary["crypto_address_count"] = crypto_objs.count()
-        return indicator_summary
+    def get_indicators(self, obj):
+        return obj.indicators.count()
 
 
 class CaseHistoryPostSerializer(serializers.ModelSerializer):
