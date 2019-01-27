@@ -804,8 +804,8 @@ class CaseListSerializer(NonNullModelSerializer):
     def get_reporter(self, obj):
         if obj.reporter:
             return {
-                "nickname": obj.owner.nickname,
-                "image": obj.owner.image.url if bool(obj.owner.image) else api_settings.S3_USER_IMAGE_DEFAULT
+                "nickname": obj.reporter.nickname,
+                "image": obj.reporter.image.url if bool(obj.reporter.image) else api_settings.S3_USER_IMAGE_DEFAULT
             }
         elif obj.reporter_info:
             return {
