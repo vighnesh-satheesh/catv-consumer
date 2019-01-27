@@ -786,20 +786,32 @@ class CaseSimpleListSerializer(NonNullModelSerializer):
 
 class CaseListSerializer(NonNullModelSerializer):
     status = fields.EnumField(enum=models.CaseStatus)
-    ico = ICOSerializer(read_only=True)
+    reporter = serializers.SerializerMethodField()
     owned_by = serializers.SerializerMethodField()
     indicators = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Case
-        fields = ("id", "uid", "title", "created", "status", "owned_by", "ico", "indicators")
-        read_only_fields = ("id", "uid", "title", "created", "status", "owned_by", "ico", "indicators")
+        fields = ("id", "uid", "title", "created", "status", "reporter", "owned_by", "indicators")
+        read_only_fields = ("id", "uid", "title", "created", "status", "reporter", "owned_by", "indicators")
 
     def get_created(self, obj):
         if obj.created is None:
             return None
         return time.mktime(obj.created.timetuple())
+
+    def get_reporter(self, obj):
+        if obj.reporter:
+            return {
+                "nickname": obj.owner.nickname,
+                "image": obj.owner.image.url if bool(obj.owner.image) else api_settings.S3_USER_IMAGE_DEFAULT
+            }
+        elif obj.reporter_info:
+            return {
+                "email": obj.reporter_info
+            }
+        return None
 
     def get_owned_by(self, obj):
         if obj.owner:
