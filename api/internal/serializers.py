@@ -230,7 +230,7 @@ class CasePostSerializer(serializers.ModelSerializer):
                         if indi["pattern_type"] in [models.IndicatorPatternType.NETWORKADDR, models.IndicatorPatternType.SOCIALMEDIA]:
                             indi["pattern_tree"] = Pattern.getMaterializedPathForInsert(indi["pattern"].lower().rstrip('/'))
                         force = indi.pop("force", True)
-                        if not force:
+                        if not force and indi["security_category"] is models.IndicatorSecurityCategory.BLACKLIST:
                             ic = models.Indicator.objects.filter(pattern = indi["pattern"])
                             if ic:
                                 continue
