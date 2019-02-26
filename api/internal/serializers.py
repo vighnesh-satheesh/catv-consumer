@@ -277,22 +277,26 @@ class CasePostSerializer(serializers.ModelSerializer):
                             if indi["pattern_subtype"] == "ETH":
                                 # non case sensitive check
                                 # ETH addresses are case insensitive, hence dup check should do case insensitive filtering
-                                dup = models.Indicator.objects.filter(security_category=indi["security_category"],
-                                                                      pattern__iexact=indi["pattern"]).order_by("-id")
+                                dup = models.Indicator.objects.filter(pattern__iexact=indi["pattern"]).order_by("-id")
                             else:
                                 # exact patternmatch check
-                                dup = models.Indicator.objects.filter(security_category=indi["security_category"],
-                                                                          pattern=indi["pattern"]).order_by("-id")
+                                dup = models.Indicator.objects.filter(pattern=indi["pattern"]).order_by("-id")
 
 
                             if len(dup) > 0:
                                 mostRecentDup = dup[0]
-                                if mostRecentDup.security_category != indi["security_category"]:
-                                    # indicator to be added has different security category as its duplicate, should thus be added to portal for investigation
+                                if indi["security_category"] is models.IndicatorSecurityCategory.GRAYLIST:
+                                    indi["security_category"] = mostRecentDup.security_category
                                     if validated_data["reporter"]:
                                         indi["user"] = validated_data["reporter"]
                                     new_indicators.append(models.Indicator(**indi))
-                                    # else if same security category, do nothing(i.e. drop the indicator to be added), but still continue to post the case (with the other indicators)
+                                else:
+                                    if mostRecentDup.security_category != indi["security_category"]:
+                                        # indicator to be added has different security category as its duplicate, should thus be added to portal for investigation
+                                        if validated_data["reporter"]:
+                                            indi["user"] = validated_data["reporter"]
+                                        new_indicators.append(models.Indicator(**indi))
+                                        # else if same security category, do nothing(i.e. drop the indicator to be added), but still continue to post the case (with the other indicators)
                             else:
                                 # there is no duplicate, so proceed to add indicator to portal
                                 if validated_data["reporter"]:
