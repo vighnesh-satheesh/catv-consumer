@@ -257,7 +257,7 @@ class CasePostSerializer(serializers.ModelSerializer):
                             if force is False:
                                 raise exceptions.DataIntegrityError("duplicate indicator")
                             else:
-                                new_indicators.append(dup[0])
+                                continue
                         else:
                             new_indicators.append(models.Indicator(**indi))
 
