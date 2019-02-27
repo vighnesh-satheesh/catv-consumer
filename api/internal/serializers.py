@@ -127,9 +127,7 @@ class IndicatorPostSerializer(NonNullModelSerializer):
 
         if not force:
             dup = models.Indicator.objects.filter(security_category = data["security_category"],
-                                                  pattern = data["pattern"],
-                                                  pattern_type = data["pattern_type"],
-                                                  pattern_subtype = data["pattern_subtype"]).order_by('-id')[:1]
+                                                  pattern = data["pattern"]).order_by('-id')[:1]
             if len(dup) > 0:
                 raise exceptions.DataIntegrityError("duplicate indicator")
 
@@ -252,14 +250,10 @@ class CasePostSerializer(serializers.ModelSerializer):
                         if not force:
                             if indi["pattern_subtype"] == "ETH":
                                 filter_queries = Q(security_category=indi["security_category"],
-                                                   pattern__iexact=indi["pattern"],
-                                                   pattern_type=indi["pattern_type"],
-                                                   pattern_subtype=indi["pattern_subtype"])
+                                                   pattern__iexact=indi["pattern"])
                             else:
                                 filter_queries = Q(security_category=indi["security_category"],
-                                                   pattern=indi["pattern"],
-                                                   pattern_type=indi["pattern_type"],
-                                                   pattern_subtype=indi["pattern_subtype"])
+                                                   pattern=indi["pattern"])
                             dup = models.Indicator.objects.filter(filter_queries).order_by("-id")[:1]
                         if len(dup) == 0:
                             new_indicators.append(models.Indicator(**indi))
