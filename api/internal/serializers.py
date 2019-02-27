@@ -126,9 +126,8 @@ class IndicatorPostSerializer(NonNullModelSerializer):
             raise exceptions.DataIntegrityError("invalid user id")
 
         if not force:
-            dup = models.Indicator.objects.filter(security_category = data["security_category"],
-                                                  pattern = data["pattern"]).order_by('-id')[:1]
-            if len(dup) > 0:
+            dup = models.Indicator.objects.filter(pattern = data["pattern"]).order_by('-id')[:1]
+            if len(dup) > 0 and dup[0].security_category == data["security_category"]:
                 raise exceptions.DataIntegrityError("duplicate indicator")
 
         try:
@@ -249,18 +248,18 @@ class CasePostSerializer(serializers.ModelSerializer):
                         dup = []
                         if not force:
                             if indi["pattern_subtype"] == "ETH":
-                                filter_queries = Q(security_category=indi["security_category"],
-                                                   pattern__iexact=indi["pattern"])
+                                filter_queries = Q(pattern__iexact=indi["pattern"])
                             else:
-                                filter_queries = Q(security_category=indi["security_category"],
-                                                   pattern=indi["pattern"])
+                                filter_queries = Q(pattern=indi["pattern"])
                             dup = models.Indicator.objects.filter(filter_queries).order_by("-id")[:1]
-                        if len(dup) == 0:
-                            new_indicators.append(models.Indicator(**indi))
-                        elif force is None:
-                            new_indicators.append(dup[0])
+
+                        if len(dup) > 0 and dup[0].security_category == indi["security_category"]:
+                            if force is False:
+                                raise exceptions.DataIntegrityError("duplicate indicator")
+                            else:
+                                new_indicators.append(models.Indicator(**indi))
                         else:
-                            raise exceptions.DataIntegrityError("duplicate indicator")
+                            new_indicators.append(models.Indicator(**indi))
 
                 indicator_bulk = indicator_bulk + models.Indicator.objects.bulk_create(new_indicators)
 
