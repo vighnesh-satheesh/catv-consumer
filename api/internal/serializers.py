@@ -242,11 +242,15 @@ class CasePostSerializer(serializers.ModelSerializer):
                         # inherit from the case
                         if reporter is not None:
                             indi["user"] = reporter
+                        else:
+                            user = indi.pop("user", None)
+                            if user is not None:
+                                indi["user"] = models.User.objects.get(id=user)
+
                         if "reporter_info" in validated_data:
                             indi["reporter_info"] = validated_data["reporter_info"]
-                        user = indi.pop("user", None)
-                        if not user:
-                            indi["user"] = models.User.objects.get(id=indi["user"])
+
+
 
                         force = indi.pop("force", None)
                         dup = []
