@@ -17,7 +17,8 @@ from .models import (
     User, Case, Indicator, CaseIndicator, ICO, CaseStatus, Key, Comment,
     Notification, NotificationType,
     AttachedFile, UserPermission, UppwardRewardInfo,
-    UserStatus, IndicatorPatternSubtype
+    UserStatus,
+    IndicatorPatternType, IndicatorPatternSubtype, IndicatorEnvironment, IndicatorVector, IndicatorSecurityCategory,
 )
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
@@ -220,10 +221,14 @@ class DashboardView(APIView):
 class CaseFilter(filters.FilterSet):
     user_case = filters.CharFilter(method='filter_user_case')
     case = filters.CharFilter(method='filter_case_board')
+    security_category = filters.CharFilter(method='filter_security_category')
+    pattern_type = filters.CharFilter(method='filter_pattern_type')
+    pattern_subtype = filters.CharFilter(method='filter_pattern_subtype')
+    keyword = filters.CharFilter(method='filter_keyword')
 
     class Meta:
         model = Case
-        fields = ("case",)
+        fields = ("case", "security_category", "pattern_type", "pattern_subtype", "keyword",)
 
     def filter_user_case(self, queryset, name, value):
         usercase_cate = value.split('_')
@@ -246,11 +251,11 @@ class CaseFilter(filters.FilterSet):
 
         return queryset
 
-    def filter_case_board(self, queryset, name, value):  # TODO: very dirty code, gets even dirtier
+    def filter_case_board(self, queryset, name, value):
         case_cate = value.split("_")
         if len(case_cate) not in [1, 2]:
             raise exceptions.CaseFilterError()
-
+        filter = Q()
         cate = case_cate[0]
         subcate = None
         if len(case_cate) == 2:
@@ -259,31 +264,59 @@ class CaseFilter(filters.FilterSet):
         if cate not in ["all", "my"]:
             raise exceptions.CaseFilterError()
 
+        if subcate and subcate not in ["new", "progress", "confirmed", "rejected", "released"]:
+            raise exceptions.CaseFilterError()
+
+        if subcate is not None:
+            filter &= Q(status=subcate)
+
         if cate == "all":
-            if subcate is None:
-                if self.request.user.permission == UserPermission.EXCHANGE:
-                    return queryset.filter(Q(status="released") | Q(status="rejected"))
-                else:
-                    return queryset
-
-            if subcate not in ["new", "progress", "confirmed", "rejected", "released"]:
-                raise exceptions.CaseFilterError()
-
-            try:
-                return queryset.filter(status=subcate)
-            except Exception:
-                raise exceptions.CaseFilterError()
+            if self.request.user.permission == UserPermission.EXCHANGE:
+                filter &= (Q(status="released") | Q(status="rejected"))
         elif cate == "my":
-            if subcate is None:
-                return queryset.filter(Q(owner=self.request.user.pk) | Q(reporter=self.request.user.pk))
-            if subcate not in ["new", "progress", "confirmed", "rejected", "released"]:
-                raise exceptions.CaseFilterError()
-            try:
-                return queryset.filter(Q(status=subcate) & (Q(owner=self.request.user.pk) | Q(reporter=self.request.user.pk)))
-            except Exception:
-                raise exceptions.CaseFilterError()
-        else:
-            return queryset
+            filter &= (Q(owner=self.request.user.pk) | Q(reporter=self.request.user.pk))
+
+        return queryset.filter(filter)
+
+    def filter_security_category(self, queryset, name, value):
+        security_category = self.request.GET.getlist(name) or []
+        filter = Q()
+        if len(security_category) > 0:
+            filter &= Q(indicators__security_category__in=security_category)
+        return queryset.filter(filter)
+
+    def filter_pattern_type(self, queryset, name, value):
+        pattern_type = self.request.GET.getlist(name) or []
+        filter = Q()
+        if len(pattern_type) > 0:
+            filter &= Q(indicators__pattern_type__in=pattern_type)
+        return queryset.filter(filter)
+
+    def filter_pattern_subtype(self, queryset, name, value):
+        pattern_subtype = self.request.GET.getlist(name) or []
+        filter = Q()
+        if len(pattern_subtype) > 0:
+            filter &= Q(indicators__pattern_subtype__in=pattern_subtype)
+        return queryset.filter(filter)
+
+    def filter_keyword(self, queryset, name, value):
+        keyword = self.request.GET.getlist(name) or []
+        filter = Q()
+        for k in keyword:
+            filter |= Q(title__icontains=k)
+            filter |= Q(detail__icontains=k)
+            filter |= Q(indicators__pattern__icontains=k)
+            filter |= Q(indicators__annotation=k)
+            if k in IndicatorPatternType.__members__:
+                filter |= Q(indicators__pattern_type=k)
+            if k in IndicatorPatternSubtype.__members__:
+                filter |= Q(indicators__pattern_subtype=k)
+            if k in IndicatorVector.__members__:
+                filter |= Q(indicators__vector=k)
+            if k in IndicatorEnvironment.__members__:
+                filter |= Q(indicators__environment=k)
+
+        return queryset.filter(filter)
 
 
 class CaseView(generics.ListCreateAPIView):
@@ -296,7 +329,13 @@ class CaseView(generics.ListCreateAPIView):
     model = Case
 
     def get_queryset(self):
-        return self.model.objects.order_by('-pk')
+        order_by = self.request.GET.get('order_by') or 'id_desc'
+        order_by = order_by.split('_')
+        key = ""
+        if order_by[1] == "desc":
+            key = "-"
+        key = key + order_by[0]
+        return self.model.objects.order_by(key)
 
     def get_throttles(self):
         ret = []
