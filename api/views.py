@@ -160,30 +160,54 @@ class DashboardView(APIView):
             number_of_all_cases += all
             number_of_all_my_cases += my
 
-        cases = [
-            {
-                "id": "case_my",
-                "count": number_of_all_my_cases,
-                "children": [
-                    utils.get_dashboard_item("case_my", "new", count_dict),
-                    utils.get_dashboard_item("case_my", "progress", count_dict),
-                    utils.get_dashboard_item("case_my", "confirmed", count_dict),
-                    utils.get_dashboard_item("case_my", "rejected", count_dict),
-                    utils.get_dashboard_item("case_my", "released", count_dict),
-                ]
-            },
-            {
-                "id": "case_all",
-                "count": number_of_all_cases,
-                "children": [
-                    utils.get_dashboard_item("case_all", "new", count_dict),
-                    utils.get_dashboard_item("case_all", "progress", count_dict),
-                    utils.get_dashboard_item("case_all", "confirmed", count_dict),
-                    utils.get_dashboard_item("case_all", "rejected", count_dict),
-                    utils.get_dashboard_item("case_all", "released", count_dict),
-                ]
-            }
-        ]
+        if user.permission is UserPermission.SUPERSENTINEL or \
+                user.permission is UserPermission.SENTINEL:
+            cases = [
+                {
+                    "id": "case_my",
+                    "count": number_of_all_my_cases,
+                    "children": [
+                        utils.get_dashboard_item("case_my", "new", count_dict),
+                        utils.get_dashboard_item("case_my", "progress", count_dict),
+                        utils.get_dashboard_item("case_my", "confirmed", count_dict),
+                        utils.get_dashboard_item("case_my", "rejected", count_dict),
+                        utils.get_dashboard_item("case_my", "released", count_dict),
+                    ]
+                },
+                {
+                    "id": "case_all",
+                    "count": number_of_all_cases,
+                    "children": [
+                        utils.get_dashboard_item("case_all", "new", count_dict),
+                        utils.get_dashboard_item("case_all", "progress", count_dict),
+                        utils.get_dashboard_item("case_all", "confirmed", count_dict),
+                        utils.get_dashboard_item("case_all", "rejected", count_dict),
+                        utils.get_dashboard_item("case_all", "released", count_dict),
+                    ]
+                }
+            ]
+        else:
+            cases = [
+                {
+                    "id": "case_my",
+                    "count": number_of_all_my_cases,
+                    "children": [
+                        utils.get_dashboard_item("case_my", "new", count_dict),
+                        utils.get_dashboard_item("case_my", "progress", count_dict),
+                        utils.get_dashboard_item("case_my", "confirmed", count_dict),
+                        utils.get_dashboard_item("case_my", "rejected", count_dict),
+                        utils.get_dashboard_item("case_my", "released", count_dict),
+                    ]
+                },
+                {
+                    "id": "case_all",
+                    "count": number_of_all_cases,
+                    "children": [
+                        utils.get_dashboard_item("case_all", "rejected", count_dict),
+                        utils.get_dashboard_item("case_all", "released", count_dict),
+                    ]
+                }
+            ]
 
         if user.permission is UserPermission.EXCHANGE:
             number_of_all_indicators = Indicator.objects.filter(Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user=user.pk)).count()
