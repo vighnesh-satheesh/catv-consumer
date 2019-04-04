@@ -330,7 +330,7 @@ class CaseFilter(filters.FilterSet):
 
 class CaseView(generics.ListCreateAPIView):
     authentication_classes = (CachedTokenAuthentication,)
-    permission_classes = (permissions.IsPostOrIsAuthenticated,)
+    permission_classes = (permissions.IsPostOrIsAuthenticated, permissions.CaseListPermission)
     pagination_class = CustomPagination
     filter_backends = (filters.DjangoFilterBackend,)
     filter_class = CaseFilter
@@ -379,7 +379,7 @@ class CaseView(generics.ListCreateAPIView):
 
 class CaseDetailView(APIView):
     authentication_classes = (CachedTokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, permissions.CheckCaseDetailPermission)
     model = Case
 
     def get_object(self, pk):
