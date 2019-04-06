@@ -57,6 +57,9 @@ class CheckCaseDetailPermission(permissions.BasePermission):
 
 class CaseListPermission(permissions.BasePermission):
     def has_permission(self, request, view):
+        if request.method == "POST":
+            return True
+
         if not request and not request.user:
             return False
 
