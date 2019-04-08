@@ -123,6 +123,7 @@ class ChangePasswordView(APIView):
             raise exceptions.AuthenticationValidationError("invalid data")
         c = DefaultCache()
         v = c.get(code)
+        c.delete_key(code)
         if not v:
             raise exceptions.AuthenticationValidationError("code not found")
         email = v.split("-")[0]
