@@ -30,6 +30,7 @@ if settings.EXPOSE_GENERAL_API:
         url(r'^case/?$', views.CaseView.as_view(), name='case-list'),
         url(r'^case/(?P<pk>[0-9a-z\-]+)/?$', views.CaseDetailView.as_view(), name='case-detail'),
         url(r'^indicator/?$', views.IndicatorView.as_view(), name='indicator'),
+        url(r'^indicator/pattern/(?P<pattern>[\w|\W]+)/?$', views.IndicatorDetailView.as_view(), name='indicator-detail-with-pattern'),
         url(r'^indicator/(?P<pk>[0-9a-z\-]+)/?$', views.IndicatorDetailView.as_view(), name='indicator-detail'),
         url(r'^icf/?$', views.IcfView.as_view(), name='icf'),
         url(r'^icf/(?P<pk>[0-9a-z\-]+)/?$', views.IcfView.as_view(), name='icf-update'),

@@ -691,20 +691,28 @@ class IndicatorDetailView(APIView):
     permission_classes = (AllowAny,)
     model = Indicator
 
-    def get_object(self, pk):
-        try:
-            indicator = self.model.objects.get(uid__iexact=pk)
-        except self.model.DoesNotExist:
+    def get_object(self, pk, pattern):
+        if not pk and not pattern:
             raise exceptions.IndicatorNotFound()
+        if pk:
+            try:
+                indicator = self.model.objects.get(uid__iexact=pk)
+            except self.model.DoesNotExist:
+                raise exceptions.IndicatorNotFound()
+        elif pattern:
+            try:
+                indicator = self.model.objects.filter(pattern__iexact=pattern).order_by('-id')[0]
+            except IndexError:
+                raise exceptions.IndicatorNotFound()
         return indicator
 
-    def get(self, request, pk=None):
+    def get(self, request, pk=None, pattern=None):
         c = DefaultCache()
         cached_response = c.get_view_cache(request)
         if cached_response:
             return APIResponse(cached_response)
 
-        obj = self.get_object(pk)
+        obj = self.get_object(pk, pattern)
         serializer = IndicatorDetailSerializer(obj, is_authenticated=True if request.user and request.user.is_authenticated else False)
         data = serializer.data
         return APIResponse(
