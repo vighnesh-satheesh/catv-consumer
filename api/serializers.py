@@ -117,6 +117,9 @@ class LoginSerializer(serializers.Serializer):
             token, _ = MultiToken.create_token(user)
         else:
             token = ""
+
+        user.timestamp = timezone.now()
+        user.save()
         return self.__create_success_response(user, token)
 
 
