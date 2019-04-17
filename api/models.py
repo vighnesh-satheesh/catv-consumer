@@ -258,6 +258,7 @@ class User(models.Model):
     nickname = models.CharField(max_length=128, unique=True)
     password = models.CharField(max_length=128)
     uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    timestamp = models.DateTimeField(default=now)
     created = models.DateTimeField(default=now)
     permission = EnumField(enum=UserPermission, default=UserPermission.SENTINEL, max_length=16)
     email_notification = models.BooleanField(default=True)
