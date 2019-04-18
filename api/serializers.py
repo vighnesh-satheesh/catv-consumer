@@ -981,18 +981,17 @@ class CasePostSerializer(serializers.ModelSerializer):
                         new_indicators.append(indicator)
 
                 indicator_bulk = indicator_bulk + models.Indicator.objects.bulk_create(new_indicators)
+                # annotation
                 for indicator in indicator_bulk:
-                    # annotation
-                    if not indicator.uid:
-                        for annotation in [x.lstrip() for x in indicator.annotation.split(",")]:
-                            if len(annotation) == 0:
-                                continue
-                            anno = models.Annotation.objects.filter(annotation=annotation)
-                            if len(anno) > 0:
-                                anno = anno[0]
-                            else:
-                                anno = models.Annotation.objects.create(annotation=annotation)
-                            models.IndicatorAnnotation.objects.create(indicator=indicator, annotation=anno)
+                    for annotation in [x.lstrip() for x in indicator.annotation.split(",")]:
+                        if len(annotation) == 0:
+                            continue
+                        anno = models.Annotation.objects.filter(annotation=annotation)
+                        if len(anno) > 0:
+                            anno = anno[0]
+                        else:
+                            anno = models.Annotation.objects.create(annotation=annotation)
+                        models.IndicatorAnnotation.objects.create(indicator=indicator, annotation=anno)
                     # case
                     m2m_bulk.append(models.CaseIndicator(case=case, indicator=indicator))
 
@@ -1060,6 +1059,16 @@ class CasePostSerializer(serializers.ModelSerializer):
                         indicator = models.Indicator.objects.create(**indi_item)
                         models.CaseIndicator.objects.create(case=instance, indicator=indicator)
                         history_log['indicatorAdded'] = True
+                        for annotation in [x.lstrip() for x in indicator.annotation.split(",")]:
+                            if len(annotation) == 0:
+                                continue
+                            anno = models.Annotation.objects.filter(annotation=annotation)
+                            if len(anno) > 0:
+                                anno = anno[0]
+                            else:
+                                anno = models.Annotation.objects.create(annotation=annotation)
+                            indicator.annotations.add(anno)
+
                 # files
                 for file_item in files_data:
                     if "uid" not in file_item:  # ignored. file item always has uid.
