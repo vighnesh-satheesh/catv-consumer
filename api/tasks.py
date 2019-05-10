@@ -1,18 +1,16 @@
 from celery.task.schedules import crontab
-from celery.task import task
 from celery.decorators import periodic_task
 from django.db.models import Q
 from .models import Case, Indicator, CaseIndicator, IndicatorSecurityCategory
 from .cache.indicator import IndicatorCache
+import datetime
 
 @periodic_task(run_every=(crontab(hour="23", minute="59", day_of_week="*")))
 def get_dashboard_metrics():
     pass
 
-@task()
-@periodic_task(run_every=(crontab(hour="*", minute="*/10", day_of_week="*")))
+@periodic_task(run_every=(datetime.timedelta(minutes=10)))
 def save_released_indicator_to_cache():
-
     indicator_cache = IndicatorCache()
     last_id = indicator_cache.get_last_indicator_id()
 
