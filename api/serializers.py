@@ -1016,7 +1016,7 @@ class CasePostSerializer(serializers.ModelSerializer):
 
                 # save file.
                 for file_item in files_data:
-                    file_obj = models.AttachedFile.objects.get(uid=file_item["uid"])
+                    file_obj = models.AttachedFile.objects.using('default').get(uid=file_item["uid"])
                     if file_obj.case is not None:
                         raise exceptions.DataIntegrityError("file already included in other cases.")
                     file_obj.case = case
@@ -1086,7 +1086,7 @@ class CasePostSerializer(serializers.ModelSerializer):
                             pass
                         history_log['fileRemoved'] = True
                         continue
-                    file_obj = models.AttachedFile.objects.get(uid=file_item["uid"])
+                    file_obj = models.AttachedFile.objects.using('default').get(uid=file_item["uid"])
                     if not file_obj:
                         continue
                     if file_obj.case is not None and file_obj.case != instance:  # raise exception when file is for other case.
