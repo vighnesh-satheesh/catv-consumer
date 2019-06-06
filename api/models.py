@@ -288,6 +288,13 @@ class FileStatus(IntEnum):
     COMPLETED = 1000
 
 
+class RewardSetting(models.Model):
+    min_token = models.IntegerField(null=True, blank=True)
+
+    def __int__(self):
+        return self.min_token
+
+
 class Role(models.Model):
     role_name = models.CharField(max_length=128, unique=True)
 
