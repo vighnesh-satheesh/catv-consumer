@@ -1478,12 +1478,18 @@ class Metrics(APIView):
 
         for indicator in indicators:
             if cached:
-                if indicator[0] < aware_startdate:
+                id = indicator[0]
+                uid = indicator[1]
+                security_category = indicator[2]
+                pattern = indicator[3]
+                created = indicator[4]
+                security_tags = indicator[5]
+                pattern_type = indicator[6]
+                pattern_subtype = indicator[7]
+
+                if created < aware_startdate:
                     break
-                created = indicator[0]
-                security_tags = indicator[1]
-                pattern_type = indicator[2]
-                pattern_subtype = indicator[3]
+
             else:
                 created = indicator['created']
                 security_tags = indicator['security_tags']
