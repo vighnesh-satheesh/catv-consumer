@@ -17,7 +17,7 @@ from django.views.decorators.cache import cache_page
 from django.db import connection
 
 from .models import (
-    User, Case, Indicator, CaseIndicator, ICO, CaseStatus, Key, Comment,
+    User, Case, Indicator, CaseIndicator, ICO, CaseStatus, Key, Comment, CaseHistory,
     Notification, NotificationType,
     AttachedFile, UserPermission, UppwardRewardInfo,
     UserStatus,
@@ -409,15 +409,11 @@ class CaseView(generics.ListCreateAPIView):
         history_log["msg"] = CaseStatus.NEW.value
         history_log["type"] = "status"
 
-        history_data = {
-            "log": json.dumps(history_log),
-            "case": case.pk,
-            "initiator": request.user.pk if request.auth is not None and request.user is not None else None
-        }
-
-        ch_serializer = CaseHistoryPostSerializer(data=history_data)
-        ch_serializer.is_valid(raise_exception=True)
-        ch_serializer.save()
+        CaseHistory.objects.create(
+            case=case,
+            log=json.dumps(history_log),
+            initiator=case.reporter if case.reporter is not None else None
+        )
 
         c = DefaultCache()
         c.delete_key('left_panel_values')
