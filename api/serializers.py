@@ -62,6 +62,9 @@ class LoginSerializer(serializers.Serializer):
 
     def __create_success_response(self, user, token):
         role_matrix = models.RolePermission.objects.get_permission_matrix(user.role.id)
+        catv_history = models.CatvHistory.objects.values('wallet_address', 'distribution_depth', 'source_depth',
+                                                         'transaction_limit', 'token_address', 'from_date',
+                                                         'to_date').filter(user=user.id).distinct()[:10]
 
         return {
             "accessToken": token.key if user.status == models.UserStatus.APPROVED else "",
@@ -73,7 +76,8 @@ class LoginSerializer(serializers.Serializer):
                 "rolepermissions": role_matrix,
                 "image": user.image.url if bool(user.image) else api_settings.S3_USER_IMAGE_DEFAULT,
                 "status": user.status.value,
-                "email_notification": user.email_notification
+                "email_notification": user.email_notification,
+                "catv_history": list(catv_history)
             }
         }
 
