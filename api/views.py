@@ -53,7 +53,7 @@ from .cache.catv import TrackingCache
 from .email import Email
 from .email.tasks import SendEmail
 from .constants import Constants
-from .tasks import CacheLeftPanelValuesTask, CacheMetricsTask
+from .tasks import CacheLeftPanelValuesTask, CacheMetricsTask, CatvHistoryTask
 from django.utils import timezone
 from django.utils.timezone import make_aware
 
@@ -1433,6 +1433,9 @@ class CATVView(APIView):
         else:
             results = serializer.get_tracking_results()
             tracking_cache.set_cache_entry(cache_key, gzip.compress(json.dumps(results).encode()), 86400)
+        history = serializer.data
+        history.update({'user_id': request.user.id})
+        CatvHistoryTask().run(history, False)
         return APIResponse({
             "data": results
         })

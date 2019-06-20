@@ -739,3 +739,18 @@ class BloxySource(models.Model):
         indexes = [
             models.Index(fields=['address', 'depth_limit', 'from_time', 'till_time'])
         ]
+
+
+class CatvHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    wallet_address = models.CharField(null=False, max_length=50)
+    token_address = models.CharField(null=True, max_length=50)
+    source_depth = models.IntegerField(default=0)
+    distribution_depth = models.IntegerField(default=0)
+    transaction_limit = models.IntegerField(null=False)
+    from_date = models.CharField(null=False, max_length=10)
+    to_date = models.CharField(null=False, max_length=10)
+    logged_time = models.DateTimeField(default=now)
+
+    class Meta:
+        db_table = 'api_catv_history'
