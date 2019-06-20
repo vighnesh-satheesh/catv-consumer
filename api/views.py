@@ -412,7 +412,7 @@ class CaseView(generics.ListCreateAPIView):
         history_data = {
             "log": json.dumps(history_log),
             "case": case.pk,
-            "initiator":  case.reporter.pk if case.reporter else None
+            "initiator": request.user.pk if request.auth is not None and request.user is not None else None
         }
 
         ch_serializer = CaseHistoryPostSerializer(data=history_data)
