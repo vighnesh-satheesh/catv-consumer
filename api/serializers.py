@@ -1644,20 +1644,21 @@ class CATVSerializer(serializers.Serializer):
             raise serializers.ValidationError("Incorrect date format, should be YYYY-MM-DD.")
 
     def get_tracking_results(self):
+        tracking_results = TrackingResults(**self.data)
         try:
-            tracking_results = TrackingResults(**self.data)
             tracking_results.get_tracking_data()
             tracking_results.create_graph_data()
             tracking_results.set_annotations_from_db()
             return tracking_results.make_graph_dict()
         except socket.timeout:
             raise exceptions.RequestTimeoutError("Bloxy source transactions API timeout (exceeded 30 seconds).")
-        except IndexError as e:
-            raise exceptions.FileNotFound(str(e))
-        except KeyError as e:
-            raise exceptions.FileNotFound("Incorrect or missing response from external API.")
         except Exception as e:
-            raise exceptions.ServerError("Oops, something went wrong.")
+            err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
+            if tracking_results.error:
+                err_msg = tracking_results.error
+            elif e:
+                err_msg = str(e)
+            raise exceptions.FileNotFound(err_msg)
 
 
 
