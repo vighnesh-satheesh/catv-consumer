@@ -35,6 +35,11 @@ class TrackingResults:
         self.to_date = find_key(kwargs, 'to_date')
         self.token_address = find_key(kwargs, 'token_address')
         self.force_lookup = find_key(kwargs, 'force_lookup')
+        self.error = None
+
+    def bloxy_response_callback(self, *args, **kwargs):
+        if args and 'error' in args[0]:
+            self.error = args[0]['error']
 
     def get_results_from_bloxy(self, bloxy_interface, depth, till_date, for_source=False):
         return bloxy_interface.get_transactions(self.wallet_address, depth, self.transaction_limit,
@@ -89,10 +94,12 @@ class TrackingResults:
         pool = ThreadPool(processes=2)
         if self.source_depth:
             self._skip_source = False
-            self._async_source_result = pool.apply_async(self.fetch_results, (True,))
+            self._async_source_result = pool.apply_async(self.fetch_results, (True,),
+                                                         callback=self.bloxy_response_callback)
         if self.distribution_depth:
             self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (False,))
+            self._async_dist_result = pool.apply_async(self.fetch_results, (False,),
+                                                       callback=self.bloxy_response_callback)
         pool.close()
         pool.join()
 
