@@ -1503,7 +1503,7 @@ class Metrics(APIView):
         else:
             latest_indicator_cache_key = Constants.CACHE_KEY['METRICS_LATEST_INDICATORS'].format('non-sentinel')
 
-        c = LocalCache()
+        c = DefaultCache()
         indicators = c.get(indicator_cache_key)
         cases = c.get(case_cache_key)
         latest_indicators = c.get(latest_indicator_cache_key)
@@ -1558,7 +1558,7 @@ class Metrics(APIView):
             indicators = Indicator.objects.filter(filters).order_by('-id')[:100]
             indicators_serializer = IndicatorLatestRecordSerializer(indicators, many=True)
             latest_indicators = indicators_serializer.data
-            c.set(latest_indicator_cache_key, latest_indicators, 60 * 5)
+            c.set(latest_indicator_cache_key, latest_indicators, 60 * 10)
 
         return APIResponse({
             "data": {
