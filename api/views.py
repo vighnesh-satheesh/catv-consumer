@@ -225,7 +225,8 @@ class DashboardView(APIView):
                         user.permission is UserPermission.SENTINEL:
                     sql = Constants.QUERIES['SELECT_INDICATOR_COUNT']
                 else:
-                    sql = Constants.QUERIES['SELECT_CASE_INDICATOR_COUNT'], ('released', 'confirmed',)
+                    sql = Constants.QUERIES['SELECT_CASE_INDICATOR_COUNT'] % ("'released'", "'confirmed'",)
+
                 cursor.execute(sql)
                 row = cursor.fetchone()
                 number_of_all_indicators = row[0]
