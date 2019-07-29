@@ -828,13 +828,13 @@ class GuestSearchView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         query = self.request.query_params.get("q", None)
         if query is None:
-            raise exceptions.ValidationError("q is required.")
+            raise exceptions.ValidationError("Search query is required.")
 
         if len(query) > 1024:
-            raise exceptions.ValidationError("q is too long.")
+            raise exceptions.ValidationError("Search query cannot exceed 1024 characters.")
 
         if len(query) < 3:
-            raise exceptions.ValidationError("q is too short.")
+            raise exceptions.ValidationError("Search query should contain at least 3 characters.")
 
         serializer_cls = IndicatorListSerializer
         queryset = self.get_queryset()
