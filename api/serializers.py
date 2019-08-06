@@ -95,7 +95,8 @@ class LoginSerializer(serializers.Serializer):
 				"points": user.points,
                 "balance": bal,
 				"email_notification": user.email_notification
-			}        }
+			}
+        }
 
     def validate_email(self, email):
         try:
