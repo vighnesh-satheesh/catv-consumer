@@ -2,9 +2,6 @@
 *.pyc
 __pycache__
 env/
-env-3.6/
-venv/
-env-dev/
 *.private
 *.public
 .idea/
@@ -14,4 +11,3 @@ celerybeat-schedule
 *.sh
 *.env
 library/
-indicatorlib/
