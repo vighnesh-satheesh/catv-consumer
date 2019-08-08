@@ -3,14 +3,14 @@ TRDB_USERNAME = 'uppsala'
 TRDB_PASSWORD = 'uppsala4$'
 TRDB_PORT = 5432
 TRDB_DBNAME = 'portal'
-TRDB_SSL_MODE = 'require'
+TRDB_SSL_MODE = 'prefer'
 
 LOCAL_HOST = 'stg-eth-wallet-risk.csojvsvix6tg.ap-southeast-1.rds.amazonaws.com'
 LOCAL_DBNAME = 'eth_wallet_risk'
 LOCAL_USERNAME = 'postgres'
 LOCAL_PASSWORD = 'Aa123456'
 LOCAL_PORT = 5432
-LOCAL_SSL_MODE = 'require'
+LOCAL_SSL_MODE = 'prefer'
 
 TIME_INTERVAL = 480
 
