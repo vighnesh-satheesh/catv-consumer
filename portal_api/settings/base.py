@@ -131,7 +131,7 @@ CACHES = {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': 'redis://127.0.0.1:6379/10'
     },
-    'catv_data': {
+	'catv_data': {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': env.str('API_CATV_CACHE_SERVER')
     }
@@ -171,6 +171,7 @@ REST_FRAMEWORK = {
         "signup": "5/min",
         'emailVerification': '5/min',
         'indicatorPost': '20/min',
+        'caraPost': '3/min',
         'catvPost': '3/min',
         'guestSearchGet': '20/min'
     },

@@ -1,5 +1,8 @@
 from collections import defaultdict
+from web3.auto.infura import w3
 import gzip
+from kafka import KafkaProducer
+from json import dumps
 
 from rest_framework.views import APIView
 from rest_framework import generics
@@ -22,7 +25,7 @@ from .models import (
     AttachedFile, UserPermission, UppwardRewardInfo,
     UserStatus,
     IndicatorPatternType, IndicatorPatternSubtype, IndicatorEnvironment, IndicatorVector, IndicatorSecurityCategory,
-)
+    RewardSetting)
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
     CaseListSerializer, CaseDetailSerializer, CasePatchSerializer, CasePostSerializer, CaseHistoryPostSerializer,
@@ -34,14 +37,14 @@ from .serializers import (
     UserDetailSerializer, UserPostSerializer,
     ICFDetailSerializer, ICFPostSerializer,
     CommentSerializer, CommentPostSerializer,
-    NotificationSerializer, CATVSerializer
-)
+    NotificationSerializer, CATVSerializer,
+    RewardSettingSerializer)
 from .throttling import (
     SignUpThrottle, UserLoginThrottle, ChangePasswordThrottle,
     FileUploadThrottle, CasePostThrottle,
     EmailVerificationThrottle,
-    IndicatorPostThrottle, CatvPostThrottle, CatvUsageExceededThrottle, GuestSearchThrottle
-)
+    IndicatorPostThrottle, CatvPostThrottle, CatvUsageExceededThrottle,
+    CaraUsageExceededThrottle, CaraPostThrottle, GuestSearchThrottle)
 from .response import APIResponse, FileResponse, FileRenderer
 from .pagination import CustomPagination
 from . import exceptions
@@ -55,13 +58,14 @@ from .cache.local import LocalCache
 from .email import Email
 from .email.tasks import SendEmail
 from .constants import Constants
-from .tasks import CacheLeftPanelValuesTask, CatvHistoryTask, CacheNumberOfIndicatorsCases
+from .tasks import CacheLeftPanelValuesTask, CatvHistoryTask, CacheNumberOfIndicatorsCases, CaraHistoryTask
 from django.utils import timezone
 
 import datetime
 import pytz
 import json
 import math
+
 
 class HealthCheckView(APIView):
     authentication_classes = (CachedTokenAuthentication,)
@@ -202,7 +206,7 @@ class DashboardView(APIView):
                         c["count"] += 1
 
         if user.permission is UserPermission.EXCHANGE:
-            cases[0]["children"]  = [c for c in cases[0]["children"] if "confirmed" in c["id"] or "released" in c["id"]]
+            cases[0]["children"] = [c for c in cases[0]["children"] if "confirmed" in c["id"] or "released" in c["id"]]
         elif user.permission is UserPermission.USER:
             cases = cases[1:]
 
@@ -271,7 +275,7 @@ class CaseFilter(filters.FilterSet):
         user_uid = usercase_cate[0]
         action = usercase_cate[1]
         try:
-            user = User.objects.get(uid = user_uid)
+            user = User.objects.get(uid=user_uid)
         except User.DoesNotExist:
             raise exceptions.CaseFilterError()
 
@@ -279,9 +283,9 @@ class CaseFilter(filters.FilterSet):
             raise exceptions.CaseFilterError()
 
         if action == 'reported':
-            return queryset.filter(reporter = user.pk).distinct('id')
+            return queryset.filter(reporter=user.pk).distinct('id')
         elif action == 'released':
-            return queryset.filter(verifier = user.pk).distinct('id')
+            return queryset.filter(verifier=user.pk).distinct('id')
 
         return queryset.distinct('id')
 
@@ -453,7 +457,10 @@ class CaseDetailView(APIView):
         except self.model.DoesNotExist:
             raise exceptions.CaseNotFound()
 
-    def get_permission(self, request, obj, status):
+    def get_permission(self, request, obj, status, pk=None):
+        obj2 = self.get_object(pk, request)
+        serializer = CaseDetailSerializer(obj2, context={'request': request})
+        data = serializer.data
         user_permission = getattr(request.user, 'permission', None)
         is_super = True if user_permission == UserPermission.SUPERSENTINEL else False
         is_owner = True if request.user == obj.owner else False
@@ -532,11 +539,11 @@ class CaseDetailView(APIView):
                 "nickname": obj.reporter.nickname,
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
-            SendEmail().delay(kv = kv,
-                  subject = Constants.EMAIL_TITLE["NOTIFICATION_MODIFY_CASE"].format(request.user.nickname),
-                  email_type = e.EMAIL_TYPE["NOTIFICATION"],
-                  sender = e.EMAIL_SENDER["NO-REPLY"],
-                  recipient = [obj.reporter.email])
+            SendEmail().delay(kv=kv,
+                              subject=Constants.EMAIL_TITLE["NOTIFICATION_MODIFY_CASE"].format(request.user.nickname),
+                              email_type=e.EMAIL_TYPE["NOTIFICATION"],
+                              sender=e.EMAIL_SENDER["NO-REPLY"],
+                              recipient=[obj.reporter.email])
 
         return APIResponse({
             "data": {}})
@@ -570,11 +577,12 @@ class CaseDetailView(APIView):
                 "nickname": obj.reporter.nickname,
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
-            SendEmail().delay(kv = kv,
-                              subject = Constants.EMAIL_TITLE["NOTIFICATION_PATCH_CASE"].format(request.user.nickname, obj.status.value),
-                              email_type = e.EMAIL_TYPE["NOTIFICATION"],
-                              sender = e.EMAIL_SENDER["NO-REPLY"],
-                              recipient = [obj.reporter.email])
+            SendEmail().delay(kv=kv,
+                              subject=Constants.EMAIL_TITLE["NOTIFICATION_PATCH_CASE"].format(request.user.nickname,
+                                                                                              obj.status.value),
+                              email_type=e.EMAIL_TYPE["NOTIFICATION"],
+                              sender=e.EMAIL_SENDER["NO-REPLY"],
+                              recipient=[obj.reporter.email])
 
         return APIResponse({"data": {
             'case_permission': permission_data
@@ -593,7 +601,7 @@ class CaseDetailView(APIView):
                          (obj.status in [CaseStatus.PROGRESS, CaseStatus.REJECTED] and obj.owner != request.user)):
                     raise exceptions.OwnerRequiredError()
 
-                CaseIndicator.objects.filter(case = obj).delete()
+                CaseIndicator.objects.filter(case=obj).delete()
 
         except Case.DoesNotExist:
             raise exceptions.ValidationError("case does not exist")
@@ -615,11 +623,11 @@ class CaseDetailView(APIView):
                 "nickname": obj.reporter.nickname,
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
-            SendEmail().delay(kv = kv,
-                              subject = Constants.EMAIL_TITLE["NOTIFICATION_DELETE_CASE"].format(request.user.nickname),
-                              email_type = e.EMAIL_TYPE["NOTIFICATION"],
-                              sender = e.EMAIL_SENDER["NO-REPLY"],
-                              recipient = [obj.reporter.email])
+            SendEmail().delay(kv=kv,
+                              subject=Constants.EMAIL_TITLE["NOTIFICATION_DELETE_CASE"].format(request.user.nickname),
+                              email_type=e.EMAIL_TYPE["NOTIFICATION"],
+                              sender=e.EMAIL_SENDER["NO-REPLY"],
+                              recipient=[obj.reporter.email])
         obj.delete()
 
         c = DefaultCache()
@@ -691,7 +699,8 @@ class IndicatorView(generics.ListCreateAPIView):
         page_size = 25
         ftr = self.get_filter()
 
-        indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[page_size * (page-1):page_size * page]
+        indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[
+                     page_size * (page - 1):page_size * page]
         serializer = IndicatorListSerializer(indicators, many=True)
 
         if len(ftr) == 0 and total_items == 0:
@@ -765,7 +774,8 @@ class IndicatorDetailView(APIView):
             return APIResponse(cached_response)
 
         obj = self.get_object(pk, pattern)
-        serializer = IndicatorDetailSerializer(obj, is_authenticated=True if request.user and request.user.is_authenticated else False)
+        serializer = IndicatorDetailSerializer(obj,
+                                               is_authenticated=True if request.user and request.user.is_authenticated else False)
         data = serializer.data
         return APIResponse(
             c.set_view_cache(request, {
@@ -919,7 +929,8 @@ class SearchView(generics.ListAPIView):
         if not self.request.auth:
             filter_queries &= Q(case__status=CaseStatus.RELEASED)
         elif self.request.auth and self.request.user.permission is UserPermission.EXCHANGE:
-            filter_queries &= Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(user=self.request.user.pk)
+            filter_queries &= Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED]) | Q(
+                user=self.request.user.pk)
 
         objs = Indicator.objects \
             .filter(filter_queries) \
@@ -1126,11 +1137,11 @@ class VerifyEmail(APIView):
             "nickname": user.nickname,
             "link": api_settings.WEB_URL + "/verify/" + link
         }
-        SendEmail().delay(kv = kv,
-                          subject = Constants.EMAIL_TITLE["VERIFICATION"],
-                          email_type = e.EMAIL_TYPE["REGISTER"],
-                          sender = e.EMAIL_SENDER["NO-REPLY"],
-                          recipient = [user.email])
+        SendEmail().delay(kv=kv,
+                          subject=Constants.EMAIL_TITLE["VERIFICATION"],
+                          email_type=e.EMAIL_TYPE["REGISTER"],
+                          sender=e.EMAIL_SENDER["NO-REPLY"],
+                          recipient=[user.email])
 
         return APIResponse({
             "data": {}
@@ -1145,7 +1156,7 @@ class VerifyEmail(APIView):
             raise exceptions.AuthenticationValidationError("")
         email = "-".join(v.split("-")[:-1])
         user = self.get_object(email)
-        user.update(status = UserStatus.EMAIL_CONFIRMED)
+        user.update(status=UserStatus.EMAIL_CONFIRMED)
         token, _ = MultiToken.create_token(user)
         c.delete_key(code)
         return APIResponse({
@@ -1192,11 +1203,11 @@ class SendEmailView(APIView):
                 "nickname": user.nickname,
                 "link": api_settings.WEB_URL + "/password-reset/" + link
             }
-            SendEmail().delay(kv = kv,
-                              subject = Constants.EMAIL_TITLE["PASSWORD_RESET"],
-                              email_type = e.EMAIL_TYPE["PASSWORD_RESET"],
-                              sender = e.EMAIL_SENDER["NO-REPLY"],
-                              recipient = [user.email])
+            SendEmail().delay(kv=kv,
+                              subject=Constants.EMAIL_TITLE["PASSWORD_RESET"],
+                              email_type=e.EMAIL_TYPE["PASSWORD_RESET"],
+                              sender=e.EMAIL_SENDER["NO-REPLY"],
+                              recipient=[user.email])
 
         if type == "email_verification":
             if user.status is not UserStatus.SIGNED_UP:
@@ -1206,11 +1217,11 @@ class SendEmailView(APIView):
                 "nickname": user.nickname,
                 "link": api_settings.WEB_URL + "/verify/" + link
             }
-            SendEmail().delay(kv = kv,
-                              subject = Constants.EMAIL_TITLE["VERIFICATION"],
-                              email_type = e.EMAIL_TYPE["REGISTER"],
-                              sender = e.EMAIL_SENDER["NO-REPLY"],
-                              recipient = [user.email])
+            SendEmail().delay(kv=kv,
+                              subject=Constants.EMAIL_TITLE["VERIFICATION"],
+                              email_type=e.EMAIL_TYPE["REGISTER"],
+                              sender=e.EMAIL_SENDER["NO-REPLY"],
+                              recipient=[user.email])
 
         return APIResponse({
             "data": {}
@@ -1242,11 +1253,11 @@ class UserSignUpView(APIView):
             "nickname": user.nickname,
             "link": api_settings.WEB_URL + "/verify/" + link
         }
-        SendEmail().delay(kv = kv,
-                          subject = Constants.EMAIL_TITLE["VERIFICATION"],
-                          email_type = e.EMAIL_TYPE["REGISTER"],
-                          sender = e.EMAIL_SENDER["NO-REPLY"],
-                          recipient = [user.email])
+        SendEmail().delay(kv=kv,
+                          subject=Constants.EMAIL_TITLE["VERIFICATION"],
+                          email_type=e.EMAIL_TYPE["REGISTER"],
+                          sender=e.EMAIL_SENDER["NO-REPLY"],
+                          recipient=[user.email])
 
         return APIResponse({
             "data": {
@@ -1290,6 +1301,12 @@ class UserDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user = serializer.data
+        reward_setting = RewardSetting.objects.filter(id=1).values()
+        address_c = w3.toChecksumAddress(reward_setting[0].get('token_address'))
+        token_abi = json.loads(reward_setting[0].get('token_abi'))
+        token = w3.eth.contract(address_c, abi=token_abi)
+        bal = token.call().balanceOf(user.get('address'))
+        user["balance"] = bal
         user["status"] = obj.status.value
         user["image"] = obj.image.url if bool(obj.image) else api_settings.S3_USER_IMAGE_DEFAULT
         return APIResponse({
@@ -1309,7 +1326,7 @@ class IcfView(APIView):
         if request.user is None or request.auth is None:
             raise exceptions.AuthenticationCheckError()
         user = request.user
-        obj = self.model.objects.filter(user = user.pk).order_by("-pk")
+        obj = self.model.objects.filter(user=user.pk).order_by("-pk")
         if not obj.exists():
             raise exceptions.ICFNotFound()
 
@@ -1360,11 +1377,11 @@ class CommentView(APIView):
         comment_objs = []
 
         if type == 'case':
-            comment_objs = Comment.objects.filter(case = pk)
+            comment_objs = Comment.objects.filter(case=pk)
         elif type == 'indicator':
-            comment_objs = Comment.objects.filter(indicator = pk)
+            comment_objs = Comment.objects.filter(indicator=pk)
         elif type == 'ico':
-            comment_objs = Comment.objects.filter(ico = pk)
+            comment_objs = Comment.objects.filter(ico=pk)
         else:
             raise exceptions.ValidationError("invalid type")
         if len(comment_objs) == 0:
@@ -1386,7 +1403,8 @@ class CommentView(APIView):
         data = serializer.data
         data["writer"] = {
             "nickname": request.user.nickname,
-            "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(request.user.image) is False else request.user.image.url,
+            "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(
+                request.user.image) is False else request.user.image.url,
             "uid": request.user.uid
         }
         u = None
@@ -1421,11 +1439,11 @@ class CommentView(APIView):
                 "nickname": u.nickname,
                 "link": api_settings.WEB_URL + '/' + target["type"] + '/' + str(obj.uid)
             }
-            SendEmail().delay(kv = kv,
-                  subject = Constants.EMAIL_TITLE["NOTIFICATION_COMMENT"].format(request.user.nickname),
-                  email_type = e.EMAIL_TYPE["NOTIFICATION"],
-                  sender = e.EMAIL_SENDER["NO-REPLY"],
-                  recipient = [u.email])
+            SendEmail().delay(kv=kv,
+                              subject=Constants.EMAIL_TITLE["NOTIFICATION_COMMENT"].format(request.user.nickname),
+                              email_type=e.EMAIL_TYPE["NOTIFICATION"],
+                              sender=e.EMAIL_SENDER["NO-REPLY"],
+                              recipient=[u.email])
 
         if notification:
             users = User.objects.filter(id__in=notification)
@@ -1442,11 +1460,12 @@ class CommentView(APIView):
                     "nickname": user.nickname,
                     "link": api_settings.WEB_URL + '/' + target["type"] + '/' + str(obj.uid)
                 }
-                SendEmail().delay(kv = kv,
-                    subject = Constants.EMAIL_TITLE["NOTIFICATION_COMMENT_MENTION"].format(request.user.nickname),
-                    email_type = e.EMAIL_TYPE["NOTIFICATION"],
-                    sender = e.EMAIL_SENDER["NO-REPLY"],
-                    recipient = [user.email])
+                SendEmail().delay(kv=kv,
+                                  subject=Constants.EMAIL_TITLE["NOTIFICATION_COMMENT_MENTION"].format(
+                                      request.user.nickname),
+                                  email_type=e.EMAIL_TYPE["NOTIFICATION"],
+                                  sender=e.EMAIL_SENDER["NO-REPLY"],
+                                  recipient=[user.email])
 
         return APIResponse({
             "data": data
@@ -1456,7 +1475,7 @@ class CommentView(APIView):
         if type is None or pk is None or uid is None:
             raise exceptions.ValidationError("type, pk or uid is not provided.")
         try:
-            comment = self.model.objects.get(uid = uid)
+            comment = self.model.objects.get(uid=uid)
         except Comment.DoesNotExist:
             raise exceptions.ValidatationError("comment does not exist")
         comment.deleted = True
@@ -1571,7 +1590,8 @@ class Metrics(APIView):
 
         if not cached:
             case_row_query = Constants.QUERIES['SELECT_METRICS_CASE'].format(tz, aware_startdate.strftime('%Y-%m-%d'))
-            indicator_row_query = Constants.QUERIES['SELECT_METRICS_INDICATOR'].format(tz, aware_startdate.strftime('%Y-%m-%d'))
+            indicator_row_query = Constants.QUERIES['SELECT_METRICS_INDICATOR'].format(tz, aware_startdate.strftime(
+                '%Y-%m-%d'))
 
             with connection.cursor() as cursor:
                 cursor.execute(case_row_query)
@@ -1626,3 +1646,100 @@ class Metrics(APIView):
                 "indicators": latest_indicators
             }
         })
+
+
+class ValidateAddress(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    model = RewardSetting
+
+    def get(self, request, pk=None, pattern=None):
+
+        settings_obj = self.model.objects.filter(id=1)
+        serializer = RewardSettingSerializer(settings_obj, context={"request": request}, many=True)
+        data = serializer.data
+        token_address = data[0].get('token_address')
+        abi = data[0].get('token_abi')
+        token_abi = json.loads(abi)
+        token = w3.eth.contract(token_address, abi=token_abi)
+        bal = token.call().balanceOf(self.request.GET.get('address'))
+        if (bal > (data[0].get('min_token') * 1000000000000000000)):
+            return APIResponse({
+                "data": "success"
+            })
+        else:
+            return APIResponse({
+                "data": "fail"
+            })
+
+
+class CARA(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_throttles(self):
+        return [CaraUsageExceededThrottle(), CaraPostThrottle(), ]
+
+    def get(self, request):
+        producer = KafkaProducer(bootstrap_servers=['kafkabroker1.stg.upp:9092', 'kafkabroker2.stg.upp:9093'],
+                                 value_serializer=lambda x:
+                                 dumps(x).encode('utf-8'))
+        address = self.request.GET.get('address')
+        user = self.request.GET.get('user')
+        cara_history_insert_query = Constants.QUERIES['INSERT_CARA_HISTORY']
+        time = datetime.datetime.now(datetime.timezone.utc)
+        data = (user, address, time)
+        usage = ({'user_id': request.user.id})
+        with connection.cursor() as cursor:
+            cursor.execute(cara_history_insert_query, data)
+        data = {'address': address,
+                'time': time.strftime("%Y-%m-%d %H:%M:%S")}
+        print(data)
+        print(producer.send('cara-address', data))
+        producer.flush()
+        producer.close()
+        query_list = Constants.QUERIES['UPDATE_USER_CARA_USAGE'].format(request.user.id)
+        with connection.cursor() as cursor:
+            cursor.execute(query_list)
+        return APIResponse(data)
+
+
+class CARAHistory(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = self.request.GET.get('user')
+        history_query = Constants.QUERIES['CARA_HISTORY_USER'].format(user)
+        with connection.cursor() as cursor:
+            cursor.execute(history_query)
+            history = cursor.fetchall()
+        search = [x[0] for x in history]
+        reports = []
+        for add in search:
+            report_query = Constants.QUERIES['CARA_REPORT_ADDRESS_GENERATED'].format(add)
+            with connection.cursor() as new_cursor:
+                new_cursor.execute(report_query)
+                add_report = new_cursor.fetchone()
+                if add_report is not None:
+                    print(list(add_report))
+                    reports.extend(list(add_report))
+        data = {'history': search,
+                'reports': reports}
+        return APIResponse(data)
+
+class CARAReport(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        address = self.request.GET.get('address')
+        report_query = Constants.QUERIES['CARA_REPORT_QUERY'].format(address)
+        with connection.cursor() as cursor:
+            cursor.execute(report_query)
+            report = cursor.fetchone()
+            if report is not None:
+                data = {'report': report}
+            else:
+                data = {'report': ""}
+        return APIResponse(data)
