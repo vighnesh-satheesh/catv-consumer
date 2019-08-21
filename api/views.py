@@ -1722,17 +1722,22 @@ class CARAHistory(APIView):
         search = [x[0] for x in history]
         time = [x[1] for x in history]
         reports = []
+        errors = []
         for add, t in zip(search, time):
             report_query = Constants.QUERIES['CARA_REPORT_ADDRESS_GENERATED'].format(add, t)
             with connection.cursor() as new_cursor:
                 new_cursor.execute(report_query)
-                add_report = new_cursor.fetchone()
+                add_report = new_cursor.fetchmany(1)
                 if add_report is not None:
+                    report = [x[0] for x in add_report]
+                    error = [x[1] for x in add_report]
                     print(list(add_report))
-                    reports.extend(list(add_report))
+                    reports.extend(list(report))
+                    errors.extend(list(error))
         data = {'history': search,
                 'time': time,
-                'reports': reports}
+                'reports': reports,
+                'errors': errors}
         return APIResponse(data)
 
 class CARAReport(APIView):
