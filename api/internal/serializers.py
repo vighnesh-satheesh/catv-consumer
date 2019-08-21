@@ -256,6 +256,8 @@ class CasePostSerializer(serializers.ModelSerializer):
                         if "reporter_info" in validated_data:
                             indi["reporter_info"] = validated_data["reporter_info"]
 
+                        indi["annotation"] = indi.pop("annotation", "")
+                        
                         force = indi.pop("force", None)
                         dup = []
                         if not force:
@@ -274,8 +276,6 @@ class CasePostSerializer(serializers.ModelSerializer):
                                 continue
                         else:
                             new_indicators.append(models.Indicator(**indi))
-
-                        indi["annotation"] = indi.pop("annotation", "")
 
                 indicator_bulk = indicator_bulk + models.Indicator.objects.bulk_create(new_indicators)
 
