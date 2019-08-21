@@ -176,23 +176,32 @@ class Listener_Indicator:
                     pat = ""
                     links = ""
                     act = ""
+                    error = ""
                     if "Error" in dict_item.keys():
-                        break
-                    for pattern in dict_item["distinct_transaction_patterns"]:
-                        if pattern != '[' and pattern != ']' and pattern != "'":
-                            pat = pat+pattern
-                    for link in dict_item["direct_links_to_malicious_activities"]:
-                        if link != '{' and link != '}' and link != "'" and link != ':' and link != '1' and link != '0':
-                            links = links+link
-                    for activity in dict_item["illegit_activity_links"]:
-                        if activity != '{' and activity != '}' and activity != "'" and activity != ':' and activity != '1' and activity != '0':
-                            act = act+activity
-                    print(pat)
-                    cara_report_delete_query = Constants.QUERIES['CARA_REPORT_DELETE_QUERY'].format(dict_item["address"])
+                        error = dict_item["Error"]
+                        data_dict = (dict_item["address"], "0", datetime.datetime.now(datetime.timezone.utc),
+                                     datetime.datetime.now(datetime.timezone.utc),
+                                     "0", "0",
+                                     "0", "0", "0", "",
+                                     "", "", datetime.datetime.now(datetime.timezone.utc), error,
+                                     "")
+                    else:
+                        for pattern in dict_item["distinct_transaction_patterns"]:
+                            if pattern != '[' and pattern != ']' and pattern != "'":
+                                pat = pat+pattern
+                        for link in dict_item["direct_links_to_malicious_activities"]:
+                            if link != '{' and link != '}' and link != "'" and link != ':' and link != '1' and link != '0':
+                                links = links+link
+                        for activity in dict_item["illegit_activity_links"]:
+                            if activity != '{' and activity != '}' and activity != "'" and activity != ':' and activity != '1' and activity != '0':
+                                act = act+activity
+                        print(pat)
+                        data_dict = (dict_item["address"],dict_item["risk_score"],dict_item["analysis_start_time"],dict_item["analysis_end_time"],dict_item["total_amt"],dict_item["estimated_mal_amt"],dict_item["total_tx"],dict_item["estimated_mal_tx"],dict_item["num_blacklisted_addr_contacted"],pat,links,act,datetime.datetime.now(datetime.timezone.utc),error,dict_item["ground_truth_label"])
+                    cara_report_delete_query = Constants.QUERIES['CARA_REPORT_DELETE_QUERY'].format(
+                        dict_item["address"])
                     self.__trdb_api.update_query_format(cara_report_delete_query)
                     cara_report_insert_query = Constants.QUERIES['INSERT_CARA_REPORT']
-                    data_dict = (dict_item["address"],dict_item["risk_score"],dict_item["analysis_start_time"],dict_item["analysis_end_time"],dict_item["total_amt"],dict_item["estimated_mal_amt"],dict_item["total_tx"],dict_item["estimated_mal_tx"],dict_item["num_blacklisted_addr_contacted"],pat,links,act,datetime.datetime.now(datetime.timezone.utc))
-                    self.__trdb_api.insertdict_query(cara_report_insert_query,data_dict)
+                    self.__trdb_api.insertdict_query(cara_report_insert_query, data_dict)
                     #with connection.cursor() as cursor:
                      #   cursor.execute(cara_report_insert_query, data_dict)
             if number_records >= max_records:
