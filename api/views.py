@@ -1737,6 +1737,8 @@ class CARAHistory(APIView):
                 'errors': errors}
         return APIResponse(data)
 
+
+#class for generating report
 class CARAReport(APIView):
     authentication_classes = (CachedTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
