@@ -1,6 +1,8 @@
 import ast
 import json
 
+from django.conf import settings
+
 import api.scheduler.cfg_listener as cfg
 from kafka import KafkaConsumer, TopicPartition, KafkaProducer
 from json import loads, dumps
@@ -141,8 +143,10 @@ class Listener_Indicator:
         self.__local_db_api.update_query(query, new_indicator_info)
 
     def check_for_reports(self, max_records,current_offset):
-        consumer = KafkaConsumer('cara-address-results-test',
-                                 bootstrap_servers=['kafkabroker1.stg.upp:9092', 'kafkabroker2.stg.upp:9093'],
+        kafka_broker_1 = settings.KAFKA_BROKER_1
+        kafka_broker_2 = settings.KAFKA_BROKER_2
+        consumer = KafkaConsumer(settings.KAFKA_CONSUMER_TOPIC,
+                                 bootstrap_servers=[kafka_broker_1, kafka_broker_2],
                                  auto_offset_reset='earliest',
                                  enable_auto_commit=False
                                  )
@@ -262,7 +266,9 @@ class Listener_Indicator:
             if number_new_indicators != 0:
                 for indicator in new_indicators:
                     #print(indicator)
-                    producer = KafkaProducer(bootstrap_servers=['kafkabroker1.stg.upp:9092', 'kafkabroker2.stg.upp:9093'],
+                    kafka_broker_1 = settings.KAFKA_BROKER_1
+                    kafka_broker_2 = settings.KAFKA_BROKER_2
+                    producer = KafkaProducer(bootstrap_servers=[kafka_broker_1, kafka_broker_2],
                                              value_serializer=lambda x:
                                              dumps(x).encode('utf-8'))
                     #indicator[2] = indicator[2].strftime("%Y-%m-%d %H:%M:%S")
@@ -270,7 +276,7 @@ class Listener_Indicator:
                             'address': indicator[1],
                             'updated_time': indicator[2].strftime("%Y-%m-%d %H:%M:%S")}
                     print(data)
-                    producer.send('cara-indicator', data)
+                    producer.send(settings.KAFKA_BATCH_TOPIC, data)
                     producer.flush()
                     producer.close()
 

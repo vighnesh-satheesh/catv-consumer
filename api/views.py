@@ -1,4 +1,6 @@
 from collections import defaultdict
+
+from django.conf import settings
 from web3.auto.infura import w3
 import gzip
 from kafka import KafkaProducer
@@ -1678,7 +1680,9 @@ class CARA(APIView):
         return [CaraUsageExceededThrottle(), CaraPostThrottle(), ]
 
     def get(self, request):
-        producer = KafkaProducer(bootstrap_servers=['kafkabroker1.stg.upp:9092', 'kafkabroker2.stg.upp:9093'],
+        kafka_broker_1 = settings.KAFKA_BROKER_1
+        kafka_broker_2 = settings.KAFKA_BROKER_2
+        producer = KafkaProducer(bootstrap_servers=[kafka_broker_1, kafka_broker_2],
                                  value_serializer=lambda x:
                                  dumps(x).encode('utf-8'))
         address = self.request.GET.get('address')
@@ -1695,7 +1699,7 @@ class CARA(APIView):
             cursor.execute(cara_history_insert_query, data)
         data = {'address': address,
                 'time': time.strftime("%Y-%m-%d %H:%M:%S")}
-        print(producer.send('cara-address', data))
+        print(producer.send(settings.KAFKA_USER_TOPIC, data))
         producer.flush()
         producer.close()
         query_list = Constants.QUERIES['UPDATE_USER_CARA_USAGE'].format(request.user.id)
