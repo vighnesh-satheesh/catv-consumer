@@ -320,6 +320,18 @@ models.CharField.register_lookup(PostgresILike)
 models.TextField.register_lookup(PostgresILike)
 ArrayField.register_lookup(PostgresArrayILike)
 
+class RewardSetting(models.Model):
+    min_token = models.BigIntegerField(null=True, blank=True)
+    token_abi = models.CharField(null=True, blank=True, max_length=5196)
+    token_address = models.CharField(null=True, blank=True, max_length=512)
+
+
+    def __int__(self):
+        return self.min_token
+
+
+
+
 
 class Role(models.Model):
     role_name = models.CharField(max_length=128, unique=True)
@@ -377,6 +389,7 @@ class RolePermission(models.Model):
 # models
 class User(models.Model):
     email = models.EmailField(unique=True)
+    address = models.CharField(unique=True, null=True, max_length=128)
     nickname = models.CharField(max_length=128, unique=True)
     password = models.CharField(max_length=128)
     uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -388,6 +401,7 @@ class User(models.Model):
     status = EnumField(enum=UserStatus, default=UserStatus.APPROVED, max_length=16)
     role = models.ForeignKey(Role, on_delete=models.PROTECT,
                              default=get_default_role)
+    points = models.BigIntegerField(null=False, blank=False)
 
     def is_authenticated(self, *args, **kwargs):
         return True
@@ -412,6 +426,16 @@ class User(models.Model):
         try:
             if kwargs["password"] is not None:
                 self.set_password(kwargs["password"])
+        except KeyError:
+            pass
+        try:
+            if kwargs["address"] is not None:
+                self.address = kwargs["address"]
+        except KeyError:
+            pass
+        try:
+            if kwargs["points"] is not None:
+                self.points = kwargs["points"]
         except KeyError:
             pass
         try:

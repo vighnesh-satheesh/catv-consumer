@@ -4,6 +4,7 @@ import re
 from collections import OrderedDict
 import socket
 
+from web3.auto.infura import w3
 from django.contrib.auth.hashers import (check_password, make_password)
 from django.core.validators import validate_email
 from django.db.models import Q
@@ -62,6 +63,16 @@ class LoginSerializer(serializers.Serializer):
 
     def __create_success_response(self, user, token):
         role_matrix = models.RolePermission.objects.get_permission_matrix(user.role.id)
+        catv_history = models.CatvHistory.objects.values('wallet_address', 'distribution_depth', 'source_depth',
+                                                         'transaction_limit', 'token_address', 'from_date',
+                                                         'to_date').filter(user=user.id).distinct()[:10]
+        reward_setting = models.RewardSetting.objects.filter(id=1).values()
+        bal = 0
+        if user.address != "" and user.address is not None:
+            address_c = w3.toChecksumAddress(reward_setting[0].get('token_address'))
+            token_abi = json.loads(reward_setting[0].get('token_abi'))
+            token_upp = w3.eth.contract(address_c, abi=token_abi)
+            bal = (token_upp.call().balanceOf(user.address))/1000000000000000000
         catv_history = models.CatvHistory.objects.raw(Constants.QUERIES["SELECT_USER_CATV_HISTORY"], [user.id])
         history_list = []
         for hist in catv_history:
@@ -69,20 +80,22 @@ class LoginSerializer(serializers.Serializer):
                                  'source_depth': hist.source_depth, 'transaction_limit': hist.transaction_limit,
                                  'token_address': hist.token_address, 'from_date': hist.from_date,
                                  'to_date': hist.to_date})
-
         return {
             "accessToken": token.key if user.status == models.UserStatus.APPROVED else "",
             "user": {
                 "email": user.email,
                 "id": user.uid,
                 "nickname": user.nickname,
+                "address": user.address,
                 "permission": user.permission.value,
                 "rolepermissions": role_matrix,
                 "image": user.image.url if bool(user.image) else api_settings.S3_USER_IMAGE_DEFAULT,
                 "status": user.status.value,
-                "email_notification": user.email_notification,
-                "catv_history": history_list
-            }
+                "catv_history": history_list,
+				"points": user.points,
+                "balance": bal,
+				"email_notification": user.email_notification
+			}
         }
 
     def validate_email(self, email):
@@ -176,7 +189,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ("id", "uid", "nickname", "permission", "image", "email_notification", "created")
+        fields = ("id", "uid", "nickname", "permission", "image", "email_notification", "created", "points")
 
     def get_queryset(self):
         uuid = self.kwargs["id"]
@@ -198,6 +211,7 @@ class UserPostSerializer(serializers.ModelSerializer):
     permission = fields.EnumField(enum=models.UserPermission, required=False)
     email = serializers.CharField(required=False)
     nickname = serializers.CharField(required=True)
+    address = serializers.CharField(allow_blank=True, required=False)
     email_notification = serializers.BooleanField(required=False)
     password = serializers.CharField(allow_blank=True, required=False, write_only=True, style={'input_type': 'password'})
     old_password = serializers.CharField(allow_blank=True, required=False, write_only=True, style={'input_type': 'password'})
@@ -206,9 +220,10 @@ class UserPostSerializer(serializers.ModelSerializer):
                                    max_length=10000000,
                                    allow_empty_file=True,
                                    use_url=False)
+    points = serializers.IntegerField(required=False)
     class Meta:
         model = models.User
-        fields = ("uid", "permission", "email", "nickname", "image", "password", "old_password", "new_password", "email_notification")
+        fields = ("uid", "permission", "email", "nickname", "image", "password", "old_password", "new_password", "email_notification", "address", "points")
 
 
     def get_created(self, obj):
@@ -282,6 +297,12 @@ class UserPostSerializer(serializers.ModelSerializer):
             else:
                 data["token"] = token.key
             data["id"] = user.uid
+            address = request.data.get("address", None)
+            if address != "":
+                data["address"] = address
+            points = request.data.get("points", None)
+            if points != "":
+                data["points"] = points
 
         if len(data["nickname"]) < 4 or len(data["nickname"]) > 32:
             raise exceptions.ValidationError("invalid nickname length")
@@ -311,12 +332,16 @@ class UserPostSerializer(serializers.ModelSerializer):
                 password = validated_data.get("new_password", None),
                 image = validated_data.get("image"),
                 nickname = validated_data["nickname"],
-                email_notification = validated_data["email_notification"]
+                email_notification = validated_data["email_notification"],
+                address = validated_data["address"],
+                points = validated_data["points"]
             )
         except IntegrityError as e:
             if "nickname" in str(e):
                 raise exceptions.DataIntegrityError("duplicate: nickname")
-            else:
+            else :
+                if "address" in str(e):
+                    raise exceptions.DataIntegrityError("duplicate: address")
                 raise exceptions.DataIntegrityError()
 
         c = DefaultCache()
@@ -865,11 +890,12 @@ class CaseListSerializer(NonNullModelSerializer):
     reporter = serializers.SerializerMethodField()
     owned_by = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
+    indicators = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Case
-        fields = ("id", "uid", "title", "created", "status", "reporter", "owned_by")
-        read_only_fields = ("id", "uid", "title", "created", "status", "reporter", "owned_by")
+        fields = ("id", "uid", "title", "created", "status", "reporter", "owned_by", "indicators")
+        read_only_fields = ("id", "uid", "title", "created", "status", "reporter", "owned_by", "indicators")
 
     def get_created(self, obj):
         if obj.created is None:
@@ -915,6 +941,15 @@ class CaseListSerializer(NonNullModelSerializer):
                 "uid": obj.owner.uid
             }
         return None
+
+    def get_indicators(self, obj):
+        try:
+            queryset = obj.indicators.all()
+            indicator_serializer = IndicatorListSerializer(queryset, many=True)
+            return indicator_serializer.data
+        except models.Indicator.DoesNotExist:
+            pass
+        return []
 
 
 class CaseHistoryPostSerializer(serializers.ModelSerializer):
@@ -1214,7 +1249,9 @@ class CaseDetailSerializer(NonNullModelSerializer):
             return {
                 "nickname": cached.nickname,
                 "image": cached.image.url if bool(cached.image) else api_settings.S3_USER_IMAGE_DEFAULT,
-                "uid": cached.uid
+                "uid": cached.uid,
+                "points": cached.points,
+                "email_notification": cached.email_notification
             }
         if obj.owner:
             return {
@@ -1613,6 +1650,16 @@ class NotificationSerializer(NonNullModelSerializer):
     def get_type(self, obj):
         return obj.type.value
 
+
+class RewardSettingSerializer(NonNullModelSerializer):
+    min_token = serializers.IntegerField(required=True)
+    token_abi = serializers.JSONField(required=True)
+    token_address = serializers.CharField(required=True)
+    id = serializers.IntegerField(required=True)
+
+    class Meta:
+        model = models.RewardSetting
+        fields = ("id", "min_token", "token_abi", "token_address")
 
 class CATVSerializer(serializers.Serializer):
     wallet_address = serializers.CharField(required=True)

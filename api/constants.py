@@ -27,8 +27,11 @@ class Constants:
                                     "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s);",
         "UPDATE_USER_CATV_USAGE": "UPDATE api_usage SET catv_calls_left=(catv_calls_left-1) where user_id=%s and "
                                   "catv_calls_left > 0;",
-        "REFILL_USER_USAGE_QUOTA": "UPDATE api_usage au set catv_calls_left=(catv_calls_left + t.catv_limit), "
-                                   "last_renewal_at=now() from (select u.id as user_id, ul.role_id, ul.catv_limit "
+        "UPDATE_USER_CARA_USAGE": "UPDATE api_usage SET cara_calls_left=(cara_calls_left-1) where user_id='{0}' and "
+                                  "cara_calls_left > 0;",
+        "UPDATE_CARA_ERROR_USAGE": "UPDATE api_usage SET cara_calls_left=(cara_calls_left+1) where user_id='{0}'",
+        "REFILL_USER_USAGE_QUOTA": "UPDATE api_usage au set catv_calls_left=(catv_calls_left + t.catv_limit), cara_calls_left=(cara_calls_left + t.cara_limit), "
+                                   "last_renewal_at=now() from (select u.id as user_id, ul.role_id, ul.catv_limit, ul.cara_limit "
                                    "from api_user u inner join api_role_usage_limit ul on u.role_id=ul.role_id) t "
                                    "where t.user_id = au.user_id and DATE_PART('day', now() - au.last_renewal_at) > 30;",
         "INSERT_USER_USAGE_QUOTA": "INSERT INTO api_usage(user_id,api_calls_left,catv_calls_left,cara_calls_left, "
@@ -56,6 +59,24 @@ class Constants:
                                     "FROM api_indicator "
                                     "WHERE created AT TIME ZONE '{0}' > '{1}' "
                                     "GROUP BY d, pattern_type, pattern_subtype, security_tags",
+        "INSERT_CARA_HISTORY": "INSERT INTO cara_search_history VALUES(%s,%s,%s);",
+        "DELETE_ADDRESS_FROM_HISTORY": "DELETE from cara_search_history where address='{0}' and id='{1}'",
+        "CARA_HISTORY_USER": "SELECT address, query_time from cara_search_history where id = '{0}'",
+        "CARA_ERROR_USER": "SELECT id, query_time from cara_search_history where address = '{0}'",
+        "UPDATE_ERROR_REPORT": "UPDATE cara_search_history set error_generated='{0}' where id='{1}' and address='{2}'",
+        "CARA_ERROR_COUNT": "SELECT address from cara_search_history where id='{0}' and error_generated=1",
+        "CARA_USER_ID": "SELECT id from api_user where uid = '{0}'",
+        "INSERT_CARA_REPORT": "INSERT INTO cara_report(address,risk_score,analysis_start_time,analysis_end_time,"
+                              "total_amt,estimated_mal_amt,total_tx,estimated_mal_tx,num_blacklisted_addr_contacted,"
+                              "distinct_transaction_patterns,direct_links_to_malicious_activities,illegit_activity_links,report_generated_time,error,ground_truth_label)"
+                              "values(%s,%s ,%s,%s,%s ,%s ,%s ,%s ,%s ,%s ,%s ,%s,%s,%s,%s)",
+        "KAFKA_LISTENER_PARAMS": "SELECT kafka_offset from kafka_listener_parameters where id=1",
+        "KAFKA_OFFSET_UPDATE": "UPDATE kafka_listener_parameters set kafka_offset={0} where id=1",
+        "CARA_REPORT_ADDRESS_GENERATED": "SELECT address, error from cara_report where address='{0}' and report_generated_time > '{1}'",
+        "CARA_REPORT_QUERY": "SELECT id, address, risk_score, analysis_end_time, total_amt, estimated_mal_amt, estimated_mal_tx, distinct_transaction_patterns,"
+                             "direct_links_to_malicious_activities, illegit_activity_links, error, ground_truth_label, num_blacklisted_addr_contacted from cara_report"
+                             " where address='{0}'",
+        "CARA_REPORT_DELETE_QUERY": "DELETE from cara_report where address='{0}'",
         "SELECT_USER_CATV_HISTORY": "SELECT DISTINCT ON (id, wallet_address, token_address, source_depth, "
                                     "distribution_depth, transaction_limit, from_date, to_date) ROW_NUMBER() over () "
                                     "as id, wallet_address, token_address, source_depth, distribution_depth, "

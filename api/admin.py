@@ -12,8 +12,8 @@ from .models import (
     Indicator, ICO, Case, CaseHistory,
     AttachedFile, User, UserStatus,
     UppwardRewardInfo, CaseInvalidateCandidates,
-    Key, EmailSent, Action, Role, RolePermission, RoleUsageLimit
-)
+    Key, EmailSent, Action, Role, RolePermission, RoleUsageLimit,
+    RewardSetting)
 from .email import Email
 from .settings import api_settings
 from .constants import Constants
@@ -245,5 +245,6 @@ admin.site.register(Key, KeyAdmin)
 admin.site.register(EmailSent, EmailSentAdmin)
 admin.site.register(Action, ActionAdmin)
 admin.site.register(Role)
+admin.site.register(RewardSetting)
 admin.site.register(RolePermission, RolePermissionAdmin)
 admin.site.register(RoleUsageLimit)

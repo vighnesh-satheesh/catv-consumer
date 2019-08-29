@@ -131,7 +131,7 @@ CACHES = {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': 'redis://127.0.0.1:6379/10'
     },
-    'catv_data': {
+	'catv_data': {
         'BACKEND': 'redis_cache.RedisCache',
         'LOCATION': env.str('API_CATV_CACHE_SERVER')
     }
@@ -171,6 +171,7 @@ REST_FRAMEWORK = {
         "signup": "5/min",
         'emailVerification': '5/min',
         'indicatorPost': '20/min',
+        'caraPost': '3/min',
         'catvPost': '3/min',
         'guestSearchGet': '20/min'
     },
@@ -260,7 +261,25 @@ API_SETTINGS = {
     'EMAIL_HOST_USER': env.str('API_EMAIL_HOST_USER', None),
     'EMAIL_HOST_PASSWORD': env.str('API_EMAIL_HOST_PASSWORD', None),
     'WEB_URL': env.str('API_WEB_URL', ''),
-    "PORTAL_API_MODE": env.str("PORTAL_API_MODE", '')
+    "PORTAL_API_MODE": env.str("PORTAL_API_MODE", ''),
+    "KAFKA_BROKER_1": env.str("KAFKA_BROKER_1", None),
+    "KAFKA_BROKER_2": env.str("KAFKA_BROKER_2", None),
+    "TRDB_HOST": env.str('TRDB_HOST', None),
+    "TRDB_USERNAME": env.str('TRDB_USERNAME', None),
+    "TRDB_PASSWORD": env.str('TRDB_PASSWORD', None),
+    "TRDB_PORT": env.int('TRDB_PORT', 5432),
+    "TRDB_DBNAME": env.str('TRDB_DBNAME', 'portal'),
+    "TRDB_SSL_MODE": env.str('TRDB_SSL_MODE', 'prefer'),
+    "LOCAL_HOST": env.str('LOCAL_HOST', None),
+    "LOCAL_DBNAME": env.str('LOCAL_DBNAME', None),
+    "LOCAL_USERNAME": env.str('LOCAL_USERNAME', None),
+    "LOCAL_PASSWORD": env.str('LOCAL_PASSWORD', None),
+    "LOCAL_PORT": env.int('LOCAL_PORT', 5432),
+    "LOCAL_SSL_MODE": env.str('LOCAL_SSL_MODE', 'prefer'),
+    "TIME_INTERVAL": env.int('TIME_INTERVAL', 24),
+    "KAFKA_USER_TOPIC": env.str('KAFKA_USER_TOPIC', 'cara-address'),
+    "KAFKA_BATCH_TOPIC": env.str('KAFKA_BATCH_TOPIC', 'cara-indicator'),
+    "KAFKA_CONSUMER_TOPIC": env.str('KAFKA_CONSUMER_TOPIC', 'cara-address-results-test')
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.
@@ -290,3 +309,25 @@ EMAIL_HOST_PASSWORD = API_SETTINGS['EMAIL_HOST_PASSWORD']
 BLOXY_API_KEY = env.str('API_BLOXY_KEY')
 BLOXY_DIST_ENDPOINT = env.str('API_BLOXY_DIST_ENDPOINT', 'https://apisentinel.bloxy.info/sentinel/outbound_graph_with_stat')
 BLOXY_SRC_ENDPOINT = env.str('API_BLOXY_SRC_ENDPOINT', 'https://apisentinel.bloxy.info/sentinel/inbound_graph_with_stat')
+
+#CARA KAFKA
+KAFKA_BROKER_1 = API_SETTINGS['KAFKA_BROKER_1']
+KAFKA_BROKER_2 = API_SETTINGS['KAFKA_BROKER_2']
+KAFKA_USER_TOPIC = API_SETTINGS['KAFKA_USER_TOPIC']
+KAFKA_BATCH_TOPIC = API_SETTINGS['KAFKA_BATCH_TOPIC']
+KAFKA_CONSUMER_TOPIC = API_SETTINGS['KAFKA_CONSUMER_TOPIC']
+
+#CARA LISTENER
+TRDB_HOST = API_SETTINGS['TRDB_HOST']
+TRDB_USERNAME = API_SETTINGS['TRDB_USERNAME']
+TRDB_PASSWORD = API_SETTINGS['TRDB_PASSWORD']
+TRDB_PORT = API_SETTINGS['TRDB_PORT']
+TRDB_DBNAME = API_SETTINGS['TRDB_DBNAME']
+TRDB_SSL_MODE = API_SETTINGS['TRDB_SSL_MODE']
+LOCAL_HOST = API_SETTINGS['LOCAL_HOST']
+LOCAL_DBNAME = API_SETTINGS['LOCAL_DBNAME']
+LOCAL_USERNAME = API_SETTINGS['LOCAL_USERNAME']
+LOCAL_PASSWORD = API_SETTINGS['LOCAL_PASSWORD']
+LOCAL_PORT = API_SETTINGS['LOCAL_PORT']
+LOCAL_SSL_MODE = API_SETTINGS['LOCAL_SSL_MODE']
+TIME_INTERVAL = API_SETTINGS['TIME_INTERVAL']
