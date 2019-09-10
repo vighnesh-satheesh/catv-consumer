@@ -184,10 +184,11 @@ class UserDetailSerializer(serializers.ModelSerializer):
     uid = serializers.UUIDField(required=False, read_only=True)
     created = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
 
     class Meta:
         model = models.User
-        fields = ("id", "uid", "nickname", "permission", "image", "email_notification", "created", "points")
+        fields = ("id", "uid", "nickname", "permission", "image", "email_notification", "created", "points", "role")
 
     def get_queryset(self):
         uuid = self.kwargs["id"]
@@ -203,6 +204,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
         if obj.created is None:
             return None
         return time.mktime(obj.created.timetuple())
+
+    def get_role(self, obj):
+        return obj.role.display_name
 
 
 class UserPostSerializer(serializers.ModelSerializer):
