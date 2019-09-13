@@ -134,6 +134,12 @@ class UserPermission(Enum):
     SUPERSENTINEL = 'supersentinel'
 
 
+class ProductType(Enum):
+    CATV = 'catv'
+    CARA = 'cara'
+    ICF = 'api'
+
+
 class PermissionList(Enum):
     CHANGE_CONFIRM = 'change_confirm'
     CHANGE_NAME = 'change_name'
