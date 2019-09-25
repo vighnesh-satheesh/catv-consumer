@@ -92,8 +92,8 @@ class Constants:
         "SELECT_CARA_USAGE_OVERXDAYS": "SELECT d::date, coalesce(searches, 0) from "
                                        "generate_series((now() at TIME ZONE '{0}' - INTERVAL '{1} DAYS')::date, "
                                        "now()::date at TIME ZONE '{0}', '1 day') as ts(d) left outer join ("
-                                       "select count(id) as searches, date_trunc('day', query_time at TIME ZONE '{0}')::date "
-                                       "as tz_date from cara_search_history where query_time at TIME ZONE '{0}' >= "
+                                       "select count(id) as searches, date_trunc('day', query_time)::date "
+                                       "as tz_date from cara_search_history where query_time >= "
                                        "(now() at TIME ZONE '{0}' - INTERVAL '{1} DAYS')::date and "
                                        "id=(select uid from api_user where id={2}) group by tz_date) "
                                        "x(searches, tz_date) on ts.d = x.tz_date",
