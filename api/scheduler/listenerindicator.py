@@ -90,7 +90,7 @@ class Listener_Indicator:
         current_end_time = current_start_time + time_interval
 
         # Query trdb for new indicators
-        query = "select id, pattern, updated from api_indicator where pattern_subtype = 'ETH' and updated > timestamp '" + str(current_start_time) + "' and updated <= timestamp '" + str(current_end_time) + "' order by updated asc limit 100"
+        query = "select id, pattern, updated from api_indicator where pattern_subtype = 'ETH' and updated > timestamp '" + str(current_start_time) + "' and updated <= timestamp '" + str(current_end_time) + "' order by updated asc limit 5"
         try:
            new_indicators = self.__trdb_api.get_query(query)
         except Exception as e:
