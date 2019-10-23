@@ -587,15 +587,14 @@ class IndicatorDetailSerializer(NonNullModelSerializer):
     annotation = serializers.CharField(required=False)
     annotations = serializers.SerializerMethodField()
     reported_by = serializers.SerializerMethodField()
-    icos = serializers.SerializerMethodField()
     uid = serializers.UUIDField(required=False)
     id = serializers.PrimaryKeyRelatedField(queryset=models.Indicator.objects.all(), required=False)
 
     class Meta:
         model = models.Indicator
         fields = ("id", "uid", "pattern_type", "pattern_subtype", "security_category", "security_tags", "vector",
-                  "environment", "detail", "pattern", "icos", "annotation", "reported_by", "annotations")
-        read_only_fields = ("id", "uid", "icos", "reported_by", "annotations")
+                  "environment", "detail", "pattern", "annotation", "reported_by", "annotations")
+        read_only_fields = ("id", "uid", "reported_by", "annotations")
 
     def __init__(self, *args, **kwargs):
         is_authenticated = False
@@ -627,16 +626,6 @@ class IndicatorDetailSerializer(NonNullModelSerializer):
                 "email": obj.reporter_info
             }
         return None
-
-    def get_icos(self, obj):
-        ico_objs = []
-        cases = obj.cases.all()
-        for c in cases:
-            if c.ico is not None:
-                ico_objs.append(c.ico)
-        ico_serializer = ICOListSerializer(ico_objs, many=True)
-        return ico_serializer.data
-
 
     def get_annotations(self, obj):
         data = []
@@ -1253,7 +1242,6 @@ class CasePostSerializer(serializers.ModelSerializer):
 class CaseDetailSerializer(NonNullModelSerializer):
     status = fields.EnumField(enum=models.CaseStatus, required=False)
     uid = serializers.UUIDField(required=False, read_only=True)
-    ico = ICOSerializer(read_only=True)
     owned_by = serializers.SerializerMethodField()
     verified_by = serializers.SerializerMethodField()
     reported_by = serializers.SerializerMethodField()
@@ -1262,11 +1250,12 @@ class CaseDetailSerializer(NonNullModelSerializer):
     files = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
     trdb = serializers.SerializerMethodField()
+    related_cases = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Case
         fields = ("id", "uid", "title", "detail", "created", "status", "reported_by",
-                  "owned_by", "verified_by", "trdb", "ico", "histories", "indicators", "files")
+                  "owned_by", "verified_by", "trdb", "histories", "indicators", "files", "related_cases")
 
     def get_queryset(self):
         uuid = self.kwargs["id"]
@@ -1370,6 +1359,13 @@ class CaseDetailSerializer(NonNullModelSerializer):
                 "uid": obj.verifier.uid
             }
         return None
+
+    def get_related_cases(self, obj):
+        indicators = models.CaseIndicator.objects.filter(case=obj).values('indicator')
+        related_cases = models.Case.objects.exclude(pk=obj.id).filter(indicators__in=indicators).distinct('pk').\
+            order_by('-pk')
+        rc_serialized = CaseSimpleListSerializer(related_cases, many=True)
+        return rc_serialized.data
 
 
 class CaseTRDBSerializer(NonNullModelSerializer):

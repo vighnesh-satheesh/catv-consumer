@@ -114,7 +114,21 @@ class Constants:
                                  "auser.role_id=arul.role_id where ausage.user_id={1};",
         "DELETE_ORG_INVITES": "DELETE from api_organizationinvites where (DATE_PART('day', "
                               "now()::timestamp - sent::timestamp) * 24 + DATE_PART('hour', "
-                              "now()::timestamp - sent::timestamp)) >= 72;"
+                              "now()::timestamp - sent::timestamp)) >= 72;",
+        "SELECT_LEFT_PANEL_VALUES_CASE_ALL": "SELECT x.status, coalesce(y.cntr, x.cntr) as cntr from ("
+                                             "values ('new', 0), ('progress', 0), ('rejected', 0), ('confirmed', 0), "
+                                             "('released', 0)) x(status, cntr) left join (select status, count(*) "
+                                             "as cntr from api_case group by status) y on x.status = y.status;",
+        "SELECT_LEFT_PANEL_VALUES_CASE_MY": "SELECT x.status, coalesce(y.cntr, x.cntr) as cntr from ("
+                                            "values ('new', 0), ('progress', 0), ('rejected', 0), ('confirmed', 0), "
+                                            "('released', 0)) x(status, cntr) left join (select status, count(*) "
+                                            "as cntr from api_case where owner_id = {0} or reporter_id = {0} "
+                                            "group by status) y on x.status = y.status;",
+        "SELECT_LEFT_PANEL_VALUES_CASE_ORG": "SELECT x.status, coalesce(y.cntr, x.cntr) as cntr from ("
+                                             "values ('new', 0), ('progress', 0), ('rejected', 0), ('confirmed', 0), "
+                                             "('released', 0)) x(status, cntr) left join (select status, count(*) "
+                                             "as cntr from api_case where owner_id in {0} or reporter_id in {0} "
+                                             "group by status) y on x.status = y.status;"
     }
     CACHE_KEY = {
         "LEFT_PANEL_VALUES": "left_panel_values",

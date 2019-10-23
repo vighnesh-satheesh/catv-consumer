@@ -173,6 +173,7 @@ class PermissionList(Enum):
     CATV_EXPORT_DATA = 'export_data'
     CATV_EXPORT_IMAGE = 'export_image'
     CARA_EXPORT_REPORT = 'export_report'
+    VIEW_ORG_CASES = 'view_org_cases'
 
 
 class UserStatus(Enum):
