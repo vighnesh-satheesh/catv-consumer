@@ -26,7 +26,7 @@ from .models import (
     AttachedFile, UserPermission, UppwardRewardInfo,
     UserStatus,
     IndicatorPatternType, IndicatorPatternSubtype, IndicatorEnvironment, IndicatorVector, IndicatorSecurityCategory,
-    RewardSetting, ProductType, Organization, OrganizationInvites, OrganizationInviteStatus)
+    RewardSetting, ProductType, Organization, OrganizationInvites, OrganizationInviteStatus, OrganizationUser)
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
     CaseListSerializer, CaseDetailSerializer, CasePatchSerializer, CasePostSerializer, CaseHistoryPostSerializer,
@@ -166,10 +166,12 @@ class DashboardView(APIView):
 
         c = DefaultCache()
         lpv = c.get(Constants.CACHE_KEY['LEFT_PANEL_VALUES'])
-        number_of_all_indicators = 0
         all_cases = []
         my_cases = []
-        cases = []
+        org_cases = []
+        org_list = Organization.objects.filter(administrator=user).values('administrator', 'organizationuser__user')
+        org_user_exists = OrganizationUser.objects.filter(user=user).exists()
+
         for item in CaseStatus:
             my_cases.append({
                 "id": "case_my_{0}".format(item.value),
@@ -179,6 +181,12 @@ class DashboardView(APIView):
                 "id": "case_all_{0}".format(item.value),
                 "count": 0
             })
+            if org_list or org_user_exists:
+                org_cases.append({
+                    "id": "case_org_{0}".format(item.value),
+                    "count": 0
+                })
+
         cases = [
             {
                 "id": "case_all",
@@ -191,34 +199,37 @@ class DashboardView(APIView):
                 "children": my_cases
             }
         ]
+        if org_cases:
+            cases.append({
+                "id": "case_org",
+                "count": 0,
+                "children": org_cases
+            })
+
         with connection.cursor() as cursor:
-            if not lpv:
-                cursor.execute(Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE'])
-                row = cursor.fetchall()
-            else:
-                row = lpv['cases']
-            for r in row:
-                status = r[0]
-                reporter_id = r[1]
-                owner_id = r[2]
-                for case in cases:
-                    if "my" in case["id"] and user.pk != reporter_id and user.pk != owner_id:
-                        continue
-                    for c in case["children"]:
-                        if status not in c["id"]:
-                            continue
-                        c["count"] += 1
+            cursor.execute(Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_ALL'])
+            all_cases = cursor.fetchall()
+            cursor.execute(Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_MY'].format(user.id))
+            my_cases = cursor.fetchall()
+            cases[0]["children"] = all_cases
+            cases[1]["children"] = my_cases
+            if org_cases:
+                users = [x["organizationuser__user"] if x["organizationuser__user"] is not None else 0
+                         for x in org_list]
+                users.append(user.pk)
+                users = tuple(users)
+                cursor.execute(Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_ORG'].format(users))
+                org_cases = cursor.fetchall()
+                cases[2]["children"] = org_cases
+
+        for case in cases:
+            case["children"] = [{"id": case["id"] + "_" + c[0], "count": c[1]} for c in case["children"]]
+            case["count"] = sum(map(lambda x: x["count"], case["children"]))
 
         if user.permission is UserPermission.EXCHANGE:
             cases[0]["children"] = [c for c in cases[0]["children"] if "confirmed" in c["id"] or "released" in c["id"]]
         elif user.permission is UserPermission.USER:
-            cases = cases[1:]
-
-        for case in cases:
-            count = 0
-            for c in case["children"]:
-                count += c["count"]
-            case["count"] = count
+            cases = cases[1]
 
         with connection.cursor() as cursor:
             if lpv:
@@ -306,7 +317,7 @@ class CaseFilter(filters.FilterSet):
         if len(case_cate) == 2:
             subcate = case_cate[1]
 
-        if cate not in ["all", "my"]:
+        if cate not in ["all", "my", "org"]:
             raise exceptions.CaseFilterError()
 
         if subcate and subcate not in ["new", "progress", "confirmed", "rejected", "released"]:
@@ -396,11 +407,24 @@ class CaseView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         order_by = self.request.GET.get('order_by') or 'id_desc'
+        category = self.request.GET.get('case', 'all')
         order_by = order_by.split('_')
         key = ""
         if order_by[1] == "desc":
             key = "-"
         key = key + order_by[0]
+        user = self.request.user
+        if 'org' in category:
+            user_list = OrganizationUser.objects.filter(organization__administrator=user). \
+                select_related('organization').values('user', 'organization__administrator')
+            if user_list:
+                users = [x['user'] for x in user_list]
+                users.append(user_list[0]['organization__administrator'])
+                return self.model.objects.filter(Q(owner__in=users) | Q(reporter__in=users)).\
+                    distinct('id').order_by(key)
+            else:
+                return self.model.objects.none()
+
         return self.model.objects.distinct('id').order_by(key)
 
     def get_throttles(self):
