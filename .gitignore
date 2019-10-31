@@ -12,3 +12,5 @@ celerybeat-schedule
 *.env
 library/
 env-dev/
+.pm2/
+celerybeat.pid
