@@ -343,3 +343,20 @@ NOTE: For the development, it inserts all the case regardless of case status.
 ```
 $ python manage.py runscript scripts.insert_trdb_data {production|development}
 ```
+
+## Setting up development environment with Docker
+1. The `docker-compose.yml` file defines a webapi service which does the following:
+    1. Build a docker image with the `Dockerfile_dev` file
+    2. Map the host code directory to the `app` directory inside the to-be built container.
+    3. Define a few environment variables, which are used during the project initialization phase by Django.
+    Most importantly, `PORTAL_API_ENV_PATH` & `API_TOKEN_ENCRYPT_PRIVATE_KEY`. You need to grab a copy of them from someone 
+    if you don't have it. If you already have the files, then inside the file for the `PORTAL_API_ENV_PATH` change the DATABASE 
+    variables to use `host.docker.internal` so that the Postgres database on your host machine can be used by the Docker container.
+    4. Port forwarding from host 8000 to container 8000.
+
+2. Assuming you have the two files with you, paste them inside the project root directory.
+3. Run `docker-compose up` to start the api server.
+
+Note:
+The uwsgi reload time is specified as 5 seconds in the uwsgi_dev.ini file. So anytime you change some code inside this project the uwsgi server will be reloaded 
+inside the container within 5 seconds. So you do not need to rebuild the image. Feel free to tune the `py-autoreload` variable according to your development needs. 
