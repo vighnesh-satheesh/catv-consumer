@@ -104,6 +104,8 @@ class LoginSerializer(serializers.Serializer):
             token_upp = w3.eth.contract(address_c, abi=token_abi)
             bal = (token_upp.call().balanceOf(user.address))/1000000000000000000
         catv_history = models.CatvHistory.objects.raw(Constants.QUERIES["SELECT_USER_CATV_HISTORY"], [user.id])
+        api_details = user.key_set.values('api_key', 'expire_datetime')
+        api_details = api_details[0] if api_details else {"api_key": None, "expire_datetime": None}
         history_list = []
         for hist in catv_history:
             history_list.append({'wallet_address': hist.wallet_address, 'distribution_depth': hist.distribution_depth,
@@ -127,7 +129,8 @@ class LoginSerializer(serializers.Serializer):
                 "email_notification": user.email_notification,
                 "role_name": role_name,
                 "organization_id": organization_id,
-                "is_admin": is_admin
+                "is_admin": is_admin,
+                "api_details": api_details
             }
         }
 
@@ -198,6 +201,15 @@ class LoginSerializer(serializers.Serializer):
         else:
             token = ""
 
+        user.timestamp = timezone.now()
+        user.save()
+        return self.__create_success_response(user, token)
+
+    def generate_oauth_login_response(self, user):
+        if user.status == models.UserStatus.APPROVED:
+            token, _ = MultiToken.create_token(user)
+        else:
+            token = ""
         user.timestamp = timezone.now()
         user.save()
         return self.__create_success_response(user, token)
@@ -1992,6 +2004,9 @@ class InvitationSerializer(serializers.Serializer):
     def save(self, data):
         raise NotImplementedError("save is not implemented yet for this serializer")
 
+
+class SocialSerializer(serializers.Serializer):
+    access_token = serializers.CharField(allow_blank=False, trim_whitespace=True, required=True)
 
 
 
