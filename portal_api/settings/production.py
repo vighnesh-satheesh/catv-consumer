@@ -24,7 +24,6 @@ ELASTIC_APM = {
     'SERVER_URL': env.str('API_ELASTIC_SERVER_URL', ''),
 }
 
-
 # Sentry
 # TODO: version file or tag?
 version = env.str('PORTAL_API_VERSION', None)
