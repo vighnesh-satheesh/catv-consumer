@@ -31,11 +31,16 @@ class Constants:
         "UPDATE_USER_CARA_USAGE": "UPDATE api_usage SET cara_calls_left=(cara_calls_left-1) where user_id='{0}' and "
                                   "cara_calls_left > 0;",
         "UPDATE_CARA_ERROR_USAGE": "UPDATE api_usage SET cara_calls_left=(cara_calls_left+1) where user_id='{0}'",
-        "REFILL_USER_USAGE_QUOTA": "UPDATE api_usage au set catv_calls_left=(catv_calls_left + t.catv_limit), "
-                                   "cara_calls_left=(cara_calls_left + t.cara_limit), api_calls_left=(api_calls_left + t.api_limit), "
-                                   "last_renewal_at=now() from (select u.id as user_id, ul.role_id, ul.catv_limit, ul.cara_limit, ul.api_limit "
-                                   "from api_user u inner join api_role_usage_limit ul on u.role_id=ul.role_id) t "
-                                   "where t.user_id = au.user_id and DATE_PART('day', now() - au.last_renewal_at) > 30;",
+        "REFILL_USER_USAGE_QUOTA": "UPDATE api_usage credits "
+                                   "SET api_calls_left=(CASE WHEN credits.api_calls_left + arul.api_limit > (2 * arul.api_limit) THEN (2 * arul.api_limit) "
+                                   "ELSE credits.api_calls_left + arul.api_limit END), "
+                                   "catv_calls_left=(CASE WHEN credits.catv_calls_left + arul.catv_limit > (2 * arul.catv_limit) THEN (2 * arul.catv_limit) "
+                                   "ELSE credits.catv_calls_left + arul.catv_limit END), "
+                                   "cara_calls_left=(CASE WHEN credits.cara_calls_left + arul.cara_limit > (2 * arul.cara_limit) THEN (2 * arul.cara_limit) "
+                                   "ELSE credits.cara_calls_left + arul.cara_limit END), last_renewal_at=now() "
+                                   "FROM api_user au, api_role_usage_limit arul "
+                                   "WHERE credits.user_id = au.id AND arul.role_id = au.role_id AND "
+                                   "DATE_PART('day', now() - credits.last_renewal_at) > 30;",
         "INSERT_USER_USAGE_QUOTA": "INSERT INTO api_usage(user_id,api_calls_left,catv_calls_left,cara_calls_left, "
                                    "last_renewal_at) select %s,api_limit,catv_limit,cara_limit,now() "
                                    "from api_role_usage_limit where role_id=%s;",
