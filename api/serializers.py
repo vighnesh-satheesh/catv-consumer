@@ -1801,7 +1801,7 @@ class CATVSerializer(serializers.Serializer):
             if tracking_results.error:
                 err_msg = tracking_results.error
             elif e:
-                err_msg = str(e)
+                err_msg = "Oops! Something went wrong while getting results for this address. Please try again later."
             raise exceptions.FileNotFound(err_msg)
 
 
