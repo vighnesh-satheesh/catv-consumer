@@ -692,13 +692,22 @@ class IndicatorView(generics.ListCreateAPIView):
         else:
             return super(IndicatorView, self).get_throttles()
 
-    def get_filter(self):
-        ftr = Q()
-        keyword_filter = Q()
+    def add_case_permission_filters(self, filter_obj):
+        status = self.request.GET.getlist("status") or []
 
         if self.request.user.permission is not UserPermission.SUPERSENTINEL and \
                 self.request.user.permission is not UserPermission.SENTINEL:
-            ftr &= Q(cases__status__in=[CaseStatus.CONFIRMED, CaseStatus.RELEASED])
+            if api_settings.SWITCH_ES_SEARCH and filter_obj.children:
+                status.extend([CaseStatus.CONFIRMED.value, CaseStatus.RELEASED.value])
+                filter_obj &= Q(cases__in=status)
+            else:
+                status.extend([CaseStatus.CONFIRMED, CaseStatus.RELEASED])
+                filter_obj &= Q(cases__status__in=status)
+        return filter_obj
+
+    def get_filter(self):
+        ftr = Q()
+        keyword_filter = Q()
 
         status = self.request.GET.getlist("status") or []
         security_category = self.request.GET.getlist("security_category") or []
@@ -725,7 +734,7 @@ class IndicatorView(generics.ListCreateAPIView):
             ftr &= keyword_filter
 
         if len(status) > 0:
-            ftr &= Q(cases__status__in=status)
+            ftr &= Q(cases__in=status) if api_settings.SWITCH_ES_SEARCH else Q(cases__status__in=status)
 
         return ftr
 
@@ -763,10 +772,20 @@ class IndicatorView(generics.ListCreateAPIView):
         key = key + order_by[0]
         page = int(page)
         page_size = 25
-        ftr = self.get_filter()
-        if api_settings.SWITCH_ES_SEARCH and ftr.children:
+        core_ftr = self.get_filter()
+        if api_settings.SWITCH_ES_SEARCH and core_ftr.children:
+            ftr = self.add_case_permission_filters(core_ftr)
             indicators = self.get_es_results(ftr.children, key, page)
+            return APIResponse({
+                "data": {
+                    "indicators": indicators.get("results", []),
+                    "totalItems": indicators.get("totalItems", 0),
+                    "totalPages": indicators.get("totalPages", 0),
+                    "pageIndex": indicators.get("pageIndex", 0)
+                }
+            })
         else:
+            ftr = self.add_case_permission_filters(core_ftr)
             indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[
                          page_size * (page - 1):page_size * page]
             serializer = IndicatorListSerializer(indicators, many=True)
@@ -784,24 +803,14 @@ class IndicatorView(generics.ListCreateAPIView):
                 total_items = self.model.objects.filter(ftr).distinct('id').count()
                 CacheNumberOfIndicatorsCases().delay()
 
-        if api_settings.SWITCH_ES_SEARCH and ftr.children:
             return APIResponse({
                 "data": {
-                    "indicators": indicators.get("results", []),
-                    "totalItems": indicators.get("totalItems", 0),
-                    "totalPages": indicators.get("totalPages", 0),
-                    "pageIndex": indicators.get("pageIndex", 0)
+                    "indicators": serializer.data,
+                    "totalItems": total_items,
+                    "totalPages": math.ceil(total_items / page_size),
+                    "pageIndex": page
                 }
             })
-
-        return APIResponse({
-            "data": {
-                "indicators": serializer.data,
-                "totalItems": total_items,
-                "totalPages": math.ceil(total_items / page_size),
-                "pageIndex": page
-            }
-        })
 
     def post(self, request):
         if "indicators" in request.data:
