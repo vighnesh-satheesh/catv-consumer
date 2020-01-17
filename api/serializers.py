@@ -105,16 +105,8 @@ class LoginSerializer(serializers.Serializer):
             token_abi = json.loads(reward_setting[0].get('token_abi'))
             token_upp = w3.eth.contract(address_c, abi=token_abi)
             bal = (token_upp.call().balanceOf(user.address))/1000000000000000000
-        catv_history = models.CatvHistory.objects.raw(Constants.QUERIES["SELECT_USER_CATV_HISTORY"].
-                                                      format(user.id, models.CatvTokens.ETH.value))
         api_details = user.key_set.values('api_key', 'expire_datetime')
         api_details = api_details[0] if api_details else {"api_key": None, "expire_datetime": None}
-        history_list = []
-        for hist in catv_history:
-            history_list.append({'wallet_address': hist.wallet_address, 'distribution_depth': hist.distribution_depth,
-                                 'source_depth': hist.source_depth, 'transaction_limit': hist.transaction_limit,
-                                 'token_address': hist.token_address, 'from_date': hist.from_date,
-                                 'to_date': hist.to_date})
         return {
             "accessToken": token.key if user.status == models.UserStatus.APPROVED else "",
             "user": {
@@ -126,7 +118,7 @@ class LoginSerializer(serializers.Serializer):
                 "rolepermissions": role_matrix,
                 "image": user.image.url if bool(user.image) else api_settings.S3_USER_IMAGE_DEFAULT,
                 "status": user.status.value,
-                "catv_history": history_list,
+                "catv_history": [],
                 "points": user.points,
                 "balance": bal,
                 "email_notification": user.email_notification,
