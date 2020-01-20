@@ -1818,7 +1818,7 @@ class CATVBTCSerializer(CATVSerializer):
             raise serializers.ValidationError("Transaction hash is an invalid Bitcoin transaction hash")
         return value
 
-    def get_tracking_results(self, tx_limit=10000, limit=10000, save_to_db=True):
+    def get_tracking_results(self, tx_limit=10, limit=10, save_to_db=True):
         tracking_results = BTCTrackingResults(**self.data)
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
