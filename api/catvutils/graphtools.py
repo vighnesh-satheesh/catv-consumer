@@ -228,7 +228,7 @@ def assign_nodes(result, mode):
     return nc, volume_count
 
 
-def assign_nodes_btc(result, mode):
+def assign_nodes_btc(result, mode, wallet_address):
     # mode = 1: distribution
     # mode = -1: source
     nc = NodesCollection()
@@ -244,17 +244,20 @@ def assign_nodes_btc(result, mode):
         inner = 'receiver'
         depth_offset = BTC_SOURCE_DEPTH_OFFSET
 
+    root_node = list(filter(lambda x: x[inner].lower() == wallet_address.lower(), result))
+    root_node = root_node[0]
+
     temp_node = BTCNode(
         id=0,
-        address=result[0][inner],
+        address=root_node[inner],
         depth=0,
-        annotation=result[0].get(inner + '_annotation', ""),
-        type=result[0].get(inner + '_type', 'Wallet')
+        annotation=root_node.get(inner + '_annotation', ""),
+        type=root_node.get(inner + '_type', 'Wallet')
     )
 
     nc.add_node(temp_node)
 
-    exclusions = {result[0][inner]: result[0]}
+    exclusions = {root_node[inner]: root_node}
     for item in uniqfy_generator(result, outer, exclusions):
         item_depth = (int(item['depth']) + depth_offset) * mode
         temp_node = BTCNode(
@@ -305,9 +308,9 @@ def generate_nodes_edges(result, mode):
     return track_result, nc
 
 
-def generate_nodes_edges_btc(result, mode):
+def generate_nodes_edges_btc(result, mode, wallet_address):
     keys = list(result[0].keys())
-    nc, volume_count = assign_nodes_btc(result, mode)
+    nc, volume_count = assign_nodes_btc(result, mode, wallet_address)
     edge_dict = assign_edges_btc(result, mode, nc.get_node_enum())
     depth_shift_btc(result, mode)
     add_keys_btc(result)
