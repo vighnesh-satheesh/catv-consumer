@@ -217,10 +217,10 @@ class BTCTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         external_api_client = LyzeAPIInterface(settings.LYZE_API_KEY)
         if for_source:
-            depth_limit = self.source_depth
+            depth_limit = self.source_depth if self.source_depth < 3 else 2
         else:
-            depth_limit = self.distribution_depth
-        transaction_data = external_api_client.get_transactions(self.tx_hash, limit, depth_limit)
+            depth_limit = self.distribution_depth if self.distribution_depth < 3 else 2
+        transaction_data = external_api_client.get_transactions(self.tx_hash, limit, depth_limit, for_source)
         self.ext_api_calls += 1
         return transaction_data
 
@@ -232,20 +232,20 @@ class BTCTrackingResults(TrackingResults):
                                                          callback=self.bloxy_response_callback)
         if self.distribution_depth:
             self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True),
+            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False),
                                                        callback=self.bloxy_response_callback)
         pool.close()
         pool.join()
 
-    def create_graph_data(self):
+    def create_graph_data(self, wallet_address=None):
         pool = Pool(processes=2)
         if not self._skip_source:
             source_result = self._async_source_result.get()
-            self._async_source_graph = pool.apply_async(generate_nodes_edges_btc, (source_result, -1,))
-            # self._async_source_graph = generate_nodes_edges_btc(source_result, -1)
+            self._async_source_graph = pool.apply_async(generate_nodes_edges_btc, (source_result, -1, wallet_address))
+            # self._async_source_graph = generate_nodes_edges_btc(source_result, -1, wallet_address)
         if not self._skip_dist:
             dist_result = self._async_dist_result.get()
-            self._async_dist_graph = pool.apply_async(generate_nodes_edges_btc, (dist_result, 1,))
-            # self._async_dist_graph = generate_nodes_edges_btc(dist_result, 1)
+            self._async_dist_graph = pool.apply_async(generate_nodes_edges_btc, (dist_result, 1, wallet_address))
+            # self._async_dist_graph = generate_nodes_edges_btc(dist_result, 1, wallet_address)
         pool.close()
         pool.join()

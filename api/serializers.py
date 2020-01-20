@@ -1819,10 +1819,11 @@ class CATVBTCSerializer(CATVSerializer):
         return value
 
     def get_tracking_results(self, tx_limit=10, limit=10, save_to_db=True):
-        tracking_results = BTCTrackingResults(**self.data)
+        serializer_data = self.data
+        tracking_results = BTCTrackingResults(**serializer_data)
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
-            tracking_results.create_graph_data()
+            tracking_results.create_graph_data(serializer_data["wallet_address"])
             tracking_results.set_annotations_from_db(token_type=models.CatvTokens.BTC.value)
             return tracking_results.make_graph_dict(), tracking_results.ext_api_calls
         except socket.timeout:
