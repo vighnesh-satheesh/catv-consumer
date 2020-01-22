@@ -24,13 +24,14 @@ class LyzeAPIInterface:
         response_list = response.json()
         return response_list["body"].get("result", [])
 
-    def get_transactions(self, address, limit, depth_limit=2, source=True):
+    def get_transactions(self, address, limit, tx_hash, depth_limit=2, source=True):
         api_url = self.__source_endpoint if source else self.__distribution_endpoint
 
         payload = {
             "address": address,
             "limit": limit,
-            "depth_limit": depth_limit
+            "depth_limit": depth_limit,
+            "tx_id": tx_hash
         }
         r = self.fetch_api_response(api_url, payload)
         return r
