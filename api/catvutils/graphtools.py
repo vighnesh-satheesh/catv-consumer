@@ -313,7 +313,7 @@ def generate_nodes_edges_btc(result, mode, wallet_address):
     nc, volume_count = assign_nodes_btc(result, mode, wallet_address)
     edge_dict = assign_edges_btc(result, mode, nc.get_node_enum())
     depth_shift_btc(result, mode)
-    add_keys_btc(result)
+    # add_keys_btc(result)
 
     track_result = {'item_list': result, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),

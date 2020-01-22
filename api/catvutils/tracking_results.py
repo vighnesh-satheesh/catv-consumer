@@ -213,6 +213,7 @@ class BTCTrackingResults(TrackingResults):
     def __init__(self, **kwargs):
         super(BTCTrackingResults, self).__init__(**kwargs)
         self.tx_hash = find_key(kwargs, 'tx_hash')
+        self.address = find_key(kwargs, 'wallet_address')
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         external_api_client = LyzeAPIInterface(settings.LYZE_API_KEY)
@@ -220,7 +221,7 @@ class BTCTrackingResults(TrackingResults):
             depth_limit = self.source_depth if self.source_depth < 3 else 2
         else:
             depth_limit = self.distribution_depth if self.distribution_depth < 3 else 2
-        transaction_data = external_api_client.get_transactions(self.tx_hash, limit, depth_limit, for_source)
+        transaction_data = external_api_client.get_transactions(self.address, limit, self.tx_hash, depth_limit, for_source)
         self.ext_api_calls += 1
         return transaction_data
 
