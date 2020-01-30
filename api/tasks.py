@@ -6,7 +6,6 @@ from django_elasticsearch_dsl.registries import registry
 
 from .cache import DefaultCache
 from .constants import Constants
-from .models import Case
 
 
 class CacheLeftPanelValuesTask(Task):
@@ -99,11 +98,14 @@ class CheckDeleteInvitesTask(Task):
 
 class IndicatorESDocumentTask(Task):
     def run(self, *args, **kwargs):
-        case_instance = kwargs['case']
+        case_instance = kwargs.get('case', None)
+        indicator_instance = kwargs.get('indicator', None)
         if case_instance:
-            related_indicators = Case.objects.using('default').get(id=case_instance.id).indicators.all()
+            related_indicators = case_instance.indicators.all()
             for indicator in related_indicators:
                 registry.update(indicator)
+        elif indicator_instance:
+            registry.update(indicator_instance)
         return True
 
 

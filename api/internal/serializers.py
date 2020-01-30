@@ -4,7 +4,6 @@ from collections import OrderedDict
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Lower
-from django.db.models.signals import post_save
 from rest_framework import serializers
 
 import boto3
@@ -319,7 +318,6 @@ class CasePostSerializer(serializers.ModelSerializer):
                     case_serializer = CaseTRDBSerializer(case)
                     data = case_serializer.data
                     utils.TRDB_CLIENT.push_case("activateCase", data)
-            post_save.send(case.__class__, instance=case, created=False)
 
         except IntegrityError:
             raise exceptions.DataIntegrityError()
