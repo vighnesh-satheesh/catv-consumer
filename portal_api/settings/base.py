@@ -335,6 +335,9 @@ API_SETTINGS = {
     "SWITCH_ES_SEARCH": env.bool('API_SWITCH_ES_SEARCH', False),
     "BASE_API_URL": env.str('API_BASE_URL', 'http://localhost:8000/'),
     "LYZE_API_KEY": env.str('API_LYZE_KEY'),
+    "ELASTICSEARCH_HOST": env.str('API_ELASTICSEARCH_HOST', 'http://localhost:9200'),
+    "ELASTICSEARCH_CREDENTIALS": env.str('API_ELASTICSEARCH_CREDENTIALS', ''),
+    "ELASTICSEARCH_INDICATOR_IDX": env.str("API_ELASTIC_INDICATOR_IDX", 'dev_indicator'),
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.
