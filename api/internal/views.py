@@ -182,7 +182,7 @@ class CATVInternalView(APIView):
         serializer = CATVSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         addr_limit = serializer.data.get("transaction_limit", 100000)
-        results, api_calls = serializer.get_tracking_results(tx_limit=addr_limit, limit=addr_limit, save_to_db=False)
+        results = serializer.get_tracking_results(tx_limit=addr_limit, limit=addr_limit, save_to_db=False)
         return APIResponse({
-            "data": results
+            "data": {**results["graph"]}
         })
