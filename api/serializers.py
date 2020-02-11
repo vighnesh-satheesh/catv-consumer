@@ -565,7 +565,7 @@ class AttachedFilePostSerializer(NonNullModelSerializer):
     def validate_file(self, files):
         if len(files) > api_settings.ATTACHED_FILE_UPLOAD_NUM_LIMIT:
             raise exceptions.ValidationError({"file": "maximum number of upload files is {0}".format(api_settings.ATTACHED_FILE_UPLOAD_NUM_LIMIT)})
-        allowed_file_types = api_settings.ATTACHED_FILE_ALLOWED_TYPES.split("|")
+        allowed_file_types = list(map(lambda x: x.lower(), api_settings.ATTACHED_FILE_ALLOWED_TYPES.split("|")))
         for file in files:
             file_ext = file.name.split('.')[-1]
             if file_ext.lower() not in allowed_file_types:
