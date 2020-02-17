@@ -30,7 +30,8 @@ from .constants import Constants
 from .cache.uppward import UppwardCache
 from indicatorlib import Pattern
 from .cache import DefaultCache
-from .catvutils.tracking_results import TrackingResults
+from .catvutils.tracking_results import TrackingResults, BTCTrackingResults, BTCCoinpathTrackingResults
+from .catvutils.vendor_api import LyzeAPIInterface
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -104,15 +105,8 @@ class LoginSerializer(serializers.Serializer):
             token_abi = json.loads(reward_setting[0].get('token_abi'))
             token_upp = w3.eth.contract(address_c, abi=token_abi)
             bal = (token_upp.call().balanceOf(user.address))/1000000000000000000
-        catv_history = models.CatvHistory.objects.raw(Constants.QUERIES["SELECT_USER_CATV_HISTORY"], [user.id])
         api_details = user.key_set.values('api_key', 'expire_datetime')
         api_details = api_details[0] if api_details else {"api_key": None, "expire_datetime": None}
-        history_list = []
-        for hist in catv_history:
-            history_list.append({'wallet_address': hist.wallet_address, 'distribution_depth': hist.distribution_depth,
-                                 'source_depth': hist.source_depth, 'transaction_limit': hist.transaction_limit,
-                                 'token_address': hist.token_address, 'from_date': hist.from_date,
-                                 'to_date': hist.to_date})
         return {
             "accessToken": token.key if user.status == models.UserStatus.APPROVED else "",
             "user": {
@@ -124,7 +118,7 @@ class LoginSerializer(serializers.Serializer):
                 "rolepermissions": role_matrix,
                 "image": user.image.url if bool(user.image) else api_settings.S3_USER_IMAGE_DEFAULT,
                 "status": user.status.value,
-                "catv_history": history_list,
+                "catv_history": [],
                 "points": user.points,
                 "balance": bal,
                 "email_notification": user.email_notification,
@@ -571,9 +565,10 @@ class AttachedFilePostSerializer(NonNullModelSerializer):
     def validate_file(self, files):
         if len(files) > api_settings.ATTACHED_FILE_UPLOAD_NUM_LIMIT:
             raise exceptions.ValidationError({"file": "maximum number of upload files is {0}".format(api_settings.ATTACHED_FILE_UPLOAD_NUM_LIMIT)})
-        allowed_file_types = api_settings.ATTACHED_FILE_ALLOWED_TYPES.split("|")
+        allowed_file_types = list(map(lambda x: x.lower(), api_settings.ATTACHED_FILE_ALLOWED_TYPES.split("|")))
         for file in files:
-            if file.name.split(".")[-1] not in allowed_file_types:
+            file_ext = file.name.split('.')[-1]
+            if file_ext.lower() not in allowed_file_types:
                 raise exceptions.FileNotAllowed("Only the following file types are allowed: {0}".
                                                 format(",".join(allowed_file_types)))
             if len(file.name) > api_settings.ATTACHED_FILE_NAME_MAX_LEN:
@@ -1831,10 +1826,124 @@ class CATVSerializer(serializers.Serializer):
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
             tracking_results.create_graph_data()
-            tracking_results.set_annotations_from_db()
-            return tracking_results.make_graph_dict(), tracking_results.ext_api_calls
+            tracking_results.set_annotations_from_db(token_type=models.CatvTokens.ETH.value)
+            return {
+                "graph": tracking_results.make_graph_dict(),
+                "api_calls": tracking_results.ext_api_calls,
+                "messages": tracking_results.error_messages
+            }
         except socket.timeout:
             raise exceptions.RequestTimeoutError("Bloxy source transactions API timeout (exceeded 30 seconds).")
+        except Exception as e:
+            err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
+            if tracking_results.error:
+                err_msg = tracking_results.error
+            elif e:
+                err_msg = "Oops! Something went wrong while getting results for this address. Please try again later."
+            raise exceptions.FileNotFound(err_msg)
+
+
+class CATVBTCSerializer(CATVSerializer):
+    tx_hash = serializers.CharField(required=True)
+
+    def validate_wallet_address(self, value):
+        pattern = re.compile("^([13]|bc1).*[a-zA-Z0-9]{26,35}$")
+        if not pattern.match(value):
+            raise serializers.ValidationError("Wallet address is an invalid Bitcoin address")
+        return value
+
+    def valid_tx_hash(self, value):
+        pattern = re.compile("^[a-fA-F0-9]{64}$")
+        if not pattern.match(value):
+            raise serializers.ValidationError("Transaction hash is an invalid Bitcoin transaction hash")
+        return value
+
+    def get_tracking_results(self, tx_limit=10, limit=10, save_to_db=True):
+        serializer_data = self.data
+        tracking_results = BTCTrackingResults(**serializer_data)
+        try:
+            tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
+            tracking_results.create_graph_data(serializer_data["wallet_address"])
+            tracking_results.set_annotations_from_db(token_type=models.CatvTokens.BTC.value)
+            return {
+                "graph": tracking_results.make_graph_dict(),
+                "api_calls": tracking_results.ext_api_calls,
+                "messages": tracking_results.error_messages
+            }
+        except socket.timeout:
+            raise exceptions.RequestTimeoutError("External API timeout (exceeded 30 seconds).")
+        except Exception as e:
+            err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
+            if tracking_results.error:
+                err_msg = tracking_results.error
+            elif e:
+                err_msg = "Oops! Something went wrong while getting results for this address. Please try again later."
+            raise exceptions.FileNotFound(err_msg)
+
+
+class CATVBTCTxlistSerializer(serializers.Serializer):
+    wallet_address = serializers.CharField(required=True)
+    from_date = serializers.CharField(required=True)
+    to_date = serializers.CharField(required=True)
+
+    def validate_wallet_address(self, value):
+        pattern = re.compile("^([13]|bc1).*[a-zA-Z0-9]{26,35}$")
+        if not pattern.match(value):
+            raise serializers.ValidationError("Wallet address is an invalid Bitcoin address")
+        return value
+
+    def validate_from_date(self, value):
+        try:
+            utils.validate_dateformat(value, '%Y-%m-%d')
+            return value
+        except ValueError:
+            raise serializers.ValidationError("Incorrect date format, should be YYYY-MM-DD.")
+
+    def validate_to_date(self, value):
+        try:
+            utils.validate_dateformat(value, '%Y-%m-%d')
+            return value
+        except ValueError:
+            raise serializers.ValidationError("Incorrect date format, should be YYYY-MM-DD.")
+
+    def get_btc_txlist(self):
+        txlist_client = LyzeAPIInterface(api_settings.LYZE_API_KEY)
+        data = self.data
+        resp = txlist_client.get_txlist(data['wallet_address'], data['from_date'], data['to_date'])
+        txlist = []
+        seen_txid = []
+        for tx in resp:
+            tx_dict = {}
+            if tx['tx_id'].lower() not in seen_txid:
+                for k, v in tx.items():
+                    if k == 'tx_id' or k == 'ts':
+                        tx_dict[k] = v
+                txlist.append(tx_dict)
+                seen_txid.append(tx['tx_id'].lower())
+        return txlist
+
+
+class CATVBTCCoinpathSerializer(CATVSerializer):
+    def validate_wallet_address(self, value):
+        pattern = re.compile("^([13]|bc1).*[a-zA-Z0-9]{26,35}$")
+        if not pattern.match(value):
+            raise serializers.ValidationError("Wallet address is an invalid Bitcoin address")
+        return value
+
+    def get_tracking_results(self, tx_limit=10000, limit=10000, save_to_db=True):
+        serializer_data = self.data
+        tracking_results = BTCCoinpathTrackingResults(**serializer_data)
+        try:
+            tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
+            tracking_results.create_graph_data()
+            tracking_results.set_annotations_from_db(token_type=models.CatvTokens.BTC.value)
+            return {
+                "graph": tracking_results.make_graph_dict(),
+                "api_calls": tracking_results.ext_api_calls,
+                "messages": tracking_results.error_messages
+            }
+        except socket.timeout:
+            raise exceptions.RequestTimeoutError("External API timeout (exceeded 30 seconds).")
         except Exception as e:
             err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
             if tracking_results.error:
@@ -2050,4 +2159,11 @@ class SocialSerializer(serializers.Serializer):
     access_token = serializers.CharField(allow_blank=False, trim_whitespace=True, required=True)
 
 
+class CATVHistorySerializer(serializers.Serializer):
+    token_type = fields.EnumField(enum=models.CatvTokens, required=True)
+
+    def validate_token_type(self, data):
+        if not data or data.value.upper() not in models.CatvTokens.__members__.keys():
+            raise serializers.ValidationError("Token type unsupported.")
+        return data
 
