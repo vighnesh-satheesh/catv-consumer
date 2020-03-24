@@ -1971,7 +1971,8 @@ class OrganizationUserPostSerializer(serializers.ModelSerializer):
         if request is None:
             raise exceptions.AuthenticationCheckError()
         current_user = request.user
-        if data["organization"].administrator != current_user:
+        if data["organization"].administrator != current_user \
+                and data["status"] != models.OrganizationUserStatus.ACTIVE:
             raise exceptions.OwnerRequiredError("You are not the owner of this organization")
         return data
 
@@ -2114,6 +2115,7 @@ class OrganizationPostSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     organization = serializers.UUIDField(required=True)
+    type = fields.EnumField(enum=models.InviteType, required=False, default=models.InviteType.EMAIL)
 
     def get_invites_left(self, obj):
         invite_limit = obj.administrator.role.usage_role.values_list('org_invite_limit', flat=True)
@@ -2136,7 +2138,8 @@ class InvitationSerializer(serializers.Serializer):
                 raise exceptions.AuthenticationCheckError()
 
             org = models.Organization.objects.get(uid=uid, administrator=user)
-            already_invited = models.OrganizationInvites.objects.filter(email=data['email'], organization=org).count()
+            already_invited = models.OrganizationInvites.objects.\
+                filter(email=data['email'], organization=org, status=models.OrganizationInviteStatus.EMAIL_SENT).count()
 
             if already_invited:
                 raise exceptions.ValidationError("You have already sent an invitation to this email. Please wait for "
@@ -2148,7 +2151,7 @@ class InvitationSerializer(serializers.Serializer):
                 raise exceptions.ValidationError("Out of invites, cannot invite more.")
             if invited_domain not in org.domains:
                 raise exceptions.ValidationError("You can only invite people based on your domain list.")
-            if user_count > 0:
+            if user_count > 0 and data['type'] == models.InviteType.EMAIL.value:
                 raise exceptions.ValidationError("Cannot send invite as user is already signed up for Sentinel Portal. "
                                                  "Use the 'Add a member' option instead.")
             return data
