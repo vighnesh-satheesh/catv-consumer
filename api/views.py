@@ -1888,12 +1888,17 @@ class ValidateAddress(APIView):
         settings_obj = self.model.objects.filter(id=1)
         serializer = RewardSettingSerializer(settings_obj, context={"request": request}, many=True)
         data = serializer.data
-        token_address = data[0].get('token_address')
+        token_address = w3.toChecksumAddress(data[0].get('token_address'))
         abi = data[0].get('token_abi')
         token_abi = json.loads(abi)
+<<<<<<< HEAD
         token = w3.eth.contract(w3.toChecksumAddress(token_address), abi=token_abi)
         address = w3.toChecksumAddress(self.request.GET.get('address'))
         bal = token.call().balanceOf(address)
+=======
+        token = w3.eth.contract(token_address, abi=token_abi)
+        bal = token.call().balanceOf(w3.toChecksumAddress(self.request.GET.get('address')))
+>>>>>>> 91c3dbe... Force address to checksum address
         if (bal >= (data[0].get('min_token') * 1000000000000000000)):
             return APIResponse({
                 "data": "success"
