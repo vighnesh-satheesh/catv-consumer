@@ -1604,9 +1604,9 @@ class CasePatchSerializer(NonNullModelSerializer):
                     pattern_type='filehash').filter(pattern=ind.pattern)
                 if ind_list.all().count() == 1:
                     i = i + 1
-            instance.reporter.points = instance.reporter.points + (10 * i)
-            UserPointsSerializer().update(instance.reporter, {
-                "points": instance.reporter.points})
+            if instance.reporter:
+                instance.reporter.points = instance.reporter.points + (10 * i)
+                UserPointsSerializer().update(instance.reporter, {"points": instance.reporter.points})
         elif validated_data["status"] == models.CaseStatus.REJECTED:
             instance.verifier = self.context["request"].user
 
