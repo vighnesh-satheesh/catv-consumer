@@ -124,8 +124,7 @@ AUTHENTICATION_BACKENDS = (
 # Databases
 DATABASES = {
     'default': env.db(),
-    'readonly': env.db('DATABASE_READONLY_URL'),
-    'annotations': env.db('DATABASE_CATV_URL')
+    'readonly': env.db('DATABASE_READONLY_URL')
 }
 
 DATABASE_ROUTERS = ['portal_api.settings.DatabaseRouter.DatabaseRouter']
