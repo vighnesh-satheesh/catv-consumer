@@ -1244,7 +1244,6 @@ class CasePostSerializer(serializers.ModelSerializer):
                             "file already included in other cases.")
                     file_obj.case = case
                     file_obj.save()
-            post_save.send(case.__class__, instance=case, created=False)
         except IntegrityError:
             raise exceptions.DataIntegrityError()
         except exceptions.DataIntegrityError as err:
@@ -1333,8 +1332,6 @@ class CasePostSerializer(serializers.ModelSerializer):
                     file_obj.save()
                 # case items
                 instance = super().update(instance, validated_data)
-            post_save.send(instance.__class__,
-                           instance=instance, created=False)
         except IntegrityError:
             raise exceptions.DataIntegrityError()
         except exceptions.DataIntegrityError as err:
@@ -1641,10 +1638,7 @@ class CasePatchSerializer(NonNullModelSerializer):
                         c.invalidate_cache(indicator.pattern)
 
                 ch_serializer.save()
-                updated_instance = super(CasePatchSerializer, self).update(
-                    instance, validated_data)
-            post_save.send(updated_instance.__class__,
-                           instance=updated_instance, created=False)
+                updated_instance = super(CasePatchSerializer, self).update(instance, validated_data)
             return updated_instance
         except IntegrityError:
             raise exceptions.DataIntegrityError("data integrity error")
