@@ -22,7 +22,7 @@ pipeline {
             // end
             // Docker deploy and ECS environment variables
             ECR ="https://821988754834.dkr.ecr.ap-southeast-1.amazonaws.com"
-            TASK_FAMILY ="UPP-STG-PortalAPI"
+            TASK_FAMILY ="UPP-STG-PortalConsumer"
             ecsClusterName ="UPP-STG-APPLICATION-CLUSTER"
             nameService = "UPP-STG-PortalConsumer-Service"
             // end
