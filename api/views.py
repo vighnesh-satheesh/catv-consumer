@@ -1414,13 +1414,7 @@ class UserDetailView(APIView):
 
     def put(self, request, pk=None):
         obj = self.get_object(pk)
-        if 'address' in request.data:
-            try:
-                data = request.data.copy()             
-                data['address'] = w3.toChecksumAddress(request.data['address'])
-            except ValueError:
-                raise exceptions.InvalidEthereumAddress()
-        serializer = UserPostSerializer(obj, data=data, context={"request": request})
+        serializer = UserPostSerializer(obj, data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user = serializer.data
@@ -1897,14 +1891,9 @@ class ValidateAddress(APIView):
         token_address = w3.toChecksumAddress(data[0].get('token_address'))
         abi = data[0].get('token_abi')
         token_abi = json.loads(abi)
-<<<<<<< HEAD
         token = w3.eth.contract(w3.toChecksumAddress(token_address), abi=token_abi)
         address = w3.toChecksumAddress(self.request.GET.get('address'))
         bal = token.call().balanceOf(address)
-=======
-        token = w3.eth.contract(token_address, abi=token_abi)
-        bal = token.call().balanceOf(w3.toChecksumAddress(self.request.GET.get('address')))
->>>>>>> 91c3dbe... Force address to checksum address
         if (bal >= (data[0].get('min_token') * 1000000000000000000)):
             return APIResponse({
                 "data": "success"
