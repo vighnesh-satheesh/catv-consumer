@@ -406,7 +406,7 @@ class UserPostSerializer(serializers.ModelSerializer):
             address = request.data.get("address", None)
             if address == "empty":
                 data["address"] = ""
-            if address ! =  "":
+            if address !=  "":
                 data["address"] = w3.toChecksumAddress(address)
             points = request.data.get("points", None)
             if points != "":
