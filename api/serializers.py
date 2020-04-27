@@ -404,10 +404,10 @@ class UserPostSerializer(serializers.ModelSerializer):
                 data["token"] = token.key
             data["id"] = user.uid
             address = request.data.get("address", None)
-            if address != "":
-                data["address"] = address
             if address == "empty":
                 data["address"] = ""
+            if address !=  "":
+                data["address"] = w3.toChecksumAddress(address)
             points = request.data.get("points", None)
             if points != "":
                 data["points"] = points
