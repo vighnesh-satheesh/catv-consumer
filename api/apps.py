@@ -10,7 +10,7 @@ import os
 class ApiConfig(AppConfig):
     name = 'api'
     verbose_name = "ApiConfig"
-    if os.environ.get("CONTAINER_TYPE", None) == "portal-api":
+    if os.environ.get("CONTAINER_TYPE", None) == "portal_api":
         app = Celery('tasks')
         app.config_from_object('django.conf:settings')
         app.autodiscover_tasks(lambda: [n.name for n in apps.get_app_configs()])
@@ -44,11 +44,13 @@ class ApiConfig(AppConfig):
         )
 
     def ready(self):
-        self.init_cache(self.get_model('User'))
-        self.send_slack_webhook()
-        from api.scheduler import kafkascheduler
-        kafkascheduler.start()
-        import api.signals
-        # import search_indexes.signals
-            
+        #Comment this if condition to run scheduler in local
+        #Make sure you are not connected to prod if running this scheduler
+        if os.environ.get("CONTAINER_TYPE", None) == "portal_api":
+            self.init_cache(self.get_model('User'))
+            self.send_slack_webhook()
+            from api.scheduler import kafkascheduler
+            kafkascheduler.start()
+            import api.signals
+            # import search_indexes.signals
 
