@@ -727,7 +727,11 @@ class IndicatorView(generics.ListCreateAPIView):
         pattern_type = self.request.GET.getlist("pattern_type") or []
         keyword = self.request.GET.getlist("keyword") or []
         user_case = self.request.GET.get(
-            "user_case")
+            "user_case", "")
+        case_status = self.request.GET.get("indicator", "all")
+        if case_status != "all":
+            case_status = case_status.split("_")[1]
+
         # TODO: Lots of conditional statements going on here, need to refactor later
         if len(security_category) > 0:
             ftr &= Q(security_category__in=security_category)
@@ -754,18 +758,18 @@ class IndicatorView(generics.ListCreateAPIView):
 
         elif user_case:
             # Fix for portal-frontend user view
-            user, status = user_case.split("_")
+            user = user_case.split("_")[0]
             # ES CANNOT BE HANDLED AS INDICATOR HAS NO USER ID!!
             es_flag = api_settings.SWITCH_ES_SEARCH
             # DO NOT COMMENT OUT UNLESS ES HAS BEEN HANDLED
             es_flag = False
             if es_flag:
-                ftr &= Q(cases__in=status)
+                ftr &= Q(cases__in=case_status)
             else:
                 # Get user id
                 user_id = User.objects.get(uid=user).id
-                if status == 'released':
-                    ftr &= Q(cases__status=status)
+                if case_status != 'all':
+                    ftr &= Q(cases__status=case_status)
                 ftr &= Q(user_id=user_id)
         return ftr
 
