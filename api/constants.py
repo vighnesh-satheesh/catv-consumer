@@ -60,8 +60,8 @@ class Constants:
         "SELECT_CASE_BY_CREATED": "SELECT created from api_case where created > %s order by created desc;",
         "SELECT_CASE_DETAILS": "SELECT status, reporter_id, owner_id FROM api_case;",
         "SELECT_INDICATOR_COUNT": "SELECT count(*) from api_indicator;",
-        "SELECT_CASE_INDICATOR_COUNT": "SELECT COUNT(*) FROM api_indicator AS i JOIN api_m2m_case_indicator AS ci "
-                                       "ON ci.indicator_id = i.id JOIN api_case as c ON ci.case_id = c.id "
+        "SELECT_CASE_INDICATOR_COUNT": "SELECT COUNT(ci.indicator_id) FROM api_m2m_case_indicator AS ci "
+                                       "JOIN api_case as c ON ci.case_id = c.id "
                                        "WHERE c.status = %s OR c.status = %s;",
         "SELECT_LEFT_PANEL_VALUES_CASE": "SELECT status, reporter_id, owner_id FROM api_case",
         "SELECT_METRICS_CASE": "SELECT count(id), date_trunc('day', created AT TIME ZONE '{0}') as d "
@@ -70,7 +70,7 @@ class Constants:
                                "GROUP BY d",
         "SELECT_METRICS_INDICATOR": "SELECT count(id), date_trunc('day', created AT TIME ZONE '{0}') as d, " 
                                     "pattern_type, pattern_subtype, security_tags "
-                                    "FROM api_indicator "
+                                    "FROM matvw_indicator_month "
                                     "WHERE created AT TIME ZONE '{0}' > '{1}' "
                                     "GROUP BY d, pattern_type, pattern_subtype, security_tags",
         "INSERT_CARA_HISTORY": "INSERT INTO cara_search_history VALUES(%s,%s,%s);",
@@ -152,6 +152,13 @@ class Constants:
                                  "WHEN token_address='' THEN null ELSE token_address END) as token_address, "
                                  "depth, from_date, to_date from vw_catv_path_history "
                                  "where row_num = 1 and user_id={0} and token_type='{1}' limit 10;",
+        "SELECT_LATEST_INDICATOR": "select id, updated from api_indicator where id in "
+                                   "(select aci.indicator_id from api_m2m_case_indicator aci "
+                                   "where aci.case_id = ("
+                                   "select ac.id from api_case ac "
+                                   "where ac.status='released' "
+                                   "order by ac.updated desc limit 1)) "
+                                   "order by updated desc limit 1;",
     }
     CACHE_KEY = {
         "LEFT_PANEL_VALUES": "left_panel_values",
@@ -159,4 +166,15 @@ class Constants:
         "METRICS_INDICATOR": "metrics_indicators_{0}_{1}",
         "METRICS_CASE": "metrics_cases_{0}_{1}",
         "METRICS_LATEST_INDICATORS": "metrics_latest_indicators_{0}"
+    }
+    INDEX_ACTIONS = {
+        "INDEX": "index",
+        "CREATE": "create",
+        "UPDATE": "update",
+        "DELETE": "delete"
+    }
+    CASE_ACTIONS = {
+        "CREATE": "create",
+        "UPDATE": "update",
+        "DELETE": "delete"
     }
