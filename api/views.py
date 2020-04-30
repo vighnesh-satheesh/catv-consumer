@@ -728,7 +728,7 @@ class IndicatorView(generics.ListCreateAPIView):
         keyword = self.request.GET.getlist("keyword") or []
         user_case = self.request.GET.get(
             "user_case")
-
+        # TODO: Lots of conditional statements going on here, need to refactor later
         if len(security_category) > 0:
             ftr &= Q(security_category__in=security_category)
         if len(pattern_type) > 0:
@@ -805,7 +805,9 @@ class IndicatorView(generics.ListCreateAPIView):
         page = int(page)
         page_size = 25
         core_ftr = self.get_filter()
-        if api_settings.SWITCH_ES_SEARCH and core_ftr.children:
+        user_case = self.request.GET.get("user_case", None)
+        # TODO: Lots of conditional statements going on here, need to refactor later
+        if not user_case and api_settings.SWITCH_ES_SEARCH and core_ftr.children:
             ftr = self.add_case_permission_filters(core_ftr)
             indicators = self.get_es_results(ftr.children, key, page)
             return APIResponse({
@@ -818,7 +820,7 @@ class IndicatorView(generics.ListCreateAPIView):
                 }
             })
         else:
-            ftr = self.add_case_permission_filters(core_ftr)
+            ftr = self.add_case_permission_filters(core_ftr) if not user_case else core_ftr
             indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[
                          page_size * (page - 1):page_size * page]
             serializer = IndicatorListSerializer(indicators, many=True)
