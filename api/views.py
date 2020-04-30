@@ -2023,8 +2023,8 @@ class CARA(APIView):
         blockchain = self.request.GET.get('token')
         time = datetime.datetime.now(datetime.timezone.utc)
         if blockchain == 'eth':
-            data = (user, address.lower(), time)
-            address = address.lower
+            address = address.lower()
+            data = (user, address, time)
         else:
             data = (user, address, time)
         if force:
