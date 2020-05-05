@@ -7,7 +7,7 @@ import socket
 
 from django.conf import settings
 from django_filters import rest_framework as filters
-from django.db.models import Q, When, Value, Case as CaseFunc, IntegerField
+from django.db.models import F, Q, When, Value, Case as CaseFunc, IntegerField
 from django.db import transaction, IntegrityError
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -858,11 +858,41 @@ class IndicatorView(generics.ListCreateAPIView):
                 }
             })
         else:
-            ftr = self.add_case_permission_filters(core_ftr) if not user_case else core_ftr
-            indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[
-                page_size * (page - 1):page_size * page]
-            serializer = IndicatorListSerializer(indicators, many=True)
-
+            ftr = self.add_case_permission_filters(
+                core_ftr) if not user_case else core_ftr
+            user, case = user_case.split("_")
+            if case:
+                indicators = self.model.objects.filter(ftr).distinct('id').order_by(key).values('id', 'uid', 'user_id', 'security_category', 'security_tags', 'vector', 'environment', 'pattern', 'pattern_type', 'pattern_subtype', 'pattern_tree', 'detail', 'annotation', 'reporter_info', 'created', 'updated', 'case__status')[
+                    page_size * (page - 1):page_size * page]
+                unique = []
+                if case and case == "released":
+                    for i in reversed(indicators):
+                        i["security_category"] = i["security_category"].value
+                        i["pattern_type"] = i["pattern_type"].value
+                        i["pattern_subtype"] = i["pattern_subtype"].value
+                        i["case__status"] = i["case__status"].value
+                        if i["pattern_type"] != "filehash" and i["pattern"] not in unique:
+                            i["points"] = 10
+                            unique.append(i["pattern"])
+                        else:
+                            i["points"] = 0
+                elif case and case != "released":
+                    for i in reversed(indicators):
+                        i["security_category"] = i["security_category"].value
+                        i["pattern_type"] = i["pattern_type"].value
+                        i["pattern_subtype"] = i["pattern_subtype"].value
+                        i["case__status"] = i["case__status"].value
+                        if i["case__status"] == "released" and i["pattern_type"] != "filehash" and i["pattern"] not in unique:
+                            i["points"] = 10
+                            unique.append(i["pattern"])
+                        else:
+                            i["points"] = 0
+                data = indicators
+            else:
+                indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[
+                    page_size * (page - 1):page_size * page]
+                serializer = IndicatorListSerializer(indicators, many=True)
+                data = serializer.data
             if len(ftr) == 0 and total_items == 0:
                 c = DefaultCache()
                 d = c.get(Constants.CACHE_KEY['NUMBER_OF_INDICATORS_CASES'])
@@ -879,7 +909,7 @@ class IndicatorView(generics.ListCreateAPIView):
 
             return APIResponse({
                 "data": {
-                    "indicators": serializer.data,
+                    "indicators": data,
                     "totalItems": total_items,
                     "totalPages": math.ceil(total_items / page_size),
                     "pageIndex": page
