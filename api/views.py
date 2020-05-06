@@ -225,6 +225,12 @@ class DashboardView(APIView):
             })
 
         with connections['readonly'].cursor() as cursor:
+<<<<<<< HEAD
+=======
+            cursor.execute(
+                Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_ALL'])
+            all_cases = cursor.fetchall()
+>>>>>>> e964cd4... Prevent Nonetype occurance
             cursor.execute(
                 Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_ALL'])
             all_cases = cursor.fetchall()
@@ -811,6 +817,7 @@ class IndicatorView(generics.ListCreateAPIView):
         page_size = 25
         core_ftr = self.get_filter()
         user_case = self.request.GET.get("user_case", None)
+        print(f"user_case: {user_case}")
         # TODO: Lots of conditional statements going on here, need to refactor later
         if not user_case and api_settings.SWITCH_ES_SEARCH and core_ftr.children:
             ftr = self.add_case_permission_filters(core_ftr)
