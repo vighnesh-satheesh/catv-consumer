@@ -228,7 +228,8 @@ class DashboardView(APIView):
             })
 
         with connections['readonly'].cursor() as cursor:
-            cursor.execute(Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_ALL'])
+            cursor.execute(
+                Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_ALL'])
             all_cases = cursor.fetchall()
             cursor.execute(
                 Constants.QUERIES['SELECT_LEFT_PANEL_VALUES_CASE_MY'].format(user.id))
@@ -844,6 +845,7 @@ class IndicatorView(generics.ListCreateAPIView):
         page_size = 25
         core_ftr = self.get_filter()
         user_case = self.request.GET.get("user_case", None)
+        print(f"user_case: {user_case}")
         # TODO: Lots of conditional statements going on here, need to refactor later
         if not user_case and api_settings.SWITCH_ES_SEARCH and core_ftr.children:
             ftr = self.add_case_permission_filters(core_ftr)
@@ -860,8 +862,8 @@ class IndicatorView(generics.ListCreateAPIView):
         else:
             ftr = self.add_case_permission_filters(
                 core_ftr) if not user_case else core_ftr
-            user, case = user_case.split("_")
-            if case:
+            if user_case:
+                user, case = user_case.split("_")
                 indicators = self.model.objects.filter(ftr).distinct('id').order_by(key).values('id', 'uid', 'user_id', 'security_category', 'security_tags', 'vector', 'environment', 'pattern', 'pattern_type', 'pattern_subtype', 'pattern_tree', 'detail', 'annotation', 'reporter_info', 'created', 'updated', 'case__status')[
                     page_size * (page - 1):page_size * page]
                 unique = []
