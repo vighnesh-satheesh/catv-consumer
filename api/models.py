@@ -727,6 +727,10 @@ class Indicator(models.Model):
             latest_case = self.cases.latest('id')
             return latest_case.uid
         return ""
+    
+    @property
+    def user_id_indexing(self):
+        return self.user_id if self.user_id else 0
 
     class Meta:
         indexes = [
@@ -1078,6 +1082,7 @@ class IndicatorMView(models.Model):
     cases = models.TextField(blank=True, null=True)
     annotations = models.CharField(max_length=256, blank=True, null=True)
     latest_case = models.UUIDField(null=True, editable=False)
+    user_id = models.IntegerField()
 
     class Meta:
         managed = False
