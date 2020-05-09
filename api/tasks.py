@@ -139,7 +139,8 @@ class IndicatorESDocumentTask:
                     'annotations': indicator.annotations_indexing,
                     'latest_case': {
                         'hex': getattr(indicator.latest_case_indexing, 'hex', '')
-                    }
+                    },
+                    'user_id': indicator.user_id_indexing
                 }
             }
 
