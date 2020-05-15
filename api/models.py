@@ -645,7 +645,6 @@ class Annotation(models.Model):
     annotation = models.CharField(max_length=256, blank=True, null=True)
     created = models.DateTimeField(default=now)
 
-
 class Indicator(models.Model):
     uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='indicator_user')
@@ -1122,9 +1121,8 @@ class ConsumerErrorLogs(models.Model):
             models.Index(fields=['topic'])
         ]
 
-
 class IndicatorPoint(models.Model):
-    user_id = models.IntegerField(null=False)
+    user = models.ForeignKey(Indicator, on_delete=models.DO_NOTHING)
     indicator_id = models.IntegerField(null=False)
     points = models.BooleanField(default=True)
 
