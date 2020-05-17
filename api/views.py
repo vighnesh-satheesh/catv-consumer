@@ -824,7 +824,7 @@ class IndicatorView(generics.ListCreateAPIView):
         es_raw_req = requests.Request('GET',
                                       f'{api_settings.ELASTICSEARCH_HOST}/{api_settings.ELASTICSEARCH_INDICATOR_IDX}/_count?q={query_string_raw}',
                                       auth=cred)
-        if search_query:
+        if not search_query:
             async_req_caller = utils.AsyncAPICaller([es_serializer_req, es_raw_req])
         else:
             async_req_caller = utils.AsyncAPICaller([es_serializer_req], 1)
