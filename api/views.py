@@ -774,9 +774,7 @@ class IndicatorView(generics.ListCreateAPIView):
             else:
                 # Get user id
                 user_id = User.objects.get(uid=user).id
-                if case_status != 'all':
-                    ftr &= Q(cases__status=case_status)
-                ftr &= Q(user_id=user_id)
+                ftr = {"case_status": case_status, "user_id": user_id}
         return ftr
 
     def get_es_results(self, query_list, order_key, page):
@@ -850,18 +848,21 @@ class IndicatorView(generics.ListCreateAPIView):
                 core_ftr) if not user_case else core_ftr
             if user_case:
                 user, case = user_case.split("_")
-                if (self.request.user.permission is UserPermission.SUPERSENTINEL or self.request.user.permission is UserPermission.SENTINEL) and case == 'released':
+                if (self.request.user.permission is UserPermission.SUPERSENTINEL or self.request.user.permission is UserPermission.SENTINEL) and ftr['case_status'] == 'released':
                     sentinel_flag = 'sntl_'
                 else:
                     sentinel_flag = ''
-                indicators = UserIndicator.objects.raw(f"SELECT * FROM fn_{sentinel_flag}user_points_status({User.objects.get(uid=user_case.split('_')[0]).id})")[
-                    page_size * (page - 1):page_size * page]
-                serializer = UserIndicatorSerializer(indicators, many=True)
-                data = serializer.data
                 with connections['readonly'].cursor() as cursor:
                     cursor.execute(
-                        f"SELECT COUNT(id) FROM fn_{sentinel_flag}user_points_status({User.objects.get(uid=user_case.split('_')[0]).id})")
+                        f"SELECT COUNT(id) FROM fn_{sentinel_flag}user_points_status({ftr['user_id']}, '{ftr['case_status']}')")
                     total_items = cursor.fetchall()[0][0]
+                if total_items:
+                    indicators = UserIndicator.objects.raw(f"SELECT * FROM fn_{sentinel_flag}user_points_status({ftr['user_id']}, '{ftr['case_status']}')")[
+                        page_size * (page - 1):page_size * page]
+                    serializer = UserIndicatorSerializer(indicators, many=True)
+                    data = serializer.data
+                else:
+                    data = []
             else:
                 indicators = self.model.objects.filter(ftr).distinct('id').order_by(key)[
                     page_size * (page - 1):page_size * page]
@@ -874,6 +875,7 @@ class IndicatorView(generics.ListCreateAPIView):
                     query_string = None
                 resp = utils.es_raw_search('_count', query_string)
                 total_items = resp['count']
+
             if len(ftr) == 0 and total_items == 0:
                 c = DefaultCache()
                 d = c.get(Constants.CACHE_KEY['NUMBER_OF_INDICATORS_CASES'])
@@ -884,7 +886,6 @@ class IndicatorView(generics.ListCreateAPIView):
                         total_items = d['cr']
 
             if total_items == 0:
-                total_items = self.model.objects.filter(ftr).distinct('id').count()
                 CacheNumberOfIndicatorsCases().delay()
 
             return APIResponse({
