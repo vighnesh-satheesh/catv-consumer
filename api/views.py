@@ -789,7 +789,7 @@ class IndicatorView(generics.ListCreateAPIView):
             cred = None
         es_serializer_req = requests.Request('GET',
                                              url=f'{api_settings.BASE_API_URL}ecsearch/indicators/?{query_string_drf}'
-                                             f'&ordering={order_key}&page={page}', headers=headers, auth=cred)
+                                             f'&ordering={order_key}&page={page}', headers=headers)
         es_raw_req = requests.Request('GET',
                                       f'{api_settings.ELASTICSEARCH_HOST}/{api_settings.ELASTICSEARCH_INDICATOR_IDX}/_count?q={query_string_raw}',
                                       auth=cred)
