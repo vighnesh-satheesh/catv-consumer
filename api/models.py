@@ -1182,7 +1182,7 @@ class CatvRequestStatus(models.Model):
 
 
 class IndicatorExtraAnnotation(models.Model):
-    pattern = models.CharField(max_length=256)
+    pattern = models.CharField(max_length=256, unique=True)
     annotation = models.CharField(max_length=256, blank=True, null=True)
     created = models.DateTimeField(default=now)
     updated = models.DateTimeField(auto_now=True)

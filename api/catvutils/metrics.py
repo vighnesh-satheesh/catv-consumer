@@ -1,5 +1,8 @@
 from collections import defaultdict
 from itertools import groupby
+from operator import gt
+
+from django.utils.timezone import now
 
 from api.models import IndicatorExtraAnnotation
 
@@ -17,16 +20,25 @@ class CatvMetrics:
     def generate_metrics(self, compare_operator):
         self.seg_item_list = list(filter(lambda item: compare_operator(item["depth"], 0), self.item_list))
         self.seg_node_list = list(filter(lambda node: compare_operator(node["level"], 0), self.node_list))
+        if not self.seg_node_list:
+            return {
+                "blacklisted": [],
+                "exchange": [],
+                "depth_breakdown": {},
+                "max_sender": {},
+                "max_receiver": {}
+            }
         # top 10 blacklisted wallets by balance
         black_wallets = list(filter(lambda node: node["group"] == 'Blacklist', self.seg_node_list))
         black_wallets_top = sorted(black_wallets, key=lambda wallet: wallet["balance"])[:10]
         black_wallets_top = [{"address": wallet["address"], "balance": wallet["balance"]} for wallet in black_wallets_top]
         # top 10 exchange wallets by balance
         exchange_wallets = list(filter(lambda node: node["group"] == 'Exchange & DEX', self.seg_node_list))
-        exchange_wallets_top = sorted(exchange_wallets, key=lambda wallet: wallet["balance"])
+        exchange_wallets_top = sorted(exchange_wallets, key=lambda wallet: wallet["balance"])[:10]
         exchange_wallets_clean = set()
         for wallet in exchange_wallets_top:
-            word_list = wallet["annotation"].split(", ")
+            word_list = wallet["annotation"].split(",")
+            word_list = [w.strip() for w in word_list]
             clean_name = next((word for word in word_list
                                if word not in ["Exchange", "Wallet"] and (word.isalpha() or word.find(".") != -1)),
                               "Generic Exchange")
@@ -40,7 +52,9 @@ class CatvMetrics:
             highest_by_depth[level]["sent"] = {"tx_hash": max_sent_item["tx_hash"], "amount": max_sent_item["amount"]}
             int_level = abs(int(level))
             if int_level > 1:
-                highest_by_depth[str(int_level-1)]["received"] = {"tx_hash": max_sent_item["tx_hash"], "amount": max_sent_item["amount"]}
+                depth_key = str(int_level-1)
+                depth_key = depth_key if compare_operator == gt else f"-{depth_key}"
+                highest_by_depth[depth_key]["received"] = {"tx_hash": max_sent_item["tx_hash"], "amount": max_sent_item["amount"]}
         # wallet with highest amount sent
         grouped_by_sender = defaultdict(list)
         grouped_by_receiver = defaultdict(list)
@@ -72,8 +86,12 @@ class CatvMetrics:
         for node in self.node_list:
             annotation = node["annotation"]
             if annotation:
-               bulk_indicators.append(
-                   IndicatorExtraAnnotation(pattern=node["address"], annotation=annotation)
-               )
+                existing_indicator = IndicatorExtraAnnotation.objects.filter(pattern=node["address"])
+                if existing_indicator:
+                    existing_indicator.update(annotation=annotation, updated=now())
+                else:
+                    bulk_indicators.append(
+                        IndicatorExtraAnnotation(pattern=node["address"], annotation=annotation)
+                    )
         IndicatorExtraAnnotation.objects.bulk_create(bulk_indicators)
 

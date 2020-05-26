@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django.middleware.gzip.GZipMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -351,6 +352,8 @@ API_SETTINGS = {
     "KAFKA_DELAYED_CASE_TOPIC": env.str("API_KAFKA_DELAYED_CASE_TOPIC", "crawled-delayed-cases"),
     "KAFKA_CATV_TOPIC": env.str("API_KAFKA_CATV_TOPIC", "dev-catv-messages"),
     "SWITCH_CATV_KAFKA": env.bool("API_SWITCH_CATV_KAFKA", True),
+    "CATV_TX_LIMIT": env.int("API_CATV_TX_LIMIT", 50000),
+    "CATV_ADDRESS_LIMT": env.int("API_CATV_ADDRESS_LIMT", 50000),
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.

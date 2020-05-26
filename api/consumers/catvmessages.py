@@ -15,6 +15,7 @@ from api.serializers import (
     CATVSerializer, CATVBTCCoinpathSerializer,
     CatvBtcPathSerializer, CATVEthPathSerializer
 )
+from api.settings import api_settings
 from api.tasks import CatvHistoryTask, CatvPathHistoryTask
 
 __all__ = ('process_catv_messages',)
@@ -49,8 +50,12 @@ def process_catv_messages(message):
         
         serializer_obj = serializer_map[token_type][search_type](data=search_params)
         serializer_obj.is_valid(raise_exception=True)
-        core_results = serializer_obj.get_tracking_results(save_to_db=False)
-        catv_metrics = CatvMetrics(core_results.get("graph", {}))
+        if search_type == CatvSearchType.FLOW.value:
+            core_results = serializer_obj.get_tracking_results(tx_limit=api_settings.CATV_TX_LIMIT, limit=api_settings.CATV_ADDRESS_LIMT, save_to_db=False)
+        else:
+            core_results = serializer_obj.get_tracking_results(save_to_db=False)
+        graph_data = core_results.get("graph", {})
+        catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
         src_analysis = {}
         if search_type == CatvSearchType.FLOW.value:
@@ -64,7 +69,7 @@ def process_catv_messages(message):
         catv_metrics.save_annotations()
         results = {
             "data": {
-                **core_results["graph"],
+                **graph_data,
                 "dist_analysis": dist_analysis,
                 "src_analysis": src_analysis
             },
@@ -72,8 +77,12 @@ def process_catv_messages(message):
         }
         
         search_params.update({'user_id': user_id, 'token_type': token_type})
-        history_runner().run(history=search_params, from_history=True)
-        task_status = CatvTaskStatusType.RELEASED
+        if graph_data.get("node_list", {}):
+            history_runner().run(history=search_params, from_history=False)
+            task_status = CatvTaskStatusType.RELEASED
+        else:
+            history_runner().run(history=search_params, from_history=True)
+            task_status = CatvTaskStatusType.FAILED
     except Exception as e:
         error_trace = str(e)
         print(error_trace)
