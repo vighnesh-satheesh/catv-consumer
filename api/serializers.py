@@ -2596,4 +2596,4 @@ class CATVRequestListSerializer(NonNullModelSerializer):
     def get_created(self, obj):
         if obj.created is None:
             return None
-        return time.mktime(obj.created.timetuple())
+        return time.mktime(obj.created.timetuple()) * 1000
