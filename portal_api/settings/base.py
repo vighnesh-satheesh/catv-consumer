@@ -350,7 +350,7 @@ API_SETTINGS = {
     "KAFKA_CRAWLED_CASE_TOPIC": env.str("API_KAFKA_CRAWLED_CASE_TOPIC", "crawled-cases"),
     "KAFKA_PORTAL_CASE_TOPIC": env.str("API_KAFKA_PORTAL_CASE_TOPIC", "portal-cases"),
     "KAFKA_DELAYED_CASE_TOPIC": env.str("API_KAFKA_DELAYED_CASE_TOPIC", "crawled-delayed-cases"),
-    "KAFKA_CATV_TOPIC": env.str("API_KAFKA_CATV_TOPIC", "dev-catv-messages"),
+    "KAFKA_CATV_TOPIC": env.str("API_KAFKA_CATV_TOPIC", "catv-requests"),
     "SWITCH_CATV_KAFKA": env.bool("API_SWITCH_CATV_KAFKA", True),
     "CATV_TX_LIMIT": env.int("API_CATV_TX_LIMIT", 50000),
     "CATV_ADDRESS_LIMT": env.int("API_CATV_ADDRESS_LIMT", 50000),

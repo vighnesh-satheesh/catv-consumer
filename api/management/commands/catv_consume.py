@@ -23,7 +23,7 @@ class Command(BaseCommand):
             auto_offset_reset='earliest',
             enable_auto_commit=True,
             auto_commit_interval_ms=1000,
-            group_id='dev-catv-reader',
+            group_id='catv-reader',
             max_poll_records=1
         )
         try:
