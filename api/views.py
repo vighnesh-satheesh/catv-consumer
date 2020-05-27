@@ -818,7 +818,7 @@ class IndicatorView(generics.ListCreateAPIView):
             cred = None
         es_serializer_req = requests.Request('GET',
                                              url=f'{api_settings.BASE_API_URL}ecsearch/indicators/?{query_string_drf}'
-                                             f'&ordering={order_key}&page={page}', headers=headers, auth=cred)
+                                             f'&ordering={order_key}&page={page}', headers=headers)
         es_raw_req = requests.Request('GET',
                                       f'{api_settings.ELASTICSEARCH_HOST}/{api_settings.ELASTICSEARCH_INDICATOR_IDX}/_count?q={query_string_raw}',
                                       auth=cred)
@@ -849,7 +849,7 @@ class IndicatorView(generics.ListCreateAPIView):
             ftr = self.add_case_permission_filters(core_ftr)
             indicators = self.get_es_results(ftr.children, key, page)
             indicator_res = indicators.get("results", [])
-            if indicator_res:
+            if indicator_res and user_case:
                 points = IndicatorPoint.objects.filter(indicator_id__in=[
                     i['id'] for i in indicator_res], user_id=User.objects.get(uid=user_case.split('_')[0]).id, points=True).values_list("indicator_id", flat=True)
                 for i in indicator_res:
