@@ -42,7 +42,7 @@ class CatvMetrics:
             clean_name = next((word for word in word_list
                                if word not in ["Exchange", "Wallet"] and (word.isalpha() or word.find(".") != -1)),
                               "Generic Exchange")
-            exchange_wallets_clean.add(clean_name)
+            exchange_wallets_clean.add(clean_name.split(" ")[0])
         # group wallets by level
         grouped_by_depth = groupby(self.seg_item_list, lambda item: str(item["depth"]))
         highest_by_depth = defaultdict(dict)
