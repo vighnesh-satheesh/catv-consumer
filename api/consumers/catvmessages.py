@@ -1,5 +1,6 @@
 import json
 from operator import gt, lt
+import traceback
 from uuid import UUID
 
 from django.utils.timezone import now
@@ -84,7 +85,7 @@ def process_catv_messages(message):
             history_runner().run(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
-        error_trace = str(e)
+        error_trace = traceback.format_exc()
         print(error_trace)
         generic_error = "Internal server error. Please try again later"
         safe_error_trace = error_trace if isinstance(e, FileNotFound) else generic_error
@@ -98,7 +99,7 @@ def process_catv_messages(message):
         ConsumerErrorLogs.objects.create(
             topic=message.topic,
             message=request_body,
-            error_trace=str(e)
+            error_trace=error_trace
         )
     finally:
         message = results or error_dict
