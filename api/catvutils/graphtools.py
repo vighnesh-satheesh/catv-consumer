@@ -1,5 +1,8 @@
 from collections import defaultdict
 from itertools import chain, islice
+from math import ceil
+
+from api.settings import api_settings
 
 MULTIPLIER = 0.4
 EDGE_WIDTH_MAX = 4
@@ -66,6 +69,19 @@ class NodesCollection:
     def __init__(self):
         self.__nodes = {}
         self.__node_enum = {}
+        self.__edge_keys = set()
+    
+    @property
+    def count(self):
+        return len(self.__nodes.items())
+        
+    @property
+    def edge_keys(self):
+        return self.__edge_keys
+    
+    @edge_keys.setter
+    def edge_keys(self, value):
+        self.__edge_keys = value
 
     def get_nodes(self):
         return self.__nodes
@@ -85,8 +101,9 @@ class NodesCollection:
     def update_node(self, node_key, node_value):
         self.__nodes[node_key] = node_value
         
-    def filter_update_nodes(self, filter_list):
-        self.__nodes = {k:v for k, v in self.__nodes.items() if k in filter_list}
+    def filter_update_nodes(self):
+        if self.__edge_keys:
+            self.__nodes = {k:v for k, v in self.__nodes.items() if k in self.__edge_keys}
 
 
 def take(n, iterable):
@@ -106,9 +123,10 @@ def sort_per_depth(grouped_by_depth: dict) -> dict:
     return grouped_by_depth
 
 
-def limit_connected_edges(sorted_grouped_edges: dict, transaction_ratio: int) -> dict:
+def limit_connected_edges(sorted_grouped_edges: dict, scaling_factor: float) -> dict:
     limited_edges = {}
     for depth, edge_dict in sorted_grouped_edges.items():
+        transaction_ratio = ceil(scaling_factor * len(edge_dict.items()))
         if depth != 1:
             receivers_prev = list(limited_edges.keys())
             receivers_prev = set([key_pair[1] for key_pair in receivers_prev])
@@ -126,15 +144,15 @@ def make_lossy_graph(nc, edge_dict):
     grouped_by_depth = group_by_depth(edge_dict)
     print("Sorting by depth...")
     sorted_per_depth = sort_per_depth(grouped_by_depth)
-    max_depth = max([int(depth) for depth in sorted_per_depth.keys()])
-    max_nodes = 500
-    tx_ratio = 50
-    print("Shedding edges...")
-    limited_conn_edges = limit_connected_edges(sorted_per_depth, tx_ratio)
+    node_count = nc.count
+    max_scaled_nodes = api_settings.CATV_MAX_SCALED_NODES
+    scaling_factor = max_scaled_nodes / node_count
+    print(f"Shedding edges with scale of: {scaling_factor}")
+    limited_conn_edges = limit_connected_edges(sorted_per_depth, scaling_factor)
     edge_keys = set(chain.from_iterable(limited_conn_edges.keys()))
     all_nodes = list(nc.get_nodes_as_dict().values())
     limited_nodes = filter(lambda node: node["address"] in edge_keys, all_nodes)
-    nc.filter_update_nodes(edge_keys)
+    nc.edge_keys = edge_keys
     return limited_conn_edges, limited_nodes
 
 
@@ -464,16 +482,14 @@ def generate_nodes_edges(result, mode):
     if mode == -1:
         depth_shift_for_source(result)
     tx_count = len(result)
-    if tx_count > 5000:
+    limited_edges = {}
+    limited_nodes = []
+    if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict)
-        track_result = {'item_list': result, 'node_list': list(limited_nodes), 'keys': keys,
-                        'node_enum': nc.get_node_enum(), 'edge_list': list(limited_edges.values()),
-                        'volume_count_{}'.format(mode): volume_count}
-        return track_result, nc
-
     track_result = {'item_list': result, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
-                    'volume_count_{}'.format(mode): volume_count}
+                    'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
+                    'graph_edge_list': list(limited_edges.values())}
     return track_result, nc
 
 
@@ -497,16 +513,14 @@ def generate_nodes_edges_coinpath(result, mode):
     if mode == -1:
         depth_shift_btc(result, mode)
     tx_count = len(result)
-    if tx_count > 5000:
+    limited_edges = {}
+    limited_nodes = []
+    if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict)
-        track_result = {'item_list': result, 'node_list': list(limited_nodes), 'keys': keys,
-                        'node_enum': nc.get_node_enum(), 'edge_list': list(limited_edges.values()),
-                        'volume_count_{}'.format(mode): volume_count}
-        return track_result, nc
-
     track_result = {'item_list': result, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
-                    'volume_count_{}'.format(mode): volume_count}
+                    'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
+                    'graph_edge_list': list(limited_edges.values())}
     return track_result, nc
 
 
@@ -528,16 +542,14 @@ def generate_nodes_edges_ethcoinpath(result, mode):
     if mode == -1:
         depth_shift_for_source(result)
     tx_count = len(result)
-    if tx_count > 5000:
+    limited_edges = {}
+    limited_nodes = []
+    if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict)
-        track_result = {'item_list': result, 'node_list': list(limited_nodes), 'keys': keys,
-                        'node_enum': nc.get_node_enum(), 'edge_list': list(limited_edges.values()),
-                        'volume_count_{}'.format(mode): volume_count}
-        return track_result, nc
-
     track_result = {'item_list': item_list, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
-                    'volume_count_{}'.format(mode): volume_count}
+                    'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
+                    'graph_edge_list': list(limited_edges.values())}
     return track_result, nc
 
 
@@ -559,14 +571,12 @@ def generate_nodes_edges_btccoinpath(result, mode):
     if mode == -1:
         depth_shift_for_source(result)
     tx_count = len(result)
-    if tx_count > 5000:
+    limited_edges = {}
+    limited_nodes = []
+    if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict)
-        track_result = {'item_list': result, 'node_list': list(limited_nodes), 'keys': keys,
-                        'node_enum': nc.get_node_enum(), 'edge_list': list(limited_edges.values()),
-                        'volume_count_{}'.format(mode): volume_count}
-        return track_result, nc
-
     track_result = {'item_list': item_list, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
-                    'volume_count_{}'.format(mode): volume_count}
+                    'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
+                    'graph_edge_list': list(limited_edges.values())}
     return track_result, nc
