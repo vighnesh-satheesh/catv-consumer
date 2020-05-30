@@ -68,6 +68,14 @@ def process_catv_messages(message):
             if search_params.get("depth", 0) > 0:
                 dist_analysis = catv_metrics.generate_metrics(gt)
         catv_metrics.save_annotations()
+        if 'graph_node_list' in graph_data and graph_data['graph_node_list']:
+            graph_data["node_list"] = graph_data["graph_node_list"]
+            graph_data["edge_list"] = graph_data["graph_edge_list"]
+            print(len(graph_data["node_list"]))
+            del graph_data["graph_node_list"]
+            del graph_data["graph_edge_list"]
+            core_results["messages"]["source"] += f"\nThis address has too many transactions. Viewing all transactions would be difficult, "\
+                f"so we have generated the most relevant graph for you with some scaling down on each level to show nodes which have transacted the most."
         results = {
             "data": {
                 **graph_data,

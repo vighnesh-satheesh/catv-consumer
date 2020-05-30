@@ -192,12 +192,16 @@ class TrackingResults:
             updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], token_type)
             tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
             tracking_results['item_list'] = updated_item_list
+            nc.filter_update_nodes()
+            tracking_results['node_enum'] = nc.get_node_enum()
             self._source_graph = tracking_results
         if not self._skip_dist and self._async_dist_graph:
             tracking_results, nc = self._async_dist_graph.get()
             updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], token_type)
             tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
             tracking_results['item_list'] = updated_item_list
+            nc.filter_update_nodes()
+            tracking_results['node_enum'] = nc.get_node_enum()
             self._dist_graph = tracking_results
 
     def make_graph_dict(self):
@@ -208,9 +212,21 @@ class TrackingResults:
             track_source_result = self._source_graph
             graph_dict['item_list'] = track_dist_result['item_list'] + track_source_result['item_list']
             graph_dict['keys'] = track_dist_result['keys']
+            pick_dist_graph = track_dist_result['node_list']
+            pick_dist_edges = track_dist_result['edge_list']
+            pick_src_graph = track_source_result['node_list']
+            pick_src_edges = track_source_result['edge_list']
+            if track_dist_result['graph_node_list']:
+                pick_dist_graph = track_dist_result['graph_node_list']
+                pick_dist_edges = track_dist_result['graph_edge_list']
+            if track_source_result['graph_node_list']:
+                pick_src_graph = track_source_result['graph_node_list']
+                pick_src_edges = track_source_result['graph_edge_list']
             # the original node is the first entry in both dist and source so remove duplicates here
             graph_dict['node_list'] = track_dist_result['node_list'] + track_source_result['node_list'][1::]
+            graph_dict['graph_node_list'] = pick_dist_graph + pick_src_graph[1::]
             graph_dict['edge_list'] = track_dist_result['edge_list'] + track_source_result['edge_list']
+            graph_dict['graph_edge_list'] = pick_dist_edges + pick_src_edges
             graph_dict['node_enum'] = {**track_dist_result['node_enum'], **track_source_result['node_enum']}
             graph_dict['send_count'] = track_dist_result['volume_count_1']
             graph_dict['receive_count'] = track_source_result['volume_count_-1']
