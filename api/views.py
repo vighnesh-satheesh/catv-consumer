@@ -38,7 +38,7 @@ from .models import (
     RewardSetting, ProductType, Organization, OrganizationInvites, OrganizationInviteStatus, OrganizationUser,
     CatvHistory, CatvTokens, CatvPathHistory, InviteType, OrganizationUserStatus,
     CatvSearchType, CatvRequestStatus, CatvTaskStatusType,
-    UserIndicator, IndicatorPoint
+    UserIndicator, IndicatorPoint, CatvResult
 )
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
@@ -2616,6 +2616,7 @@ class CATVRequestsView(generics.ListAPIView):
         if status:
             filter_queries &= Q(status=status)
         objs = CatvRequestStatus.objects.filter(filter_queries).order_by('-pk')
+        print(objs.query)
         return objs
 
     def get_paginated_response(self, data):
@@ -2634,6 +2635,14 @@ class CATVReportView(APIView):
     
     def get_object(self, pk):
         try:
+            return CatvResult.objects.select_related('request').get(request__uid__iexact=pk)
+        except CatvRequestStatus.DoesNotExist:
+            raise exceptions.CATVReportNotFound()
+        except CatvResult.DoesNotExist:
+            raise exceptions.CATVReportNotFound()
+    
+    def get_related_object(self, pk):
+        try:
             return CatvRequestStatus.objects.get(uid__iexact=pk)
         except CatvRequestStatus.DoesNotExist:
             raise exceptions.CATVReportNotFound()
@@ -2648,14 +2657,14 @@ class CATVReportView(APIView):
                     "source": "Results not generated yet. Please try again later."
                 }
             })
-        serializer = CATVRequestListSerializer(obj)
+        serializer = CATVRequestListSerializer(obj.request)
         return APIResponse({
             **obj.result,
             "request_params": serializer.data
         })
     
     def put(self, request, pk=None):
-        obj = self.get_object(pk)
+        obj = self.get_related_object(pk)
         reverse_token_map = {
             "Ethereum": CatvTokens.ETH.value,
             "Bitcoin": CatvTokens.BTC.value
