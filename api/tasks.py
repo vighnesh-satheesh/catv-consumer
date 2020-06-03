@@ -1,9 +1,10 @@
 import json
 from urllib.parse import urlparse
+import uuid
 
 from celery.task import Task
 from celery.registry import tasks
-from django.db import connections
+from django.db import connections, transaction, IntegrityError
 from django.utils.timezone import now
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import streaming_bulk
@@ -11,7 +12,8 @@ from kafka import KafkaProducer
 
 from .cache import DefaultCache
 from .constants import Constants
-from .models import Case
+from .exceptions import DataIntegrityError
+from .models import Case, CatvRequestStatus, CatvResult
 from .settings import api_settings
 
 
@@ -213,6 +215,50 @@ class CaseMessageTask:
         producer.send(self.topic, message_body)
         producer.flush()
         producer.close()
+
+
+class CatvRequestTask:
+    def __init__(self, topic, **kwargs):
+        self.topic = topic
+        self.message_id = uuid.uuid4()
+        self.token_type = kwargs["token_type"]
+        self.search_type = kwargs["search_type"]
+        self.search_params = kwargs["search_params"]
+        self.user = kwargs["user"]
+        
+    def run(self):
+        message_body = {
+            "message_id": self.message_id.hex,
+            "user_id": self.user.id,
+            "token_type": self.token_type,
+            "search_type": self.search_type,
+            "search_params": self.search_params
+        }
+        producer = KafkaProducer(
+            bootstrap_servers=[
+                api_settings.KAFKA_BROKER_1,
+                api_settings.KAFKA_BROKER_2,
+                api_settings.KAFKA_BROKER_3
+            ],
+            value_serializer=lambda m: json.dumps(m).encode("utf-8"),
+            retries=3
+        )
+        producer.send(self.topic, message_body)
+        producer.flush()
+        producer.close()
+    
+    def save(self):
+        try:
+            with transaction.atomic():
+                task_record = CatvRequestStatus.objects.create(
+                    uid=self.message_id,
+                    params=self.search_params,
+                    user=self.user
+                )
+                CatvResult.objects.create(request=task_record)
+            return task_record
+        except IntegrityError:
+            raise DataIntegrityError("data integrity error")
 
 
 tasks.register(CacheLeftPanelValuesTask)
