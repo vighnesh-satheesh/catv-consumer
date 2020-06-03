@@ -30,19 +30,26 @@ class CatvMetrics:
             }
         # top 10 blacklisted wallets by balance
         black_wallets = list(filter(lambda node: node["group"] == 'Blacklist', self.seg_node_list))
-        black_wallets_top = sorted(black_wallets, key=lambda wallet: wallet["balance"])[:10]
+        black_wallets_top = sorted(black_wallets, key=lambda wallet: wallet["balance"], reverse=True)[:10]
         black_wallets_top = [{"address": wallet["address"], "balance": wallet["balance"]} for wallet in black_wallets_top]
         # top 10 exchange wallets by balance
         exchange_wallets = list(filter(lambda node: node["group"] == 'Exchange & DEX', self.seg_node_list))
-        exchange_wallets_top = sorted(exchange_wallets, key=lambda wallet: wallet["balance"])[:10]
-        exchange_wallets_clean = set()
+        exchange_wallets_top = sorted(exchange_wallets, key=lambda wallet: wallet["amount_in"], reverse=True)[:15]
+        exchange_wallets_clean = {}
+        skip_words = (["exchange", "wallet", "exchange wallet", "user wallet", "fiat gateway",
+                       "proxy contract", "defi", "dex"
+                       ])
         for wallet in exchange_wallets_top:
             word_list = wallet["annotation"].split(",")
             word_list = [w.strip() for w in word_list]
             clean_name = next((word for word in word_list
-                               if word not in ["Exchange", "Wallet"] and (word.isalpha() or word.find(".") != -1)),
-                              "Generic Exchange")
-            exchange_wallets_clean.add(clean_name.split(" ")[0])
+                               if word.lower() not in skip_words),
+                              "Generic")
+            clean_name = clean_name.replace("_", " ")
+            clean_name = clean_name.split(" ")[0]
+            if clean_name != "Generic":
+                # Dictionaries are guaranteed to preserve insert order in Python 3.6
+                exchange_wallets_clean[clean_name] = clean_name
         # group wallets by level
         grouped_by_depth = groupby(self.seg_item_list, lambda item: str(item["depth"]))
         highest_by_depth = defaultdict(dict)
@@ -75,7 +82,7 @@ class CatvMetrics:
         # create dictionary and return
         return {
             "blacklisted": black_wallets_top,
-            "exchange": list(exchange_wallets_clean),
+            "exchange": list(exchange_wallets_clean.keys())[:10],
             "depth_breakdown": dict(highest_by_depth),
             "max_sender": max_sender,
             "max_receiver": max_receiver
