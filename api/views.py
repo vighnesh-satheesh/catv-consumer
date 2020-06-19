@@ -83,6 +83,7 @@ from .tasks import (
     CatvPathHistoryTask, CaseMessageTask, CatvRequestTask
 )
 from .catvutils.metrics import CatvMetrics
+from .search import CaseSearchES
 
 
 class HealthCheckView(APIView):
@@ -316,7 +317,33 @@ class CaseFilter(filters.FilterSet):
     class Meta:
         model = Case
         fields = ("case",)
+        
+    def make_shared_filter(self, queryset, name, value):
+        case_cate = value.split("_")
+        if len(case_cate) not in [1, 2]:
+            raise exceptions.CaseFilterError()
+        case_filter = Q()
+        cate = case_cate[0]
+        subcate = None
+        if len(case_cate) == 2:
+            subcate = case_cate[1]
 
+        if cate not in ["all", "my", "org"]:
+            raise exceptions.CaseFilterError()
+
+        if subcate and subcate not in ["new", "progress", "confirmed", "rejected", "released"]:
+            raise exceptions.CaseFilterError()
+
+        if subcate is not None:
+            case_filter &= Q(status=subcate)
+
+        if cate == "all":
+            if self.request.user.permission == UserPermission.EXCHANGE:
+                case_filter &= (Q(status="released") | Q(status="confirmed"))
+        elif cate == "my":
+            case_filter &= (Q(owner=self.request.user.pk) | Q(reporter=self.request.user.pk))
+        return case_filter
+    
     def filter_user_case(self, queryset, name, value):
         usercase_cate = value.split('_')
         if not len(usercase_cate) == 2:
@@ -339,33 +366,10 @@ class CaseFilter(filters.FilterSet):
         return queryset.distinct('id')
 
     def filter_case_board(self, queryset, name, value):
-        case_cate = value.split("_")
-        if len(case_cate) not in [1, 2]:
-            raise exceptions.CaseFilterError()
-        case_filter = Q()
+        case_filter = self.make_shared_filter(queryset, name, value)
         case_keyword_filter = Q()
         indicator_filter = Q()
         indicator_keyword_filter = Q()
-        cate = case_cate[0]
-        subcate = None
-        if len(case_cate) == 2:
-            subcate = case_cate[1]
-
-        if cate not in ["all", "my", "org"]:
-            raise exceptions.CaseFilterError()
-
-        if subcate and subcate not in ["new", "progress", "confirmed", "rejected", "released"]:
-            raise exceptions.CaseFilterError()
-
-        if subcate is not None:
-            case_filter &= Q(status=subcate)
-
-        if cate == "all":
-            if self.request.user.permission == UserPermission.EXCHANGE:
-                case_filter &= (Q(status="released") | Q(status="confirmed"))
-        elif cate == "my":
-            case_filter &= (Q(owner=self.request.user.pk) |
-                            Q(reporter=self.request.user.pk))
 
         security_category = self.request.GET.getlist("security_category") or []
         pattern_subtype = self.request.GET.getlist("pattern_subtype") or []
@@ -543,6 +547,25 @@ class CaseView(generics.ListCreateAPIView):
     def get_paginated_response(self, data):
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data, data_key="cases")
+    
+    def filter_queryset(self, queryset):
+        qs = super().filter_queryset(queryset)
+        return qs
+    
+    def list(self, request, *args, **kwargs):
+        filter_keys = set(["user_case", "security_category", "pattern_type", "pattern_subtype", "keyword", "start_date", "end_date"])
+        filter_match = next((key for key in self.request.query_params.keys() if key in filter_keys), False)
+        if filter_match and api_settings.SWITCH_ES_SEARCH:
+            search_wrapper = CaseSearchES(request)
+            results = search_wrapper.search()
+            return APIResponse({
+                "data": results
+            })
+        else:
+            case_queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(case_queryset)
+            serializer = self.serializer_class(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
 
 class CaseDetailView(APIView):
@@ -709,8 +732,8 @@ class CaseDetailView(APIView):
                          (obj.status in [CaseStatus.PROGRESS, CaseStatus.REJECTED] and obj.owner != request.user)):
                     raise exceptions.OwnerRequiredError()
                 case_m2m_queryset = CaseIndicator.objects.filter(case=obj)
-                indicator_ids = [
-                    case_m2m.indicator_id for case_m2m in case_m2m_queryset]
+                indicator_ids = [case_m2m.indicator_id for case_m2m in case_m2m_queryset]
+                case_task.case_id = obj.id
                 case_task.related_ids = indicator_ids
                 case_m2m_queryset.delete()
 
