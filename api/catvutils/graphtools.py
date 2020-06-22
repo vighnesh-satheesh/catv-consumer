@@ -493,6 +493,7 @@ def generate_nodes_edges(result, mode):
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict, mode)
+    limited_edges = limited_edges if limited_edges else edge_dict
     track_result = {'item_list': result, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
                     'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
@@ -524,6 +525,7 @@ def generate_nodes_edges_coinpath(result, mode):
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict, mode)
+    limited_edges = limited_edges if limited_edges else edge_dict
     track_result = {'item_list': result, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
                     'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
@@ -553,6 +555,7 @@ def generate_nodes_edges_ethcoinpath(result, mode):
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict, mode)
+    limited_edges = limited_edges if limited_edges else edge_dict
     track_result = {'item_list': item_list, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
                     'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
@@ -582,6 +585,7 @@ def generate_nodes_edges_btccoinpath(result, mode):
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF:
         limited_edges, limited_nodes = make_lossy_graph(nc, edge_dict, mode)
+    limited_edges = limited_edges if limited_edges else edge_dict
     track_result = {'item_list': item_list, 'node_list': list(nc.get_nodes_as_dict().values()), 'keys': keys,
                     'node_enum': nc.get_node_enum(), 'edge_list': list(edge_dict.values()),
                     'volume_count_{}'.format(mode): volume_count, 'graph_node_list': list(limited_nodes),
