@@ -406,7 +406,7 @@ class UserPostSerializer(serializers.ModelSerializer):
                 data["token"] = token.key
             data["id"] = user.uid
             address = request.data.get("address", None)
-            if address != "" and address != "empty":
+            if address != "" and address != "empty" and address is not None:
                 data["address"] = w3.toChecksumAddress(address)
             else:
                 data["address"] = ""

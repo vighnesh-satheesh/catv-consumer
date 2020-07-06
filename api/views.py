@@ -1621,30 +1621,34 @@ class UserDetailView(APIView):
         })
 
     def put(self, request, pk=None):
-        obj = self.get_object(pk)
-        serializer = UserPostSerializer(
-            obj, data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        user = serializer.data
-        reward_setting = RewardSetting.objects.filter(id=1).values()
-        address_c = w3.toChecksumAddress(
-            reward_setting[0].get('token_address'))
-        token_abi = json.loads(reward_setting[0].get('token_abi'))
-        token = w3.eth.contract(address_c, abi=token_abi)
-        user_waddress = user['address']
-        bal = token.call().balanceOf(user_waddress) if user_waddress else 0
-        user["balance"] = bal
-        user["status"] = obj.status.value
-        user["image"] = obj.image.url if bool(
-            obj.image) else api_settings.S3_USER_IMAGE_DEFAULT
-        return APIResponse({
-            "data": {
-                "accessToken": serializer.validated_data["token"],
-                "user": user
-            }
-        })
-
+        try:
+            obj = self.get_object(pk)
+            serializer = UserPostSerializer(
+                obj, data=request.data, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            user = serializer.data
+            reward_setting = RewardSetting.objects.filter(id=1).values()
+            address_c = w3.toChecksumAddress(
+                reward_setting[0].get('token_address'))
+            token_abi = json.loads(reward_setting[0].get('token_abi'))
+            token = w3.eth.contract(address_c, abi=token_abi)
+            user_waddress = user['address']
+            bal = token.call().balanceOf(user_waddress) if user_waddress else 0
+            user["balance"] = bal
+            user["status"] = obj.status.value
+            user["image"] = obj.image.url if bool(
+                obj.image) else api_settings.S3_USER_IMAGE_DEFAULT
+            return APIResponse({
+                "data": {
+                    "accessToken": serializer.validated_data["token"],
+                    "user": user
+                }
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise exceptions.ValidationError("invalid data")
 
 class IcfView(APIView):
     authentication_classes = (CachedTokenAuthentication,)
