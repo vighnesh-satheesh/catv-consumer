@@ -146,7 +146,7 @@ class LoginSerializer(serializers.Serializer):
                 "last_logged_out": user.last_logged_out,
                 "api_details": api_details
             }
-        }
+        }    
 
     def check_organization(self, user):
         organization_id = ''
@@ -231,6 +231,18 @@ class LoginSerializer(serializers.Serializer):
         else:
             token = ""
         return token.key
+        
+    def internal_create_success_response(self, user, token):
+        class TokenObject:
+            def __init__(self, token):
+                self._obj = {'key': token}
+            def __getattr__(self, key):
+                try:
+                    return self._obj[key]
+                except KeyError:
+                    raise AttributeError(key)
+        token_obj = TokenObject(token)
+        return self.__create_success_response(user, token_obj)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
