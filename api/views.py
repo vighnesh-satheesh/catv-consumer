@@ -663,6 +663,7 @@ class CaseDetailView(APIView):
             e = Email()
             kv = {
                 "nickname": obj.reporter.nickname,
+                "case_exp": "Case #{0} has been updated".format(obj.id),
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
             SendEmail().delay(kv=kv,
@@ -705,6 +706,7 @@ class CaseDetailView(APIView):
             e = Email()
             kv = {
                 "nickname": obj.reporter.nickname,
+                "case_exp": "Case #{0} status has been updated to {1}".format(obj.id, serializer.data["status"]),
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
             SendEmail().delay(kv=kv,
@@ -756,6 +758,7 @@ class CaseDetailView(APIView):
             e = Email()
             kv = {
                 "nickname": obj.reporter.nickname,
+                "case_exp": "Case #{0} has been deleted".format(obj.id),
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
             SendEmail().delay(kv=kv,
@@ -1777,6 +1780,7 @@ class CommentView(APIView):
             )
             kv = {
                 "nickname": u.nickname,
+                "case_exp": Constants.EMAIL_TITLE["NOTIFICATION_COMMENT"].format(request.user.nickname),
                 "link": api_settings.WEB_URL + '/' + target["type"] + '/' + str(obj.uid)
             }
             SendEmail().delay(kv=kv,
@@ -1799,6 +1803,7 @@ class CommentView(APIView):
                 )
                 kv = {
                     "nickname": user.nickname,
+                    "case_exp": Constants.EMAIL_TITLE["NOTIFICATION_COMMENT_MENTION"].format(request.user.nickname),
                     "link": api_settings.WEB_URL + '/' + target["type"] + '/' + str(obj.uid)
                 }
                 SendEmail().delay(kv=kv,
