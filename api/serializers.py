@@ -165,9 +165,6 @@ class LoginSerializer(serializers.Serializer):
         elif org_user:
             organization_id = str(org_user[0].organization.uid)
             is_admin = org_user[0].is_admin
-        elif user.role.role_name == models.UserRoles.ORG.value or \
-                user.role.role_name == models.UserRoles.ORG_TRIAL.value:
-            is_admin = True
         return organization_id, is_admin
 
     def validate_email(self, email):
@@ -276,6 +273,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     created = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
 
     class Meta:
         model = models.User
@@ -299,6 +297,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         return obj.role.display_name
+
+    def get_email(self, obj):
+        request = self.context.get("request", None)
+        if request and (request.user == obj or request.user.role.role_name == models.UserRoles.SUPERSENTINEL.value):
+            return obj.email
+        return None
 
 
 class UserPostSerializer(serializers.ModelSerializer):
@@ -543,12 +547,16 @@ class ICFPostSerializer(serializers.ModelSerializer):
         if request is None or request.user is None or request.auth is None:
             raise exceptions.NotAllowedError()
         user = request.user
+        org_details = user.organization_set.filter(organizationuser__status=models.OrganizationUserStatus.ACTIVE)
+        if org_details.count():
+            raise exceptions.NotAllowedError(detail='Only organization admins are allowed to create or regenerate '
+                                                    'API keys')
         if request.method == 'POST':
             obj = models.Key.objects.filter(user=user.pk)
-            if obj.exists() == True:
-                raise exceptions.ICFAlreadyExist()
+            if obj.count() == user.role.usage_role.get().max_api_keys:
+                raise exceptions.ICFAlreadyExist(detail=f"You are only allowed a maximum of {obj.count()} API key(s)")
             data["user"] = user
-            data["expire_datetime"] = timezone.now() + relativedelta(years=+1)
+            data["expire_datetime"] = timezone.now() + relativedelta(years=+99)
         return data
 
     def create(self, validated_data):
@@ -568,7 +576,7 @@ class ICFPostSerializer(serializers.ModelSerializer):
                 obj.api_key = new_key
                 break
         if obj.expire_datetime.date() < timezone.now().date():
-            obj.expire_datetime = timezone.now() + relativedelta(years=+1)
+            obj.expire_datetime = timezone.now() + relativedelta(years=+99)
         obj.save()
         return obj
 
@@ -2359,6 +2367,9 @@ class OrganizationPostSerializer(serializers.ModelSerializer):
 
         if request.method == "POST":
             try:
+                role_perm = models.RolePermission.objects.get(action__codename='create_org', role=request.user.role)
+                if not role_perm.allowed:
+                    raise exceptions.NotAllowedError("You do not have permission to create organizations")
                 data["uid"] = request.data["uid"]
                 data["name"] = request.data["name"]
                 image = request.data.get("image", None)
@@ -2366,6 +2377,8 @@ class OrganizationPostSerializer(serializers.ModelSerializer):
                     data["image"] = ""
             except KeyError:
                 raise exceptions.ValidationError("Missing input fields")
+            except models.RolePermission.DoesNotExist:
+                raise exceptions.ValidationError("Role matching permission missing")
         return data
 
     def create(self, validated_data):

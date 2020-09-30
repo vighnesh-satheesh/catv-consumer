@@ -242,7 +242,6 @@ class IndicatorPatternSubtype(Enum):
 
     # other
     OTHER = 'other'
-    PHONE = 'phone'
 
     @classmethod
     def cryptoaddr_subtypes(cls):
@@ -594,6 +593,9 @@ class User(models.Model):
     def status_indexing(self):
         if self.status is not None:
             return self.status.value
+    
+    def __str__(self):
+        return self.email
 
 
 class RoleUsageLimit(models.Model):
@@ -603,6 +605,10 @@ class RoleUsageLimit(models.Model):
     catv_limit = models.IntegerField(null=True, default=5)
     cara_limit = models.IntegerField(null=True, default=5)
     org_invite_limit = models.IntegerField(null=True, default=0)
+    max_api_keys = models.IntegerField(null=True, default=1)
+    api_limit_y = models.IntegerField(null=False, default=5)
+    catv_limit_y = models.IntegerField(null=False, default=5)
+    cara_limit_y = models.IntegerField(null=False, default=5)
 
     class Meta:
         db_table = 'api_role_usage_limit'
@@ -1098,7 +1104,14 @@ class Usage(models.Model):
     api_calls_left = models.IntegerField(default=0)
     catv_calls_left = models.IntegerField(default=0)
     cara_calls_left = models.IntegerField(default=0)
+    api_calls_left_y = models.IntegerField(default=0)
+    catv_calls_left_y = models.IntegerField(default=0)
+    cara_calls_left_y = models.IntegerField(default=0)
+    api_calls = models.IntegerField(default=0)
+    catv_calls = models.IntegerField(default=0)
+    cara_calls = models.IntegerField(default=0)
     last_renewal_at = models.DateTimeField(null=True)
+    last_renewal_at_y = models.DateTimeField(null=True)
 
     class Meta:
         indexes = [
@@ -1135,6 +1148,16 @@ class Organization(models.Model):
         indexes = [
             models.Index(fields=['administrator', ]),
         ]
+    
+    def __str__(self):
+        return self.name
+    
+    def delete(self, *args, **kwargs):
+        self.users.update(
+            role=Role.objects.get(role_name=UserRoles.COMMUNITY.value),
+            permission=UserPermission.USER.value
+        )
+        super().delete(*args, **kwargs)
 
     @property
     def pending_invites(self):
@@ -1147,6 +1170,24 @@ class OrganizationUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     status = EnumField(OrganizationUserStatus, max_length=50)
+    
+    def __str__(self):
+        return self.user.email
+    
+    def save(self, *args, **kwargs):
+        if not self.pk and self.status == OrganizationUserStatus.ACTIVE:
+            User.objects.filter(id=self.user.id).update(
+                role=self.organization.administrator.role,
+                permission=self.organization.administrator.permission
+            )
+        super().save(*args, **kwargs)
+    
+    def delete(self, *args, **kwargs):
+        User.objects.filter(id=self.user.id).update(
+            role=Role.objects.get(role_name=UserRoles.COMMUNITY.value),
+            permission=UserPermission.USER.value
+        )
+        super().delete(*args, **kwargs)
 
 
 class OrganizationInvites(models.Model):

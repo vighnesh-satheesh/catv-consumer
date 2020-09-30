@@ -469,23 +469,32 @@ class CaseView(generics.ListCreateAPIView):
         user_list = []
         current_user = self.request.user
         if 'org' in category:
-            org_admin = Organization.objects.filter(administrator=current_user).values_list('id', flat=True)
-            member_orgs = OrganizationUser.objects.filter(user=current_user).values_list('organization_id', flat=True)
+            org_admin = Organization.objects.filter(
+                administrator=current_user).values_list('id', flat=True)
+            member_orgs = OrganizationUser.objects.filter(
+                user=current_user, status=OrganizationUserStatus.ACTIVE).values_list('organization_id', flat=True)
             if org_admin:
-                user_list.extend(OrganizationUser.objects.filter(organization__in=org_admin).values_list('user_id',
-                                                                                                         flat=True))
+                user_list.extend(
+                    OrganizationUser.objects.filter(organization__in=org_admin, status=OrganizationUserStatus.ACTIVE).\
+                        values_list('user_id', flat=True)
+                )
                 user_list.append(current_user.id)
             elif member_orgs:
-                user_list.extend(Organization.objects.filter(pk__in=member_orgs).values_list('administrator',
-                                                                                             flat=True))
-                user_list.extend(OrganizationUser.objects.filter(organization__administrator__in=user_list).
-                                 values_list('user_id', flat=True))
+                user_list.extend(
+                    Organization.objects.filter(pk__in=member_orgs).\
+                        values_list('administrator', flat=True)
+                )
+                user_list.extend(
+                    OrganizationUser.objects.filter(organization__administrator__in=user_list).\
+                        values_list('user_id', flat=True)
+                )
 
             if user_list:
                 return self.model.objects.filter(Q(owner__in=user_list) | Q(reporter__in=user_list)).\
                     distinct('id').order_by(key)
             else:
-                return self.model.objects.none()
+                return self.model.objects.filter(Q(owner=current_user) | Q(reporter=current_user)).\
+                    distinct('id').order_by(key)
 
         return self.model.objects.distinct('id').order_by(key)
 
@@ -1593,7 +1602,7 @@ class UserDetailView(APIView):
 
     def get(self, request, pk=None):
         obj = self.get_object(pk)
-        serializer = UserDetailSerializer(obj)
+        serializer = UserDetailSerializer(obj, context={"request": request})
         data = serializer.data
         return APIResponse({
             "data": {
@@ -1643,25 +1652,42 @@ class IcfView(APIView):
         if request.user is None or request.auth is None:
             raise exceptions.AuthenticationCheckError()
         user = request.user
-        obj = self.model.objects.filter(user=user.pk).order_by("-pk")
+        org_details = user.organization_set.filter(organizationuser__status=OrganizationUserStatus.ACTIVE)
+        if org_details.count():
+            org = org_details.all()[0]
+            obj = self.model.objects.filter(user=org.administrator).order_by("-pk")
+        else:
+            obj = self.model.objects.filter(user=user).order_by("-pk")
         if not obj.exists():
             raise exceptions.ICFNotFound()
 
-        return obj[0]
+        return obj
 
     def get(self, request, pk=None):
         obj = self.get_object(request)
-        serializer = ICFDetailSerializer(obj)
+        serializer = ICFDetailSerializer(obj, many=True)
+        max_api_keys = request.user.role.usage_role.get().max_api_keys
         data = serializer.data
         return APIResponse({
             "data": {
-                "api": data
+                "api": data,
+                "max_api_keys": max_api_keys
             }
         })
 
     def put(self, request, pk=None):
         obj = self.get_object(request)
-        serializer = ICFPostSerializer(obj, data=request.data, context={"request": request})
+        matching_obj = None
+        for key_entry in obj:
+            if str(key_entry.uid) == pk:
+                matching_obj = key_entry
+                break
+
+        if not matching_obj:
+            raise exceptions.ICFNotFound()
+
+        serializer = ICFPostSerializer(
+            matching_obj, data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         data = serializer.data
@@ -2489,10 +2515,12 @@ class OrganizationDetailView(APIView):
         orguser_serializer.is_valid(raise_exception=True)
         validated_data = orguser_serializer.data
         if validated_data['status'] == OrganizationUserStatus.INACTIVE.value:
-            user = User.objects.get(email=validated_data['user']['email'])
-            OrganizationUser.objects.filter(organization=organization, user=user).delete()
+            user = User.objects.get(email__iexact=validated_data['user']['email'])
+            orguser = OrganizationUser.objects.get(organization=organization, user=user)
+            orguser.status =  validated_data['status']
+            orguser.save()
         elif validated_data['status'] == OrganizationUserStatus.ACTIVE.value:
-            user = User.objects.get(email=validated_data['user']['email'])
+            user = User.objects.get(email__iexact=validated_data['user']['email'])
             orguser = OrganizationUser.objects.get(organization=organization, user=user,
                                                    status=OrganizationUserStatus.PENDING.value)
             orguser.status = OrganizationUserStatus.ACTIVE.value
