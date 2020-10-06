@@ -35,6 +35,9 @@ from ..response import APIResponse
 from ..settings import api_settings
 from ..tasks import CaseMessageTask
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
 
 class CaseIntervalView(APIView):
     authentication_classes = ()
@@ -212,3 +215,32 @@ class ProxyAuthentication(APIView):
         return APIResponse({
             "data":{"token":token}
         })
+
+class ProxyPasswordAuthentication(APIView):
+    authentication_classes = ()
+    permission_classes = (permissions.InternalOnly,)
+
+    def post(self, request):
+        req_body = json.loads(request.body)
+        token = req_body.get('token', None)
+        if not token:
+            return APIResponse({"data": None})
+        c = DefaultCache()
+        try:
+            user_id = int(c.get(token))
+        except ValueError:
+            return APIResponse({"data": None})
+        if not user_id:
+            return APIResponse({"data": None})
+        user = Key.objects.get(user_id=user_id).user
+        if not user:
+            return APIResponse({"data": None})
+        login_serializer = LoginSerializer(
+            data={'email': user.email, 'password': user.password})
+        data = login_serializer.internal_create_success_response(
+            user, token)
+        print(data)
+        return APIResponse({
+            "data": data
+        })
+

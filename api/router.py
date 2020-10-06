@@ -33,6 +33,8 @@ if settings.EXPOSE_INTERNAL_API:
             name='internal-catv'),
         url(r'^internal/proxy_token/?$',
             views_internal.ProxyAuthentication.as_view(), name='proxy-api-token'),
+        url(r'^internal/proxy_auth/?$', 
+            views_internal.ProxyPasswordAuthentication.as_view(), name='proxy-pwd-auth')
     ]
 
 if settings.EXPOSE_GENERAL_API:

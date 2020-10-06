@@ -103,7 +103,7 @@ class IndicatorSimpleListSerializer(NonNullModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     password = serializers.CharField(required=False, write_only=True, style={
-                                     'input_type': 'password'})
+        'input_type': 'password'})
 
     def __create_success_response(self, user, token):
         organization_id, is_admin = self.check_organization(user)
@@ -149,7 +149,7 @@ class LoginSerializer(serializers.Serializer):
                 "last_logged_out": user.last_logged_out,
                 "api_details": api_details
             }
-        }
+        }    
 
     def check_organization(self, user):
         organization_id = ''
@@ -234,6 +234,18 @@ class LoginSerializer(serializers.Serializer):
         else:
             token = ""
         return token.key
+        
+    def internal_create_success_response(self, user, token):
+        class TokenObject:
+            def __init__(self, token):
+                self._obj = {'key': token}
+            def __getattr__(self, key):
+                try:
+                    return self._obj[key]
+                except KeyError:
+                    raise AttributeError(key)
+        token_obj = TokenObject(token)
+        return self.__create_success_response(user, token_obj)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -570,7 +582,7 @@ class ICFPostSerializer(serializers.ModelSerializer):
 
     def update(self, obj, request, pk=None):
         prev_key = obj.api_key
-        while(True):
+        while (True):
             new_key = models.generate_api_key()
             if new_key != prev_key:
                 obj.api_key = new_key
@@ -1280,7 +1292,7 @@ class CasePostSerializer(serializers.ModelSerializer):
                         new_indicators.append(indicator)
 
                 indicator_bulk = indicator_bulk + \
-                    models.Indicator.objects.bulk_create(new_indicators)
+                                 models.Indicator.objects.bulk_create(new_indicators)
                 # annotation
                 for indicator in indicator_bulk:
                     if indicator.annotation:
@@ -1461,7 +1473,6 @@ class CaseDetailSerializer(NonNullModelSerializer):
     files = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
     trdb = serializers.SerializerMethodField()
-    #related_cases = serializers.SerializerMethodField()
     related_case = serializers.SerializerMethodField()
 
     class Meta:
@@ -1575,13 +1586,6 @@ class CaseDetailSerializer(NonNullModelSerializer):
             }
         return None
 
-        # def get_related_cases(self, obj):
-        #     indicators = models.CaseIndicator.objects.filter(
-        #         case=obj).values('indicator')
-        #     related_cases = models.Case.objects.exclude(pk=obj.id).filter(indicators__in=indicators).distinct('pk'). \
-        #         order_by('-pk')
-        #     rc_serialized = CaseSimpleListSerializer(related_cases, many=True)
-        #     return rc_serialized.data
 
     def get_related_case(self, obj):
         if obj.related_case_id:
@@ -1866,7 +1870,7 @@ class AutoCompleteSerializer(serializers.Serializer):
                             'tag': tag
                         })
                 indicator_tags = sorted(indicator_tags, key=lambda k: k["tag"])
-                return {"indicator_tags":  indicator_tags}
+                return {"indicator_tags": indicator_tags}
 
         elif auto_type == "user":
             users = []
@@ -1887,7 +1891,7 @@ class AutoCompleteSerializer(serializers.Serializer):
                 filter_queries &= Q(id=int(query))
             elif len(query) > 1:
                 filter_queries &= Q(title__icontains=query)
-            case_objs = models.Case.objects .filter(
+            case_objs = models.Case.objects.filter(
                 filter_queries).order_by('-created')[:self.result_limit]
             if case_objs:
                 case_serializer = CaseSimpleListSerializer(
@@ -2018,7 +2022,8 @@ class NotificationSerializer(NonNullModelSerializer):
             return {}
         return {
             "nickname": obj.initiator.nickname,
-            "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(obj.initiator.image) is False else obj.initiator.image.url,
+            "image": api_settings.S3_USER_IMAGE_DEFAULT if bool(
+                obj.initiator.image) is False else obj.initiator.image.url,
             "uid": obj.initiator.uid
         }
 
@@ -2301,7 +2306,7 @@ class OrganizationSimpleSerializer(serializers.ModelSerializer):
         invite_limit = obj.administrator.role.usage_role.values_list(
             'org_invite_limit', flat=True)
         invite_limit = invite_limit[0] if invite_limit else 20
-        members_invited = models.OrganizationInvites.objects.filter(organization=obj).\
+        members_invited = models.OrganizationInvites.objects.filter(organization=obj). \
             exclude(status=models.OrganizationInviteStatus.APPROVED.value).count()
         existing_members = obj.organizationuser_set.count()
         return invite_limit - (members_invited + existing_members)
@@ -2329,7 +2334,7 @@ class OrganizationPostSerializer(serializers.ModelSerializer):
         invite_limit = obj.administrator.role.usage_role.values_list(
             'org_invite_limit', flat=True)
         invite_limit = invite_limit[0] if invite_limit else 20
-        members_invited = models.OrganizationInvites.objects.filter(organization=obj).\
+        members_invited = models.OrganizationInvites.objects.filter(organization=obj). \
             exclude(status=models.OrganizationInviteStatus.APPROVED.value).count()
         existing_members = obj.organizationuser_set.count()
         return invite_limit - (members_invited + existing_members)
@@ -2419,7 +2424,7 @@ class InvitationSerializer(serializers.Serializer):
         invite_limit = obj.administrator.role.usage_role.values_list(
             'org_invite_limit', flat=True)
         invite_limit = invite_limit[0] if invite_limit else 20
-        members_invited = models.OrganizationInvites.objects.filter(organization=obj).\
+        members_invited = models.OrganizationInvites.objects.filter(organization=obj). \
             exclude(status=models.OrganizationInviteStatus.APPROVED.value).count()
         existing_members = obj.organizationuser_set.count()
         return invite_limit - (members_invited + existing_members)
