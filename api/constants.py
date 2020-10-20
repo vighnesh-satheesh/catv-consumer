@@ -101,6 +101,11 @@ class Constants:
                                    "where cr.report_generated_time > cs.query_time and cr.error!=''"
                                    "order by cr.report_generated_time)" 
                                    "order by cs.query_time desc",
+        "CARA_HISTORY_PROGRESS_USER": "select cs.address,cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address not in"
+                                    "(select cr.address from cara_report cr "
+                                    "where cr.report_generated_time > cs.query_time "
+                                    "order by cr.report_generated_time)"
+                                    "order by cs.query_time desc",
         "CARA_HISTORY_RELEASED_USER": "select cs.address,cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address in"
                                     "(select cr.address from cara_report cr "
                                     "where cr.report_generated_time > cs.query_time and cr.error=''"

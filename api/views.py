@@ -2446,6 +2446,8 @@ class CARAHistory(generics.ListAPIView):
             history_query = Constants.QUERIES['CARA_HISTORY_FAILED_USER'].format(user)
         elif selected == 'Released':
             history_query = Constants.QUERIES['CARA_HISTORY_RELEASED_USER'].format(user)
+        elif selected == 'Progress':
+            history_query = Constants.QUERIES['CARA_HISTORY_PROGRESS_USER'].format(user)
         else:
             history_query = Constants.QUERIES['CARA_HISTORY_USER'].format(user)
         error_count_query = Constants.QUERIES['CARA_ERROR_COUNT'].format(user)
