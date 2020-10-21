@@ -192,9 +192,9 @@ class TrackingResults:
                 if not transaction.get('receiver_annotation', None):
                     transaction['receiver_annotation'] = ''
 
-                if transaction['sender'].lower() == cur_node.address:
+                if transaction['sender'].lower() == cur_node.address.lower():
                     transaction['sender_annotation'] = cur_node.annotation
-                elif transaction['receiver'].lower() == cur_node.address:
+                elif transaction['receiver'].lower() == cur_node.address.lower():
                     transaction['receiver_annotation'] = cur_node.annotation
             seen_indicators.append(item['pattern'].lower())
         return nc, item_list
