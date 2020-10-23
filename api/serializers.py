@@ -2670,3 +2670,14 @@ class CARARequestListSerializer(NonNullModelSerializer):
 
     def get_blockchain(self, obj):
         return obj.blockchain or models.IndicatorPatternSubtype.ETH.value
+
+
+class SecurityTagSerializer(serializers.ModelSerializer):
+    tag = serializers.CharField(max_length=256)
+    description = fields.TruncatedCharField(truncate_len=api_settings.INDICATOR_LIST_DETAIL_LEN, required=False,
+                                            allow_blank=True, allow_null=True)
+
+    class Meta:
+        model = models.SecurityTag
+        fields = ("tag", "description",)
+        read_only_fields = ("tag", "description",)
