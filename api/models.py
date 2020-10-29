@@ -326,6 +326,7 @@ class NotificationType(Enum):
     COMMENT = 'comment'
     COMMENT_MENTIONED = 'comment_mentioned'
     ADDED_TO_ORG = 'added_to_org'
+    MONITOR = 'monitor'
 
 
 class OrganizationUserStatus(Enum):
