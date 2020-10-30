@@ -8,6 +8,7 @@ from random import randrange
 import socket
 
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django_filters import rest_framework as filters
 from django.db.models import F, Q, When, Value, Case as CaseFunc, IntegerField
 from django.db import transaction, IntegrityError
@@ -2563,6 +2564,155 @@ class CARAReport(APIView):
                 data['case'] = ""
         return APIResponse(data)
 
+
+class CARAReportDownload(APIView):
+    authentication_classes = ()
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        #data = request.data
+        #print("Data:", data)
+        address = self.request.GET.get('address')
+        id = self.request.GET.get('id')
+        sus_tx_count = self.request.GET.get('sus_tx_count')
+        sus_tx_amt = self.request.GET.get('sus_tx_amt')
+        type = self.request.GET.get('type')
+        risk_score = self.request.GET.get('risk_score')
+        last_tx_ts = self.request.GET.get('last_tx_ts')
+        cara_summary = self.request.GET.get('cara_summary')
+        verdict = self.request.GET.get('verdict')
+        trdb_result = self.request.GET.get('trdb_result')
+        trdb_summary = self.request.GET.get('trdb_summary')
+        verdict_message = self.request.GET.get('verdict_message')
+        cara_result = self.request.GET.get('cara_result')
+        blacklist_contacted = self.request.GET.get('blacklist_contacted')
+        malware_val = self.request.GET.get('malware')
+        scam = self.request.GET.get('scam')
+        phish_val = self.request.GET.get('phish')
+        hack_val = self.request.GET.get('hack')
+        darkweb = self.request.GET.get('darkweb')
+        porn_val = self.request.GET.get('porn')
+        gambling = self.request.GET.get('gambling')
+        co_val = self.request.GET.get('co')
+        excessive_in_out_tx = self.request.GET.get('exc_in_out_tx')
+        single_recent_tx = self.request.GET.get('single_rec_tx')
+        miner_funds = self.request.GET.get('miner_funds')
+        swift_fund_movement = self.request.GET.get('swift_fund_movement')
+        single_in_out_tx = self.request.GET.get('single_in_out_tx')
+        acc_funds = self.request.GET.get('acc_funds')
+        reg_interval_tx = self.request.GET.get('reg_int_tx')
+        dormant_status = self.request.GET.get('dormant_status')
+        large_balance = self.request.GET.get('lar_bal')
+        high_val_tx = self.request.GET.get('high_val_tx')
+        abnormal_relay = self.request.GET.get('abnormal_relay')
+        abnormal_mix = self.request.GET.get('abnormal_mix')
+        relay_and_mix = self.request.GET.get('relay_mix')
+        tumbling = self.request.GET.get('tumbling')
+        contact_blacklist_c = "circle-inv" if blacklist_contacted == "0" else "circle"
+        contact_blacklist = "und" if blacklist_contacted == "0" else "exc"
+        contact_blacklist_v = "/" if blacklist_contacted == "0" else "!"
+        fraud_c = "circle-inv" if scam == "0" else "circle"
+        fraud = "und" if scam == "0" else "exc"
+        fraud_v = "/" if scam == "0" else "!"
+        malware_c = "circle-inv" if malware_val == "0" else "circle"
+        malware = "und" if malware_val == "0" else "exc"
+        malware_v = "/" if malware_val == "0" else "!"
+        phish_c = "circle-inv" if phish_val == "0" else "circle"
+        phish = "und" if phish_val == "0" else "exc"
+        phish_v = "/" if phish_val == "0" else "!"
+        hack_c = "circle-inv" if hack_val == "0" else "circle"
+        hack = "und" if hack_val == "0" else "exc"
+        hack_v = "/" if hack_val == "0" else "!"
+        dw_c = "circle-inv" if darkweb == "0" else "circle"
+        dw = "und" if darkweb == "0" else "exc"
+        dw_v = "/" if darkweb == "0" else "!"
+        porn_c = "circle-inv" if porn_val == "0" else "circle"
+        porn = "und" if porn_val == "0" else "exc"
+        porn_v = "/" if porn_val == "0" else "!"
+        gamb_c = "circle-inv" if gambling == "0" else "circle"
+        gamb = "und" if gambling == "0" else "exc"
+        gamb_v = "/" if gambling == "0" else "!"
+        co_c = "circle-inv" if co_val == "0" else "circle"
+        co = "und" if co_val == "0" else "exc"
+        co_v = "/" if co_val == "0" else "!"
+        exc_io_tx_c = "circle-inv" if excessive_in_out_tx == "0" else "circle"
+        exc_io_tx = "und" if excessive_in_out_tx == "0" else "exc"
+        exc_io_tx_v = "/" if excessive_in_out_tx == "0" else "!"
+        sin_cry_ass_tx_rec_c = "circle-inv" if single_recent_tx == "0" else "circle"
+        sin_cry_ass_tx_rec = "und" if single_recent_tx == "0" else "exc"
+        sin_cry_ass_tx_rec_v = "/" if single_recent_tx == "0" else "!"
+        min_funds_c = "circle-inv" if miner_funds == "0" else "circle"
+        min_funds = "und" if miner_funds == "0" else "exc"
+        min_funds_v = "/" if miner_funds == "0" else "!"
+        swift_funds_c = "circle-inv" if swift_fund_movement == "0" else "circle"
+        swift_funds = "und" if swift_fund_movement == "0" else "exc"
+        swift_funds_v = "/" if swift_fund_movement == "0" else "!"
+        sin_ic_og_tx_c = "circle-inv" if single_in_out_tx == "0" else "circle"
+        sin_ic_og_tx = "und" if single_in_out_tx == "0" else "exc"
+        sin_ic_og_tx_v = "/" if single_in_out_tx == "0" else "!"
+        acc_cry_c = "circle-inv" if acc_funds == "0" else "circle"
+        acc_cry = "und" if acc_funds == "0" else "exc"
+        acc_cry_v = "/" if acc_funds == "0" else "!"
+        reg_int_tx_c = "circle-inv" if reg_interval_tx == "0" else "circle"
+        reg_int_tx = "und" if reg_interval_tx == "0" else "exc"
+        reg_int_tx_v = "/" if reg_interval_tx == "0" else "!"
+        lar_bal_c = "circle-inv" if large_balance == "0" else "circle"
+        lar_bal = "und" if large_balance == "0" else "exc"
+        lar_bal_v = "/" if large_balance == "0" else "!"
+        dor_c = "circle-inv" if dormant_status == "0" else "circle"
+        dor = "und" if dormant_status == "0" else "exc"
+        dor_v = "/" if dormant_status == "0" else "!"
+        hi_cry_tx_c = "circle-inv" if high_val_tx == "0" else "circle"
+        hi_cry_tx = "und" if high_val_tx == "0" else "exc"
+        hi_cry_tx_v = "/" if high_val_tx == "0" else "!"
+        rel_c = "circle-inv" if abnormal_relay == "0" else "circle"
+        rel = "und" if abnormal_relay == "0" else "exc"
+        rel_v = "/" if abnormal_relay == "0" else "!"
+        mix_c = "circle-inv" if abnormal_mix == "0" else "circle"
+        mix = "und" if abnormal_mix == "0" else "exc"
+        mix_v = "/" if abnormal_mix == "0" else "!"
+        rel_mix_c = "circle-inv" if relay_and_mix == "0" else "circle"
+        rel_mix = "und" if relay_and_mix == "0" else "exc"
+        rel_mix_v = "/" if relay_and_mix == "0" else "!"
+        tum_c = "circle-inv" if tumbling == "0" else "circle"
+        tum = "und" if tumbling == "0" else "exc"
+        tum_v = "/" if tumbling == "0" else "!"
+
+        #address = data['address']
+        from pdf_reports import pug_to_html, write_report, preload_stylesheet
+        css = preload_stylesheet('templates/cara/cara_report_style.scss')
+        # fa_css = preload_stylesheet('https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css')
+        html = pug_to_html("templates/cara/cara_report_template.pug", title="My report", address=address,
+                           verdict=verdict + " in CARA", id=id, cara_result=cara_result,
+                           type=type, last_tx_ts=last_tx_ts, sus_tx_count=sus_tx_count,
+                           sus_tx_amt=sus_tx_amt, summary=verdict_message, score=risk_score, cara_summary=cara_summary,
+                           trdb_result=trdb_result, trdb_summary=trdb_summary, contact_blacklist_c=contact_blacklist_c,
+                           contact_blacklist=contact_blacklist, contact_blacklist_v=contact_blacklist_v, fraud_c=fraud_c, fraud=fraud,
+                           fraud_v=fraud_v, malware_c=malware_c, malware=malware, malware_v=malware_v, phish_c=phish_c,
+                           phish=phish, phish_v=phish_v, hack_c=hack_c, hack=hack, hack_v=hack_v, dw_c=dw_c,
+                           dw=dw, dw_v=dw_v, porn_c=porn_c, porn=porn, porn_v=porn_v, gamb_c=gamb_c,
+                           gamb=gamb, gamb_v=gamb_v, co_c=co_c, co=co, co_v=co_v, exc_io_tx_c=exc_io_tx_c,
+                           exc_io_tx=exc_io_tx, exc_io_tx_v=exc_io_tx_v, sin_cry_ass_tx_rec_c=sin_cry_ass_tx_rec_c, sin_cry_ass_tx_rec=sin_cry_ass_tx_rec,
+                           sin_cry_ass_tx_rec_v=sin_cry_ass_tx_rec_v, min_funds_c=min_funds_c, min_funds=min_funds, min_funds_v=min_funds_v,
+                           swift_funds_c=swift_funds_c, swift_funds=swift_funds, swift_funds_v=swift_funds_v, sin_ic_og_tx_c=sin_ic_og_tx_c,
+                           sin_ic_og_tx=sin_ic_og_tx, sin_ic_og_tx_v=sin_ic_og_tx_v, acc_cry_c=acc_cry_c, acc_cry=acc_cry,
+                           acc_cry_v=acc_cry_v, reg_int_tx_c=reg_int_tx_c, reg_int_tx=reg_int_tx, reg_int_tx_v=reg_int_tx_v, dor_c=dor_c,
+                           dor=dor, dor_v=dor_v, lar_bal_c=lar_bal_c, lar_bal=lar_bal, lar_bal_v=lar_bal_v, hi_tx_fee_c="circle-inv",
+                           hi_tx_fee="und", hi_tx_fee_v="/", hi_cry_tx_c=hi_cry_tx_c, hi_cry_tx=hi_cry_tx, hi_cry_tx_v=hi_cry_tx_v,
+                           rel_c=rel_c, rel=rel, rel_v=rel_v, mix_c=mix_c, mix=mix, mix_v=mix_v,
+                           rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v)
+        write_report(html, "/tmp/"+address+".pdf", extra_stylesheets=[css])
+        try:
+            fs = FileSystemStorage('/tmp')
+            filename = address+".pdf"
+            with fs.open(address+'.pdf') as pdf:
+                from django.http import HttpResponse
+                response = HttpResponse(pdf, content_type='application/pdf')
+                response['Content-Disposition'] = 'attachment; filename= "' + filename + '"'
+                return response
+        except Exception as err:
+            raise exceptions.FileNotFound()
+        #return FileResponse(buf, address, content_type='application/pdf')
 
 class UsageStatsView(APIView):
     authentication_classes = (CachedTokenAuthentication, )

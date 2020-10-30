@@ -1,0 +1,262 @@
+html
+  head
+    link(rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css')
+    script(src='https://kit.fontawesome.com/0a20974b6b.js' crossorigin='anonymous')
+  body
+    .cara-pg-1
+        .heading
+            | Crypto Analysis Risk Assessment
+        .address {{address}}
+        .verdict {{verdict}}
+        .report-details
+            | Report Details
+        .border
+        .det-row
+            .det-name
+                | Address
+            .det-value {{address}}
+        .det-row
+            .det-name
+                | Report ID
+            .det-value {{id}}
+        .det-row
+            .det-name
+                | Type
+            .det-value {{type}}
+        .det-row
+            .det-name
+                | Last Transaction Timestamp
+            .det-value {{last_tx_ts}}
+        .det-row
+            .det-name
+                | Suspicious TX Count
+            .det-value {{sus_tx_count}}
+        .det-row
+            .det-name
+                | Suspicious TX Amount
+            .det-value {{sus_tx_amt}}
+        .det-row
+            .det-name
+                | Verdict
+            .det-value {{verdict}}
+        .det-row
+            .det-name
+                | Summary
+            .det-value {{summary}}
+        .report-details
+            | Machine Learning Transaction Analysis Results
+        .border
+        .det-row
+            .det-name
+                | Result
+            .det-value {{verdict}}
+        .det-row
+            .det-name
+                | Score
+            .det-value {{score}}
+        .det-row
+            .det-name
+                | Summary
+            .det-value {{cara_summary}}
+        .cara-info
+            | Low Risk:0-15    Medium Risk:16-30    High Risk:31-50    Extremely High Risk:51-100
+        .report-details
+            | Static Analysis Results (TRDB)
+        .det-row
+            .det-name
+                | Result
+            .det-value {{trdb_result}}
+        .det-row
+            .det-name
+                | Summary
+            .det-value {{trdb_summary}}
+        .footer
+            .logo
+                img(src='static/templates/cara/ic_logo_refresh.png')
+    .cara-pg-2
+        .heading.act
+            | Crypto Analysis Risk Assessment
+        .address.act
+            | Malicious Activities
+        .pg-wid-50
+            .activities
+                .activities-heading
+                    | List of Risk Indicators
+                .activities-sub
+                    | Direct Links to Malicious Activities
+                .activities-row
+                    .activities-logo
+                        div(class="{{contact_blacklist_c}}")
+                            div(class="{{contact_blacklist}}") {{contact_blacklist_v}}
+                    .activities-text
+                        | Contacted Blacklist Addresses
+                .activities-row
+                    .activities-logo
+                        div(class="{{malware_c}}")
+                            div(class="{{malware}}") {{malware_v}}
+                    .activities-text
+                        | Malware
+                .activities-row
+                    .activities-logo
+                        div(class="{{fraud_c}}")
+                            div(class="{{fraud}}") {{fraud_v}}
+                    .activities-text
+                        | Fraud/Scam
+                .activities-row
+                    .activities-logo
+                        div(class="{{phish_c}}")
+                            div(class="{{phish}}") {{phish_v}}
+                    .activities-text
+                        | Phishing
+                .activities-row
+                    .activities-logo
+                        div(class="{{hack_c}}")
+                            div(class="{{hack}}") {{hack_v}}
+                    .activities-text
+                        | Thief/Hack
+                .activities-row
+                    .activities-logo
+                        div(class="{{dw_c}}")
+                            div(class="{{dw}}") {{dw_v}}
+                    .activities-text
+                        | Dark Web
+                .activities-sub
+                    | Industry Risk Activity
+                .activities-row
+                    .activities-logo
+                        div(class="{{porn_c}}")
+                            div(class="{{porn}}") {{porn_v}}
+                    .activities-text
+                        | Pornography Material
+                .activities-row
+                    .activities-logo
+                        div(class="{{gamb_c}}")
+                            div(class="{{gamb}}") {{gamb_v}}
+                    .activities-text
+                        | Gambling
+                .activities-row
+                    .activities-logo
+                        div(class="{{co_c}}")
+                            div(class="{{co}}") {{co_v}}
+                    .activities-text
+                        | Criminal Organization
+                .activities-sub
+                    | Transactions interfere with tracking of Funds
+                .activities-row
+                    .activities-logo
+                        div(class="{{exc_io_tx_c}}")
+                            div(class="{{exc_io_tx}}") {{exc_io_tx_v}}
+                    .activities-text
+                        | Excess input and output transaction
+                .activities-row
+                    .activities-logo
+                        div(class="{{sin_cry_ass_tx_rec_c}}")
+                            div(class="{{sin_cry_ass_tx_rec}}") {{sin_cry_ass_tx_rec_v}}
+                    .activities-text
+                        | Single Crypto Asset Transaction occurred recently
+                .activities-row
+                    .activities-logo
+                        div(class="{{min_funds_c}}")
+                            div(class="{{min_funds}}") {{min_funds_v}}
+                    .activities-text
+                        | Receiving funds from miners service
+                .activities-row
+                    .activities-logo
+                        div(class="{{swift_funds_c}}")
+                            div(class="{{swift_funds}}") {{swift_funds_v}}
+                    .activities-text
+                        | Abnormal swift movement of funds
+                .activities-row
+                    .activities-logo
+                        div(class="{{sin_ic_og_tx_c}}")
+                            div(class="{{sin_ic_og_tx}}") {{sin_ic_og_tx_v}}
+                    .activities-text
+                        | Single incoming-outgoing transactions
+                .activities-sub
+                    | Distinctive Transaction Patterns
+                .activities-row
+                    .activities-logo
+                        div(class="{{acc_cry_c}}")
+                            div(class="{{acc_cry}}") {{acc_cry_v}}
+                    .activities-text
+                        | Accumulating Crypto Assets
+                .activities-row
+                    .activities-logo
+                        div(class="{{reg_int_tx_c}}")
+                            div(class="{{reg_int_tx}}") {{reg_int_tx_v}}
+                    .activities-text
+                        | Transaction activity at regular intervals
+                .activities-row
+                    .activities-logo
+                        div(class="{{dor_c}}")
+                            div(class="{{dor}}") {{dor_v}}
+                    .activities-text
+                        | Dormant transaction status
+                .activities-row
+                    .activities-logo
+                        div(class="{{lar_bal_c}}")
+                            div(class="{{lar_bal}}") {{lar_bal_v}}
+                    .activities-text
+                        | Large crypto asset balance
+                .activities-row
+                    .activities-logo
+                        div(class="{{hi_tx_fee_c}}")
+                            div(class="{{hi_tx_fee}}") {{hi_tx_fee_v}}
+                    .activities-text
+                        | Significant transaction fees
+                .activities-row
+                    .activities-logo
+                        div(class="{{hi_cry_tx_c}}")
+                            div(class="{{hi_cry_tx}}") {{hi_cry_tx_v}}
+                    .activities-text
+                        | High value crypto asset transaction found
+                .activities-row
+                    .activities-logo
+                        div(class="{{rel_c}}")
+                            div(class="{{rel}}") {{rel_v}}
+                    .activities-text
+                        | Abnormal Relaying
+                .activities-row
+                    .activities-logo
+                        div(class="{{mix_c}}")
+                            div(class="{{mix}}") {{mix_v}}
+                    .activities-text
+                        | Abnormal Mixing
+                .activities-row
+                    .activities-logo
+                        div(class="{{rel_mix_c}}")
+                            div(class="{{rel_mix}}") {{rel_mix_v}}
+                    .activities-text
+                        | Relaying and Mixing
+                .activities-row
+                    .activities-logo
+                        div(class="{{tum_c}}")
+                            div(class="{{tum}}") {{tum_v}}
+                    .activities-text
+                        | Tumbling
+            .disclaimer
+                .disclaimer-heading
+                    | Disclaimer
+                .disclaimer-text
+                    | 1. The Report information is obtained from sources believed to be reliable but is in no way guaranteed.
+                    br
+                    br
+                    | 2. The Report does not discharge any obligation of proper internal risk assessment and decision-making process.
+                    br
+                    br
+                    | 3. The Report should be read in full because any separate analysis of each of its parts can lead to erroneous conclusions.
+                    br
+                    br
+                    | 4. Uppsala Security does not give any implied warranty to the validity of the Report.
+                    br
+                    br
+                    | 5. Uppsala Security is not liable for any changes in assumptions and updates to this report in the case of new facts or circumstances occurring after the date of the report or not known to Uppsala Security at the time of generation of this Report.
+                    br
+                    br
+                    | 6. Uppsala Security reserved the right, not to disclosed certain information to any recipient used for analysis, due to intellectual property or confidentiality risk (e.g. cybercrime-related).
+                    br
+                    br
+                    | 7. Any decision taken by the recipient of this report is made solely on their own risk. The liability of Uppsala Security is hereby excluded to the fullest extent permitted by the applicable law, including loss of profits, loss of revenues, loss of opportunity or business interruption incur by the recipient.
+                    br
+                    br
+                    | 8. To clarify any aspects contained in the Report, please contact us at support@uppsalasecurity.com.
