@@ -64,6 +64,7 @@ if settings.EXPOSE_GENERAL_API:
         url(r'^carasearch/?$', views.CARA.as_view(), name='cara-search'),
         url(r'^carahistory/?$', views.CARAHistory.as_view(), name='cara-history'),
         url(r'^carareport/?$', views.CARAReport.as_view(), name='cara-report'),
+        url(r'^caradownload/?$', views.CARAReportDownload.as_view(), name='cara-download'),
         url(r'^swapdata/?$', views.SwapData.as_view(), name='swap-data'),
         url(r'^swaphistory/?$', views.SwapHistory.as_view(), name='swap-history'),
         url(r'^exchange/?$', views.ExchangeTokenView.as_view(), name='exchange-data'),
