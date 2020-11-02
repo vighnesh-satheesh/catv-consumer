@@ -24,6 +24,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='indicator',
             name='s_tags',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=256), default=list, size=3),
+            field=django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=256), size=3, null=True),
         ),
     ]

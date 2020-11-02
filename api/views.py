@@ -42,7 +42,7 @@ from .models import (
     CatvSearchType, CatvRequestStatus, CatvTaskStatusType,
     UserIndicator, IndicatorPoint, CatvResult,
     Role, RoleUsageLimit, UserRoles,
-    UserUpgrade, UpgradeVerifyStatus
+    UserUpgrade, UpgradeVerifyStatus, CaraSearchHistory
 )
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
@@ -61,7 +61,7 @@ from .serializers import (
     InvitationSerializer, SocialSerializer, CATVBTCSerializer,
     CATVBTCTxlistSerializer, CATVHistorySerializer, CATVBTCCoinpathSerializer,
     CATVEthPathSerializer, CatvBtcPathSerializer, UserIndicatorSerializer,
-    CATVRequestListSerializer
+    CATVRequestListSerializer, CARARequestListSerializer
 )
 from .throttling import (
     SignUpThrottle, UserLoginThrottle, ChangePasswordThrottle,
@@ -2447,6 +2447,8 @@ class CARAHistory(generics.ListAPIView):
             history_query = Constants.QUERIES['CARA_HISTORY_FAILED_USER'].format(user)
         elif selected == 'Released':
             history_query = Constants.QUERIES['CARA_HISTORY_RELEASED_USER'].format(user)
+        elif selected == 'Progress':
+            history_query = Constants.QUERIES['CARA_HISTORY_PROGRESS_USER'].format(user)
         else:
             history_query = Constants.QUERIES['CARA_HISTORY_USER'].format(user)
         error_count_query = Constants.QUERIES['CARA_ERROR_COUNT'].format(user)
@@ -2467,6 +2469,8 @@ class CARAHistory(generics.ListAPIView):
         search = [x[0] for x in history]
         time = [x[1] for x in history]
         blockchain = [x[2] for x in history]
+        labels = [x[3] for x in history]
+        request_ids = [x[4] for x in history]
         reports = []
         errors = []
         risk_scores = []
@@ -2513,16 +2517,20 @@ class CARAHistory(generics.ListAPIView):
                             ids.extend(list(id))
                             addr_list.extend(list(add))
                             report_times.extend(list(report_time))
-        data = {'history': search,
-                'time': time,
-                'blockchain': blockchain,
-                'reports': reports,
-                'errors': errors,
-                'risk_score': risk_scores,
-                'ground_truth': ground_truths,
-                'report_ids': ids,
-                'report_time': report_times,
-                'in_progress': len(search) - len(reports)}
+        data = {
+            'history': search,
+            'time': time,
+            'blockchain': blockchain,
+            'reports': reports,
+            'errors': errors,
+            'risk_score': risk_scores,
+            'ground_truth': ground_truths,
+            'report_ids': ids,
+            'report_time': report_times,
+            'in_progress': len(search) - len(reports),
+            'labels': labels,
+            'request_ids': request_ids
+        }
         return self.get_paginated_response(data)
 
     def get_paginated_response(self, data):
@@ -3188,3 +3196,77 @@ class UserUpgradeView(APIView):
             if isinstance(e, exceptions.NotAllowedError):
                 raise e
             raise exceptions.ValidationError(detail="Something went wrong while validating transaction")
+
+
+class CATVRequestDetailView(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self, request, pk):
+        try:
+            obj = CatvRequestStatus.objects.get(uid=pk)
+            if obj.user != request.user:
+                raise exceptions.NotAllowedError(detail="You are only allowed to access your requests")
+            return obj
+        except CatvRequestStatus.DoesNotExist:
+            raise exceptions.FileNotFound(detail="No matching request exists")
+
+    def get(self, request, pk=None):
+        obj = self.get_object(request, pk)
+        serializer = CATVRequestListSerializer(obj, context={'request': request})
+        data = serializer.data
+        return APIResponse({
+            'data': {
+                'request': data
+            }
+        })
+
+    def patch(self, request, pk=None):
+        obj = self.get_object(request, pk)
+        new_labels = request.data.get('labels', [])
+        obj.labels = new_labels
+        obj.save()
+        serializer = CATVRequestListSerializer(obj, context={'request': request})
+        data = serializer.data
+        return APIResponse({
+            'data': {
+                'request': data
+            }
+        })
+
+
+class CARARequestDetailView(APIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self, request, pk):
+        try:
+            obj = CaraSearchHistory.objects.get(request_id=pk)
+            if obj.id != request.user.uid:
+                raise exceptions.NotAllowedError(detail="You are only allowed to access your requests")
+            return obj
+        except CaraSearchHistory.DoesNotExist:
+            raise exceptions.FileNotFound(detail="No matching request exists")
+
+    def get(self, request, pk=None):
+        obj = self.get_object(request, pk)
+        serializer = CARARequestListSerializer(obj, context={'request': request})
+        data = serializer.data
+        return APIResponse({
+            'data': {
+                'request': data
+            }
+        })
+
+    def patch(self, request, pk=None):
+        obj = self.get_object(request, pk)
+        new_labels = request.data.get('labels', [])
+        obj.labels = new_labels
+        obj.save()
+        serializer = CARARequestListSerializer(obj, context={'request': request})
+        data = serializer.data
+        return APIResponse({
+            'data': {
+                'request': data
+            }
+        })
