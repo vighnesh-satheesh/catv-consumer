@@ -747,7 +747,7 @@ class Indicator(models.Model):
     annotations = models.ManyToManyField(
         Annotation, through='IndicatorAnnotation')
     s_tags = ArrayField(models.CharField(max_length=256, blank=False, null=False),
-                        size=3, default=list)
+                        size=3, null=True)
     reporter_info = models.CharField(
         max_length=api_settings.CASE_REPORTER_MAX_LEN, null=True, blank=True)
 
