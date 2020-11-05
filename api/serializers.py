@@ -668,7 +668,7 @@ class IndicatorDetailSerializer(NonNullModelSerializer):
     detail = fields.TruncatedCharField(truncate_len=api_settings.INDICATOR_LIST_DETAIL_LEN,
                                        required=False, allow_blank=True, allow_null=True)
     security_tags = serializers.ListField(
-        child=serializers.CharField(), required=False)
+        child=serializers.CharField(), required=False, source='s_tags')
     vector = serializers.ListField(child=fields.EnumField(
         enum=models.IndicatorVector), required=False)
     environment = serializers.ListField(child=fields.EnumField(
@@ -735,6 +735,7 @@ class IndicatorListSerializer(NonNullModelSerializer):
     pattern_type = fields.EnumField(enum=models.IndicatorPatternType)
     pattern_subtype = fields.EnumField(enum=models.IndicatorPatternSubtype)
     security_category = fields.EnumField(enum=models.IndicatorSecurityCategory)
+    security_tags = serializers.ListField(child=serializers.CharField(), required=False, source='s_tags')
 
     class Meta:
         model = models.Indicator
@@ -775,7 +776,7 @@ class IndicatorPostSerializer(NonNullModelSerializer):
     detail = fields.TruncatedCharField(truncate_len=api_settings.INDICATOR_LIST_DETAIL_LEN,
                                        required=False, allow_blank=True, allow_null=True)
     security_tags = serializers.ListField(
-        child=serializers.CharField(), required=False)
+        child=serializers.CharField(), required=False, source='s_tags')
     vector = serializers.ListField(child=fields.EnumField(
         enum=models.IndicatorVector), required=False)
     environment = serializers.ListField(child=fields.EnumField(
@@ -1857,13 +1858,13 @@ class AutoCompleteSerializer(serializers.Serializer):
 
         elif auto_type == "indicator_tag":
             indicator_objs = models.Indicator.objects.filter(
-                security_tags__arrayilike=query)
+                s_tags__arrayilike=query)
             if indicator_objs:
                 __tags = []
                 indicator_tags = []
                 for o in indicator_objs:
                     __tags.extend(
-                        t for t in o.security_tags if t not in __tags)
+                        t for t in o.s_tags if t not in __tags)
                 for tag in __tags:
                     if tag[:len(query)].lower() == query.lower():
                         indicator_tags.append({
@@ -2670,3 +2671,14 @@ class CARARequestListSerializer(NonNullModelSerializer):
 
     def get_blockchain(self, obj):
         return obj.blockchain or models.IndicatorPatternSubtype.ETH.value
+
+
+class SecurityTagSerializer(serializers.ModelSerializer):
+    tag = serializers.CharField(max_length=256)
+    description = fields.TruncatedCharField(truncate_len=api_settings.INDICATOR_LIST_DETAIL_LEN, required=False,
+                                            allow_blank=True, allow_null=True)
+
+    class Meta:
+        model = models.SecurityTag
+        fields = ("tag", "description",)
+        read_only_fields = ("tag", "description",)

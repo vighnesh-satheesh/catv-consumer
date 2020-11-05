@@ -21,17 +21,19 @@ class Command(BaseCommand):
                 api_settings.KAFKA_BROKER_2,
                 api_settings.KAFKA_BROKER_3
             ],
-            auto_offset_reset='earliest',
+            auto_offset_reset='latest',
             enable_auto_commit=True,
             auto_commit_interval_ms=1000,
-            group_id='cases-reader',
+            group_id='priority-cases-reader',
             max_poll_records=1
         )
         try:
             for message in case_consumer:
                 print(message)
-                if message.topic == api_settings.KAFKA_DELAYED_CASE_TOPIC:
+                if message.topic in [api_settings.KAFKA_CRAWLED_CASE_TOPIC, api_settings.KAFKA_DELAYED_CASE_TOPIC]:
                     process_crawled_cases(message)
+                elif message.topic == api_settings.KAFKA_PORTAL_CASE_TOPIC:
+                    process_portal_cases(message)
         except KeyboardInterrupt:
             case_consumer.close()
             self.stdout.write(self.style.ERROR("Encountered a keyboard interrupt, exiting..."))
