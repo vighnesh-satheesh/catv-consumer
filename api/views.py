@@ -1269,16 +1269,38 @@ class SearchView(generics.ListAPIView):
 
     def get_indicator_queryset_es(self, query, page=1, order_key='-id'):
         filter_queries = Q(search=query)
+        perm_query = None
 
         if not self.request.auth:
-            filter_queries &= Q(cases__in=CaseStatus.RELEASED.value)
+            perm_query = Q(cases__in=CaseStatus.RELEASED.value)
         elif self.request.auth and self.request.user.permission is UserPermission.EXCHANGE:
-            filter_queries &= Q(
+            perm_query = Q(
                 cases__in=[CaseStatus.CONFIRMED.value, CaseStatus.RELEASED.value])
-
+        if perm_query:
+            filter_queries &= perm_query
+        headers = {
+            'X-Forwarded-For': socket.gethostbyname(socket.gethostname())
+        }
         query_string_drf, query_string_raw = utils.build_query_string_filter(
             filter_queries.children)
-        return utils.es_serialized_search(query_string_drf, page, order_key)
+        es_serializer_req = requests.Request('GET',
+                                             url=f'{api_settings.SEARCH_BACKEND_URL}ecsearch/indicators/?{query_string_drf}'
+                                                 f'&ordering={order_key}&page={page}', headers=headers)
+        if query.isdigit():
+            id_match_query = Q(id=query)
+            if perm_query:
+                id_match_query &= perm_query
+            query_string_drf, query_string_raw = utils.build_query_string_filter(
+                id_match_query.children)
+            es_serializer_id_req = requests.Request('GET',
+                                             url=f'{api_settings.SEARCH_BACKEND_URL}ecsearch/indicators/?{query_string_drf}'
+                                                 f'&ordering={order_key}&page={page}', headers=headers)
+
+            async_req_caller = utils.AsyncAPICaller([es_serializer_req, es_serializer_id_req], 2)
+        else:
+            async_req_caller = utils.AsyncAPICaller([es_serializer_req], 1)
+        result = async_req_caller.execute_request_pool()
+        return result
 
     def get_indicator_queryset(self, query):
         objs = []
