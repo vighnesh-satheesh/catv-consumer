@@ -3305,8 +3305,6 @@ class SecurityTagView(generics.ListCreateAPIView):
         c = DefaultCache()
         cached_response = c.get_view_cache(request)
         if cached_response:
-            for item in cached_response["data"]["items"]:
-                item["label"] = _(item["tag"])
             return APIResponse(cached_response)
         queryset = self.model.objects.all()
         serializer = SecurityTagSerializer(queryset, many=True)
