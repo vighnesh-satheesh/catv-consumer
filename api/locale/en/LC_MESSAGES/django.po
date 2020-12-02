@@ -845,3 +845,102 @@ msgstr ""
 
 msgid "unverified"
 msgstr ""
+
+msgid "blacklist"
+msgstr ""
+
+msgid "whitelist"
+msgstr ""
+
+msgid "graylist"
+msgstr ""
+
+msgid "Low Risk"
+msgstr ""
+
+msgid "Medium Risk"
+msgstr ""
+
+msgid "High Risk"
+msgstr ""
+
+msgid "Extremely High Risk"
+msgstr ""
+
+msgid "Malicious"
+msgstr ""
+
+msgid "Benign"
+msgstr ""
+
+msgid "This crypto address transaction analysis is considered normal and does not exhibit much relative risk indications"
+msgstr ""
+
+msgid "This crypto address transaction analysis is considered to have medium risk as it exhibit low relative risk indications."
+msgstr ""
+
+msgid "This crypto address transaction analysis is considered suspicious as it exhibit relative medium risk indications"
+msgstr ""
+
+msgid "This crypto address transaction analysis is determined to be highly suspicious as it has extreme high risk indications or confirm illicit activities."
+msgstr ""
+
+msgid "This address has not been verified."
+msgstr ""
+
+msgid "This address has been blacklisted."
+msgstr ""
+
+msgid "This address has been whitelisted."
+msgstr ""
+
+msgid "This address has been graylisted."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and having low risk as per transaction analytics."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB and transaction analytics indicates the wallet to be within the Low Risk limit."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr ""
+
+msgid "The address did not match any indicator identified in TRDB and transaction analytics indicates the wallet to be within the Low Risk limit."
+msgstr ""
+
+msgid "The address did not match any indicator identified in TRDB but transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr ""
+
+msgid "The address did not match any indicator identified in TRDB but transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr ""
+
+msgid "The address did not match any indicators identified in TRDB but transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr ""
+
+msgid "Low Risk in CARA"
+msgstr ""
+
+msgid "Medium Risk in CARA"
+msgstr ""
+
+msgid "High Risk in CARA"
+msgstr ""
+
+msgid "Extreme High Risk in CARA"
+msgstr ""
