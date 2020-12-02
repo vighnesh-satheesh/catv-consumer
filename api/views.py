@@ -26,6 +26,8 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
 from social_django.utils import psa
+from weasyprint import CSS
+from weasyprint.fonts import FontConfiguration
 from web3.auto.infura import w3
 from web3 import Web3
 from kafka import KafkaProducer
@@ -2588,12 +2590,13 @@ class CARAReportDownload(APIView):
         type = self.request.GET.get('type')
         risk_score = self.request.GET.get('risk_score')
         last_tx_ts = self.request.GET.get('last_tx_ts')
-        cara_summary = self.request.GET.get('cara_summary')
-        verdict = self.request.GET.get('verdict')
+        cara_summary = _(self.request.GET.get('cara_summary'))
+        verdict = _(self.request.GET.get('verdict'))
         trdb_result = _(self.request.GET.get('trdb_result'))
-        trdb_summary = self.request.GET.get('trdb_summary')
-        verdict_message = self.request.GET.get('verdict_message')
-        cara_result = self.request.GET.get('cara_result')
+        trdb_summary = _(self.request.GET.get('trdb_summary'))
+        # trdb_summary = "잘못된 페이지 번호입니다."
+        verdict_message = _(self.request.GET.get('verdict_message'))
+        cara_result = _(self.request.GET.get('cara_result'))
         blacklist_contacted = self.request.GET.get('blacklist_contacted')
         malware_val = self.request.GET.get('malware')
         scam = self.request.GET.get('scam')
@@ -2710,7 +2713,14 @@ class CARAReportDownload(APIView):
                            hi_tx_fee="und", hi_tx_fee_v="/", hi_cry_tx_c=hi_cry_tx_c, hi_cry_tx=hi_cry_tx, hi_cry_tx_v=hi_cry_tx_v,
                            rel_c=rel_c, rel=rel, rel_v=rel_v, mix_c=mix_c, mix=mix, mix_v=mix_v, cara_search=cara_search_time, cara_rep=cara_rep_time,
                            rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v)
-        write_report(html, "/tmp/"+address+".pdf", extra_stylesheets=[css])
+        font_config = FontConfiguration()
+        css2 = CSS(string='''
+            @font-face {
+                font-family: KoreanTimesSSK;
+                src: url(file:///app/portal_api/templates/cara/KORETS__.ttf);
+            }
+            body { font-family: KoreanTimesSSK }''', font_config=font_config)
+        write_report(html, "/tmp/" + address +".pdf", extra_stylesheets=[css, css2])
         try:
             fs = FileSystemStorage('/tmp')
             filename = address+".pdf"

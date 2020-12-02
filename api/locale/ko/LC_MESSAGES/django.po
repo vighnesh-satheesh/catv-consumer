@@ -848,3 +848,102 @@ msgstr "해당 월렛 주소에 대해 지정된 날짜 범위 내 누락된 결
 
 msgid "unverified"
 msgstr "미등록"
+
+msgid "blacklist"
+msgstr "위험"
+
+msgid "whitelist"
+msgstr "정상"
+
+msgid "graylist"
+msgstr "일반"
+
+msgid "Low Risk"
+msgstr "위험도 낮음"
+
+msgid "Medium Risk"
+msgstr "위험도 보통"
+
+msgid "High Risk"
+msgstr "위험도 높음"
+
+msgid "Extremely High Risk"
+msgstr "위험도 매우 높음"
+
+msgid "Malicious"
+msgstr "위험"
+
+msgid "Benign"
+msgstr "정상"
+
+msgid "This crypto address transaction analysis is considered normal and does not exhibit much relative risk indications"
+msgstr "알고리즘 분석 결과 위험 지표와 연관성이 없습니다."
+
+msgid "This crypto address transaction analysis is considered to have medium risk as it exhibit low relative risk indications."
+msgstr "알고리즘 분석 결과 위험 지표와 연관성이 낮습니다."
+
+msgid "This crypto address transaction analysis is considered suspicious as it exhibit relative medium risk indications"
+msgstr "알고리즘 분석 결과 위험 지표와 연관성이 있어 주의가 필요합니다."
+
+msgid "This crypto address transaction analysis is determined to be highly suspicious as it has extreme high risk indications or confirm illicit activities."
+msgstr "알고리즘 분석 결과 불법 또는 금융범죄와 연관성이 높아 주의가 필요합니다."
+
+msgid "This address has not been verified."
+msgstr "해당 월렛은 TRDB에 등록되어 있지 않습니다."
+
+msgid "This address has been blacklisted."
+msgstr "해당 월렛은 위험 월렛으로 등록되어 있습니다."
+
+msgid "This address has been whitelisted."
+msgstr "해당 월렛은 정상 월렛으로 등록되어 있습니다."
+
+msgid "This address has been graylisted."
+msgstr "해당 월렛은 일반 월렛으로 등록되어 있습니다."
+
+msgid "The address is confirmed to be malicious by TRDB and having low risk as per transaction analytics."
+msgstr "알고리즘 분석 결과 특이사항을 발견하지 못했습니다. 다만 해당 월렛은 TRDB에 위험 월렛으로 등록되어 있어 주의가 필요합니다."
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr "알고리즘 분석 결과 해당 월렛은 위험 지표와 연관성이 낮습니다. 다만 TRDB에 위험 월렛으로 등록되어 있어 주의가 필요합니다."
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr "알고리즘 분석 결과 해당 월렛은 위험 지표와 연관성이 높으며 TRDB에 위험 월렛으로 등록되어 있어 불법 또는 금융범죄와 관련이 있습니다."
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr "알고리즘 분석 결과 해당 월렛은 불법 또는 금융범죄와 연관성이 높으며 TRDB에 위험 월렛으로 등록되어 있습니다."
+
+msgid "The address is confirmed to be benign by TRDB and transaction analytics indicates the wallet to be within the Low Risk limit."
+msgstr "해당 월렛은 TRDB에 정상적인 월렛으로 등록되어 있으며 알고리즘 분석 결과 특이사항이 없습니다."
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr "해당 월렛은 TRDB에 정상적인 월렛으로 등록되어 있으며 알고리즘 분석 결과 위험 지표와 연관성이 낮습니다."
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr "해당 월렛은 TRDB에 정상적인 월렛으로 등록되어 있습니다. 다만 알고리즘 분석 결과 위험 월렛과 연관성을 보이는 거래를 식별했기 때문에 주의가 필요합니다."
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr "해당 월렛은 TRDB에 정상적인 월렛으로 등록되어 있습니다. 다만 알고리즘 분석 결과 위험 월렛과 연관성을 보이는 거래를 다수 식별했기 때문에 검증이 필요합니다."
+
+msgid "The address did not match any indicator identified in TRDB and transaction analytics indicates the wallet to be within the Low Risk limit."
+msgstr "TRDB에서 해당 월렛의 정보를 찾을 수 없습니다. 또한 알고리즘 분석 결과 특이사항이 없습니다."
+
+msgid "The address did not match any indicator identified in TRDB but transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr "TRDB에서 해당 월렛의 정보를 찾을 수 없습니다. 또한 알고리즘 분석 결과 위험 지표와 연관성이 낮습니다."
+
+msgid "The address did not match any indicator identified in TRDB but transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr "TRDB에서 해당 월렛의 정보를 찾을 수 없습니다. 하지만 알고리즘 분석 결과 해당 월렛은 위험 지표와 연관성이 높아 주의가 필요합니다."
+
+msgid "The address did not match any indicators identified in TRDB but transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr "TRDB에서 해당 월렛의 정보를 찾을 수 없습니다. 하지만 알고리즘 분석 결과 해당 월렛은 불법 또는 금융범죄와 연관성을 보이이는 거래를 다수 식별했기 때문에 주의가 필요합니다."
+
+msgid "Low Risk in CARA"
+msgstr "알고리즘 분석 결과 위험도 낮음"
+
+msgid "Medium Risk in CARA"
+msgstr "알고리즘 분석 결과 위험도 보통"
+
+msgid "High Risk in CARA"
+msgstr "알고리즘 분석 결과 위험도 높음"
+
+msgid "Extreme High Risk in CARA"
+msgstr "알고리즘 분석 결과 위험도 매우 높음"
