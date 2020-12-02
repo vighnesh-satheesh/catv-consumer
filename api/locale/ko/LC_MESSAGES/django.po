@@ -947,3 +947,135 @@ msgstr "알고리즘 분석 결과 위험도 높음"
 
 msgid "Extreme High Risk in CARA"
 msgstr "알고리즘 분석 결과 위험도 매우 높음"
+
+msgid "Crypto Analysis Risk Assessment"
+msgstr "가상자산 분석 위험도 평가"
+
+msgid "Report Details"
+msgstr "리포트 세부사항"
+
+msgid "Address"
+msgstr "주소"
+
+msgid "Report ID"
+msgstr "리포트 ID"
+
+msgid "Type"
+msgstr "타입"
+
+msgid "Last Transaction Timestamp"
+msgstr "마지막 트랜잭션 시간"
+
+msgid "CARA Search Time"
+msgstr "CARA 검색 시간"
+
+msgid "Report Generation Time"
+msgstr "리포트 생성 시간"
+
+msgid "Suspicious TX Count"
+msgstr "의심스러운 TX 갯수"
+
+msgid "Suspicious TX Amount"
+msgstr "의심스러운 TX 수량"
+
+msgid "Verdict"
+msgstr "결과"
+
+msgid "Summary"
+msgstr "요약"
+
+msgid "Machine Learning Transaction Analysis Results"
+msgstr "알고리즘 트랜잭션 분석 결과"
+
+msgid "Result"
+msgstr "결과"
+
+msgid "Score"
+msgstr "점수"
+
+msgid "Static Analysis Results (TRDB)"
+msgstr "TRDB 검색 결과"
+
+msgid "Malicious Activities"
+msgstr "의심거래 활동"
+
+msgid "List of Risk Indicators"
+msgstr "위험 지표 목록"
+
+msgid "Direct Links to Malicious Activities"
+msgstr "범죄 사건과의 직접적인 거래"
+
+msgid "Contacted Blacklist Addresses"
+msgstr "TRDB 위험 월렛"
+
+msgid "Malware Wallet"
+msgstr "악성 코드"
+
+msgid "Fraud/Scam"
+msgstr "사기 또는 스캠"
+
+msgid "Thief/Hack"
+msgstr "도난/해킹"
+
+msgid "Dark Web"
+msgstr "다크웹"
+
+msgid "Industry Risk Activity"
+msgstr "범죄 활동과 거래"
+
+msgid "Pornography Material"
+msgstr "성착취물"
+
+msgid "Criminal Organization"
+msgstr "테러 또는 범죄조직"
+
+msgid "Transactions interfere with tracking of Funds"
+msgstr "월렛 주소의 정보"
+
+msgid "Excess input and output transaction"
+msgstr "과도한 입금 및 송금 거래"
+
+msgid "Single Crypto Asset Transaction occurred recently"
+msgstr "단발성 월렛 주소 이용"
+
+msgid "Receiving funds from miners service"
+msgstr "마이닝 업체로 부터 입금된 자금"
+
+msgid "Abnormal swift movement of funds"
+msgstr "입금 즉시 출금되는 자금"
+
+msgid "Single incoming-outgoing transactions"
+msgstr "과도한 단발성 입출금 거래"
+
+msgid "Distinctive Transaction Patterns"
+msgstr "비정상적인 월렛 주소 및 거래 패턴"
+
+msgid "Accumulating Crypto Assets"
+msgstr "자금의 과도한 축적"
+
+msgid "Transaction activity at regular intervals"
+msgstr "특정일자에 정기적으로 일어난 거래 활동"
+
+msgid "Dormant transaction status"
+msgstr "갑작스러운 휴면 계좌 이용"
+
+msgid "Large crypto asset balance"
+msgstr "비정상적으로 많은 자금을 보유"
+
+msgid "Significant transaction fees"
+msgstr "출금 자금보다 많은 양의 수수료 거래"
+
+msgid "High value crypto asset transaction found"
+msgstr "과도한 자금의 거래"
+
+msgid "Abnormal Relaying"
+msgstr "중개 월렛 주소로 확인되는 자금의 입출금"
+
+msgid "Abnormal Mixing"
+msgstr "다중의 월렛 주소로 입금거래 기록이 있는 월렛"
+
+msgid "Relaying and Mixing"
+msgstr "중개 월렛으로 사용된 월렛 또는 믹싱 월렛"
+
+msgid "Tumbling"
+msgstr "자금세탁 월렛"

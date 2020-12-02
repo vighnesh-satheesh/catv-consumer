@@ -944,3 +944,135 @@ msgstr ""
 
 msgid "Extreme High Risk in CARA"
 msgstr ""
+
+msgid "Crypto Analysis Risk Assessment"
+msgstr ""
+
+msgid "Report Details"
+msgstr ""
+
+msgid "Address"
+msgstr ""
+
+msgid "Report ID"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Last Transaction Timestamp"
+msgstr ""
+
+msgid "CARA Search Time"
+msgstr ""
+
+msgid "Report Generation Time"
+msgstr ""
+
+msgid "Suspicious TX Count"
+msgstr ""
+
+msgid "Suspicious TX Amount"
+msgstr ""
+
+msgid "Verdict"
+msgstr ""
+
+msgid "Summary"
+msgstr ""
+
+msgid "Machine Learning Transaction Analysis Results"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Score"
+msgstr ""
+
+msgid "Static Analysis Results (TRDB)"
+msgstr ""
+
+msgid "Malicious Activities"
+msgstr ""
+
+msgid "List of Risk Indicators"
+msgstr ""
+
+msgid "Direct Links to Malicious Activities"
+msgstr ""
+
+msgid "Contacted Blacklist Addresses"
+msgstr ""
+
+msgid "Malware Wallet"
+msgstr "Malware"
+
+msgid "Fraud/Scam"
+msgstr ""
+
+msgid "Thief/Hack"
+msgstr ""
+
+msgid "Dark Web"
+msgstr ""
+
+msgid "Industry Risk Activity"
+msgstr ""
+
+msgid "Pornography Material"
+msgstr ""
+
+msgid "Criminal Organization"
+msgstr ""
+
+msgid "Transactions interfere with tracking of Funds"
+msgstr ""
+
+msgid "Excess input and output transaction"
+msgstr ""
+
+msgid "Single Crypto Asset Transaction occurred recently"
+msgstr ""
+
+msgid "Receiving funds from miners service"
+msgstr ""
+
+msgid "Abnormal swift movement of funds"
+msgstr ""
+
+msgid "Single incoming-outgoing transactions"
+msgstr ""
+
+msgid "Distinctive Transaction Patterns"
+msgstr ""
+
+msgid "Accumulating Crypto Assets"
+msgstr ""
+
+msgid "Transaction activity at regular intervals"
+msgstr ""
+
+msgid "Dormant transaction status"
+msgstr ""
+
+msgid "Large crypto asset balance"
+msgstr ""
+
+msgid "Significant transaction fees"
+msgstr ""
+
+msgid "High value crypto asset transaction found"
+msgstr ""
+
+msgid "Abnormal Relaying"
+msgstr ""
+
+msgid "Abnormal Mixing"
+msgstr ""
+
+msgid "Relaying and Mixing"
+msgstr ""
+
+msgid "Tumbling"
+msgstr ""
