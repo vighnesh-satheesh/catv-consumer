@@ -26,6 +26,8 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
 from social_django.utils import psa
+from weasyprint import CSS
+from weasyprint.fonts import FontConfiguration
 from web3.auto.infura import w3
 from web3 import Web3
 from kafka import KafkaProducer
@@ -2601,8 +2603,6 @@ class CARAReportDownload(APIView):
     permission_classes = (AllowAny,)
 
     def get(self, request):
-        #data = request.data
-        #print("Data:", data)
         cara_search_time = self.request.GET.get('date_s')
         cara_rep_time = self.request.GET.get('rep_gen_time')
         address = self.request.GET.get('address')
@@ -2612,12 +2612,12 @@ class CARAReportDownload(APIView):
         type = self.request.GET.get('type')
         risk_score = self.request.GET.get('risk_score')
         last_tx_ts = self.request.GET.get('last_tx_ts')
-        cara_summary = self.request.GET.get('cara_summary')
-        verdict = self.request.GET.get('verdict')
-        trdb_result = self.request.GET.get('trdb_result')
-        trdb_summary = self.request.GET.get('trdb_summary')
-        verdict_message = self.request.GET.get('verdict_message')
-        cara_result = self.request.GET.get('cara_result')
+        cara_summary = _(self.request.GET.get('cara_summary'))
+        verdict = _(self.request.GET.get('verdict'))
+        trdb_result = _(self.request.GET.get('trdb_result'))
+        trdb_summary = _(self.request.GET.get('trdb_summary'))
+        verdict_message = _(self.request.GET.get('verdict_message'))
+        cara_result = _(self.request.GET.get('cara_result'))
         blacklist_contacted = self.request.GET.get('blacklist_contacted')
         malware_val = self.request.GET.get('malware')
         scam = self.request.GET.get('scam')
@@ -2715,9 +2715,39 @@ class CARAReportDownload(APIView):
         from pdf_reports import pug_to_html, write_report, preload_stylesheet
         css = preload_stylesheet('templates/cara/cara_report_style.scss')
         # fa_css = preload_stylesheet('https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css')
-        html = pug_to_html("templates/cara/cara_report_template.pug", title="My report", address=address,
-                           verdict=verdict + " in CARA", id=id, cara_result=cara_result,
-                           type=type, last_tx_ts=last_tx_ts, sus_tx_count=sus_tx_count,
+        html = pug_to_html("templates/cara/cara_report_template.pug", title=_("Crypto Analysis Risk Assessment"),
+                           address=address, address_head=_("Address"), report_id=_("Report ID"),
+                           verdict=verdict, id=id, cara_result=cara_result, details_head=_("Report Details"),
+                           type_head=_("Type"), ltt_head=_("Last Transaction Timestamp"), summary_head=_("Summary"),
+                           cara_st_head=_("CARA Search Time"), report_gt_head=_("Report Generation Time"),
+                           ml_ta_head=_("Machine Learning Transaction Analysis Results"), result_head=_("Result"),
+                           score_head=_("Score"), lr_head=_("Low Risk"), mr_head=_("Medium Risk"),
+                           hr_head=("High Risk"), ehr_head=_("Extremely High Risk"),
+                           risk_ind_head=_("List of Risk Indicators"),
+                           link_mal_head=_("Direct Links to Malicious Activities"),
+                           black_head=_("Contacted Blacklist Addresses"), malware_head=_("Malware Wallet"),
+                           scam_head=_("Fraud/Scam"), phish_head=_("Phishing"), th_head=_("Thief/Hack"),
+                           darkweb_head=_("Dark Web"), co_head=_("Criminal Organization"),
+                           industry_head=_("Industry Risk Activity"), porn_head=_("Pornography Material"),
+                           gamb_head=_("Gambling"), tx_funds_head=_("Transactions interfere with tracking of Funds"),
+                           exc_io_head=_("Excess input and output transaction"),
+                           lar_bal_head=_("Large crypto asset balance"),
+                           acc_cry_head=_("Accumulating Crypto Assets"), dor_tx_head=_("Dormant transaction status"),
+                           tx_act_reg_head=_("Transaction activity at regular intervals"),
+                           swift_head=_("Abnormal swift movement of funds"),
+                           dis_pat_head=_("Distinctive Transaction Patterns"),
+                           sin_ic_head=_("Single incoming-outgoing transactions"), abn_mix_head=_("Abnormal Mixing"),
+                           sig_tx_head=_("Significant transaction fees"), abn_rel_head=_("Abnormal Relaying"),
+                           high_val_head=_("High value crypto asset transaction found"),
+                           sin_cat_head=_("Single Crypto Asset Transaction occurred recently"),
+                           rec_fun_min_head=_("Receiving funds from miners service"),
+                           rel_mix_head=_("Relaying and Mixing"), tumb_head=_("Tumbling"),
+                           sar_head=_("Static Analysis Results (TRDB)"), mal_head=_("Malicious Activities"),
+                           sus_tx_chead=_("Suspicious TX Count"), sus_tx_ahead=_("Suspicious TX Amount"),
+                           dis_head=_("Disclaimer head"), dis_1=_("Disclaimer 1"), dis_2=_("Disclaimer 2"),
+                           dis_3=_("Disclaimer 3"), dis_4=_("Disclaimer 4"), dis_5=_("Disclaimer 5"),
+                           dis_6=_("Disclaimer 6"), dis_7=_("Disclaimer 7"), dis_8=_("Disclaimer 8"),
+                           type=type, last_tx_ts=last_tx_ts, sus_tx_count=sus_tx_count, verdict_head=_("Verdict"),
                            sus_tx_amt=sus_tx_amt, summary=verdict_message, score=risk_score, cara_summary=cara_summary,
                            trdb_result=trdb_result, trdb_summary=trdb_summary, contact_blacklist_c=contact_blacklist_c,
                            contact_blacklist=contact_blacklist, contact_blacklist_v=contact_blacklist_v, fraud_c=fraud_c, fraud=fraud,
@@ -2734,7 +2764,14 @@ class CARAReportDownload(APIView):
                            hi_tx_fee="und", hi_tx_fee_v="/", hi_cry_tx_c=hi_cry_tx_c, hi_cry_tx=hi_cry_tx, hi_cry_tx_v=hi_cry_tx_v,
                            rel_c=rel_c, rel=rel, rel_v=rel_v, mix_c=mix_c, mix=mix, mix_v=mix_v, cara_search=cara_search_time, cara_rep=cara_rep_time,
                            rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v)
-        write_report(html, "/tmp/"+address+".pdf", extra_stylesheets=[css])
+        font_config = FontConfiguration()
+        css2 = CSS(string='''
+                    @font-face {
+                        font-family: KoreanTimesSSK;
+                        src: url(file:///app/portal_api/templates/cara/KORETS__.ttf);
+                    }
+                    body { font-family: KoreanTimesSSK }''', font_config=font_config)
+        write_report(html, "/tmp/" + address + ".pdf", extra_stylesheets=[css, css2])
         try:
             fs = FileSystemStorage('/tmp')
             filename = address+".pdf"

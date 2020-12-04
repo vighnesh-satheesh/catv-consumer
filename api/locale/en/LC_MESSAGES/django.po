@@ -842,3 +842,264 @@ msgstr ""
 
 msgid "Missing distribution results for the wallet address within the date range specified"
 msgstr ""
+
+msgid "unverified"
+msgstr "Unverified"
+
+msgid "blacklist"
+msgstr "Blacklist"
+
+msgid "whitelist"
+msgstr "Whitelist"
+
+msgid "graylist"
+msgstr "Graylist"
+
+msgid "Low Risk"
+msgstr ""
+
+msgid "Medium Risk"
+msgstr ""
+
+msgid "High Risk"
+msgstr ""
+
+msgid "Extremely High Risk"
+msgstr ""
+
+msgid "Malicious"
+msgstr ""
+
+msgid "Benign"
+msgstr ""
+
+msgid "This crypto address transaction analysis is considered normal and does not exhibit much relative risk indications"
+msgstr ""
+
+msgid "This crypto address transaction analysis is considered to have medium risk as it exhibit low relative risk indications."
+msgstr ""
+
+msgid "This crypto address transaction analysis is considered suspicious as it exhibit relative medium risk indications"
+msgstr ""
+
+msgid "This crypto address transaction analysis is determined to be highly suspicious as it has extreme high risk indications or confirm illicit activities."
+msgstr ""
+
+msgid "This address has not been verified."
+msgstr ""
+
+msgid "This address has been blacklisted."
+msgstr ""
+
+msgid "This address has been whitelisted."
+msgstr ""
+
+msgid "This address has been graylisted."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and having low risk as per transaction analytics."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be malicious by TRDB and transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB and transaction analytics indicates the wallet to be within the Low Risk limit."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr ""
+
+msgid "The address is confirmed to be benign by TRDB although transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr ""
+
+msgid "The address did not match any indicator identified in TRDB and transaction analytics indicates the wallet to be within the Low Risk limit."
+msgstr ""
+
+msgid "The address did not match any indicator identified in TRDB but transaction analytics identified txs bearing resemblance to Medium Risk wallets."
+msgstr ""
+
+msgid "The address did not match any indicator identified in TRDB but transaction analytics identified txs bearing resemblance to High Risk wallets."
+msgstr ""
+
+msgid "The address did not match any indicators identified in TRDB but transaction analytics identified txs bearing resemblance to Extreme High Risk wallets."
+msgstr ""
+
+msgid "Low Risk in CARA"
+msgstr ""
+
+msgid "Medium Risk in CARA"
+msgstr ""
+
+msgid "High Risk in CARA"
+msgstr ""
+
+msgid "Extreme High Risk in CARA"
+msgstr ""
+
+msgid "Crypto Analysis Risk Assessment"
+msgstr ""
+
+msgid "Report Details"
+msgstr ""
+
+msgid "Address"
+msgstr ""
+
+msgid "Report ID"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Last Transaction Timestamp"
+msgstr ""
+
+msgid "CARA Search Time"
+msgstr ""
+
+msgid "Report Generation Time"
+msgstr ""
+
+msgid "Suspicious TX Count"
+msgstr ""
+
+msgid "Suspicious TX Amount"
+msgstr ""
+
+msgid "Verdict"
+msgstr ""
+
+msgid "Summary"
+msgstr ""
+
+msgid "Machine Learning Transaction Analysis Results"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Score"
+msgstr ""
+
+msgid "Static Analysis Results (TRDB)"
+msgstr ""
+
+msgid "Malicious Activities"
+msgstr ""
+
+msgid "List of Risk Indicators"
+msgstr ""
+
+msgid "Direct Links to Malicious Activities"
+msgstr ""
+
+msgid "Contacted Blacklist Addresses"
+msgstr ""
+
+msgid "Malware Wallet"
+msgstr "Malware"
+
+msgid "Fraud/Scam"
+msgstr ""
+
+msgid "Thief/Hack"
+msgstr ""
+
+msgid "Dark Web"
+msgstr ""
+
+msgid "Industry Risk Activity"
+msgstr ""
+
+msgid "Pornography Material"
+msgstr ""
+
+msgid "Criminal Organization"
+msgstr ""
+
+msgid "Transactions interfere with tracking of Funds"
+msgstr ""
+
+msgid "Excess input and output transaction"
+msgstr ""
+
+msgid "Single Crypto Asset Transaction occurred recently"
+msgstr ""
+
+msgid "Receiving funds from miners service"
+msgstr ""
+
+msgid "Abnormal swift movement of funds"
+msgstr ""
+
+msgid "Single incoming-outgoing transactions"
+msgstr ""
+
+msgid "Distinctive Transaction Patterns"
+msgstr ""
+
+msgid "Accumulating Crypto Assets"
+msgstr ""
+
+msgid "Transaction activity at regular intervals"
+msgstr ""
+
+msgid "Dormant transaction status"
+msgstr ""
+
+msgid "Large crypto asset balance"
+msgstr ""
+
+msgid "Significant transaction fees"
+msgstr ""
+
+msgid "High value crypto asset transaction found"
+msgstr ""
+
+msgid "Abnormal Relaying"
+msgstr ""
+
+msgid "Abnormal Mixing"
+msgstr ""
+
+msgid "Relaying and Mixing"
+msgstr ""
+
+msgid "Tumbling"
+msgstr ""
+
+msgid "Disclaimer head"
+msgstr "Disclaimer"
+
+msgid "Disclaimer 1"
+msgstr "1. The Report information is obtained from sources believed to be reliable but is in no way guaranteed."
+
+msgid "Disclaimer 2"
+msgstr "2. The Report does not discharge any obligation of proper internal risk assessment and decision-making process."
+
+msgid "Disclaimer 3"
+msgstr "3. The Report should be read in full because any separate analysis of each of its parts can lead to erroneous conclusions."
+
+msgid "Disclaimer 4"
+msgstr "4. Uppsala Security does not give any implied warranty to the validity of the Report."
+
+msgid "Disclaimer 5"
+msgstr "5. Uppsala Security is not liable for any changes in assumptions and updates to this report in the case of new facts or circumstances occurring after the date of the report or not known to Uppsala Security at the time of generation of this Report."
+
+msgid "Disclaimer 6"
+msgstr "6. Uppsala Security reserved the right, not to disclosed certain information to any recipient used for analysis, due to intellectual property or confidentiality risk (e.g. cybercrime-related)."
+
+msgid "Disclaimer 7"
+msgstr "7. Any decision taken by the recipient of this report is made solely on their own risk. The liability of Uppsala Security is hereby excluded to the fullest extent permitted by the applicable law, including loss of profits, loss of revenues, loss of opportunity or business interruption incur by the recipient."
+
+msgid "Disclaimer 8"
+msgstr "8. To clarify any aspects contained in the Report, please contact us at support@uppsalasecurity.com."
