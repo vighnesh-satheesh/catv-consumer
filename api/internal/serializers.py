@@ -264,12 +264,6 @@ class CasePostSerializer(serializers.ModelSerializer):
                         force = indi.pop("force", None)
                         dup = []
                         if not force:
-                            if indi["pattern_subtype"] == "ETH":
-                                filter_queries = Q(pattern_lower=indi["pattern"].lower())
-                                filter_queries &= Q(cases__status=models.CaseStatus.RELEASED)
-                                dup = models.Indicator.objects.annotate(pattern_lower=Lower('pattern')).filter(filter_queries).prefetch_related('cases').values(
-                                    'security_category', 'cases__status', 'cases__updated').order_by("-cases__updated")[:1]
-                            else:
                                 filter_queries = Q(pattern=indi["pattern"])
                                 filter_queries &= Q(cases__status=models.CaseStatus.RELEASED)
                                 dup = models.Indicator.objects.filter(filter_queries).prefetch_related('cases').\
