@@ -372,6 +372,8 @@ API_SETTINGS = {
     "MAINNET_URL": env.str("API_MAINNET_URL", "https://mainnet.infura.io/v3/acc7e98bea464efa91f383ce2dd3d764"),
     "VERIFY_TX_AMT": env.str("API_VERIFY_TX_AMT", "0.000118"),
     "MAB_USER_UPGRADE": env.int("API_MAB_USER_UPGRADE", 10000),
+    "QUERY_CHUNK_SIZE": env.int("API_QUERY_CHUNK_SIZE", 500),
+    "SAVE_EXTRA_ANNOTATE": env.bool("API_SAVE_EXTRA_ANNOTATE", False),
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.
