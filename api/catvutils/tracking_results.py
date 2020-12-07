@@ -18,6 +18,7 @@ from ..models import (
     CaseStatus, CatvTokens
 )
 from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInterface
+from ..settings import api_settings
 
 
 def chunks(iterable, size):
@@ -145,7 +146,7 @@ class TrackingResults:
         addr_list = nc.get_node_enum().keys()
         addr_list = [addr.lower() for addr in addr_list]
         indicators = []
-        for chunk_addr in chunks(addr_list, 2000):
+        for chunk_addr in chunks(addr_list, api_settings.QUERY_CHUNK_SIZE):
             query_list = Q(cases__status__in=[CaseStatus.RELEASED], pattern_subtype=token_type, pattern_type="cryptoaddr")
             query_list &= Q(pattern_lower__in=chunk_addr)
             matched_indicators = Indicator.objects.annotate(pattern_lower=Lower('pattern')).filter(query_list).\
