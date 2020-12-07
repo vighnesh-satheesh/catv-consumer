@@ -143,6 +143,8 @@ class TrackingResults:
 
     @staticmethod
     def update_annotations(nc, item_list, token_type):
+        if not api_settings.CATV_TRDB_ANNOTATE:
+            return nc, item_list
         addr_list = nc.get_node_enum().keys()
         addr_list = [addr.lower() for addr in addr_list]
         indicators = []
