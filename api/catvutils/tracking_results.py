@@ -1,11 +1,14 @@
 from multiprocessing.pool import ThreadPool
 from multiprocessing import Pool
 from datetime import datetime
+from uuid import UUID
 
 from django.utils.timezone import make_aware
 from django.conf import settings
 from django.db.models import Q
 from django.db.models.functions import Lower
+from elasticsearch_dsl import Q as elasticQ, Search
+from web3 import Web3
 
 from .bloxy_interface import BloxyAPIInterface
 from .graphtools import (
@@ -19,6 +22,7 @@ from ..models import (
 )
 from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInterface
 from ..settings import api_settings
+from ..utils import SharedES
 
 
 def chunks(iterable, size):
@@ -149,46 +153,71 @@ class TrackingResults:
         addr_list = [addr.lower() for addr in addr_list]
         indicators = []
         for chunk_addr in chunks(addr_list, api_settings.QUERY_CHUNK_SIZE):
-            query_list = Q(cases__status__in=[CaseStatus.RELEASED], pattern_subtype=token_type, pattern_type="cryptoaddr")
-            query_list &= Q(pattern_lower__in=chunk_addr)
-            matched_indicators = Indicator.objects.annotate(pattern_lower=Lower('pattern')).filter(query_list).\
-                prefetch_related('cases').values('id', 'uid', 'security_category', 's_tags', 'pattern', 'detail',
-                                                'pattern_subtype', 'pattern_type', 'annotation').\
-                order_by('-cases__updated')
-            indicators.extend(matched_indicators)
+            should_clauses = []
+            must_clauses = [elasticQ("match", cases="released"), elasticQ("match", pattern_type="cryptoaddr"),
+                            elasticQ("match", pattern_subtype=token_type)]
+            if token_type == "ETH":
+                for pattern in chunk_addr:
+                    should_clauses.append(elasticQ("match", pattern=Web3.toChecksumAddress(pattern)))
+            else:
+                for pattern in chunk_addr:
+                    should_clauses.append(elasticQ("match", pattern=pattern))
+            combined_query = elasticQ("bool", should=should_clauses, must=must_clauses, minimum_should_match=1)
+            es_instance = SharedES.instance()
+            search_helper = Search(using=es_instance.client, index=api_settings.ELASTICSEARCH_INDICATOR_IDX)
+            search_executor = search_helper.query(combined_query)[:10000]
+            try:
+                response = search_executor.sort('-updated').execute(ignore_cache=True)
+                if response and len(response.hits) > 0:
+                    indicators.extend(response.hits)
+            except:
+                pass
+            # query_list = Q(cases__status__in=[CaseStatus.RELEASED], pattern_subtype=token_type, pattern_type="cryptoaddr")
+            # query_list &= Q(pattern_lower__in=chunk_addr)
+            # matched_indicators = Indicator.objects.annotate(pattern_lower=Lower('pattern')).filter(query_list).\
+            #     prefetch_related('cases').values('id', 'uid', 'security_category', 's_tags', 'pattern', 'detail',
+            #                                     'pattern_subtype', 'pattern_type', 'annotation').\
+            #     order_by('-cases__updated')
+            # indicators.extend(matched_indicators)
         seen_indicators = []
+        print(indicators)
 
         for item in indicators:
-            if item['pattern'].lower() in seen_indicators:
+            print(UUID(item.uid.hex), item.security_category, item.pattern_type, item.pattern_subtype)
+            if item.pattern.lower() in seen_indicators:
                 continue
-            cur_node = nc.get_node(item["pattern"].lower())
-            cur_node = nc.get_node(item["pattern"]) if cur_node is None else cur_node
+            cur_node = nc.get_node(item.pattern.lower())
+            cur_node = nc.get_node(item.pattern) if cur_node is None else cur_node
             if cur_node is None:
                 continue
-            cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
-                                       'security_category': item['security_category'].value,
-                                       'pattern_type': item['pattern_type'].value,
-                                       'pattern_subtype': item['pattern_subtype'].value})
+            cur_node.update(trdb_info={'id': item.id, 'uid': str(UUID(item.uid.hex)),
+                                       'security_category': item.security_category,
+                                       'security_tags': list(item.security_tags) if item.security_tags else [],
+                                       'pattern': item.pattern,
+                                       'detail': item.detail,
+                                       'pattern_type': item.pattern_type,
+                                       'pattern_subtype': item.pattern_subtype,
+                                       'annotation': item.annotations})
             if cur_node.group == "Exchange & DEX":
-                seen_indicators.append(item['pattern'].lower())
+                seen_indicators.append(item.pattern.lower())
                 continue
-            if item["security_category"].value == "graylist":
-                if item["annotation"]:
-                    cur_node.update(annotation=item["annotation"])
+            if item.security_category == "graylist":
+                if item.annotations:
+                    cur_node.update(annotation=item.annotations)
                     cur_node.set_group_from_annotation()
                 else:
                     cur_node.update(group="No Tag", annotation="")
             else:
                 kwargs = {}
-                kwargs["group"] = item["security_category"].value.title()
-                if item["annotation"]:
-                    kwargs["annotation"] = item["annotation"]
-                    if "Exchange" in item["annotation"] or "DEX" in item["annotation"]:
+                kwargs["group"] = item.security_category.title()
+                if item.annotations:
+                    kwargs["annotation"] = item.annotations
+                    if "Exchange" in item.annotations or "DEX" in item.annotations:
                         kwargs["group"] = "Exchange & DEX"
                 else:
                     kwargs["annotation"] = ""
                 cur_node.update(**kwargs)
-            nc.update_node(item['pattern'].lower(), cur_node)
+            nc.update_node(item.pattern.lower(), cur_node)
             for transaction in item_list:
                 if not transaction.get('sender_annotation', None):
                     transaction['sender_annotation'] = ''
@@ -199,7 +228,7 @@ class TrackingResults:
                     transaction['sender_annotation'] = cur_node.annotation
                 elif transaction['receiver'].lower() == cur_node.address.lower():
                     transaction['receiver_annotation'] = cur_node.annotation
-            seen_indicators.append(item['pattern'].lower())
+            seen_indicators.append(item.pattern.lower())
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
