@@ -132,6 +132,8 @@ class Constants:
                              "cr.tx_interfere_with_funds_details, cr.report_generated_time  from cara_report as cr JOIN cara_search_history as cs on cr.address = cs.address"
                              " where cr.address='{0}' and cr.id='{1}' and cr.report_generated_time > cs.query_time",
         "CARA_REPORT_DELETE_QUERY": "DELETE from cara_report where address='{0}'",
+        "CARA_REPORT_REQUEST_ID": "select cs.request_id from cara_search_history as cs JOIN cara_report as cr on cs.address = cr.address where cs.address='{0}' and cr.report_generated_time > cs.query_time + INTERVAL '10 min' and cs.query_time < cr.report_generated_time and cr.request_id is null limit 1",
+        "CARA_REPORT_INSERT_RID": "update cara_report set request_id='{0}' where address='{1}' and request_id is null",
         "SELECT_USER_CATV_HISTORY": "select 0 as id, wallet_address, token_address, source_depth, distribution_depth, "
                                     "transaction_limit, from_date, to_date from vw_catv_history where row_num = 1 and "
                                     "user_id={0} and token_type='{1}' limit 10;",
