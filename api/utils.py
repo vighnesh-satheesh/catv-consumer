@@ -14,7 +14,6 @@ from json import loads
 from django.db.models import Q
 from django.utils import six
 from django.utils.encoding import force_text
-from elasticsearch import Elasticsearch
 
 from rest_framework import exceptions as rf_exceptions
 from rest_framework.views import exception_handler
@@ -418,17 +417,3 @@ def pattern_matches_token(address, token_type):
     if not pattern:
         return false
     return re.compile(pattern).match(address)
-
-
-class SharedES:
-    _instance = None
-    client = None
-
-    def __init__(self):
-        self.client = Elasticsearch([api_settings.ELASTIC_URL])
-
-    @staticmethod
-    def instance():
-        if not SharedES._instance:
-            SharedES._instance = SharedES()
-        return SharedES._instance
