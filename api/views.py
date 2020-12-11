@@ -2455,6 +2455,7 @@ class CARAHistory(generics.ListAPIView):
         page = self.request.GET.get('page', 1)
         selected = self.request.GET.get('selected')
         page = int(page)
+        search_term = self.request.GET.get('q', None)
         if selected == 'Failed':
             history_query = Constants.QUERIES['CARA_HISTORY_FAILED_USER'].format(user)
         elif selected == 'Released':
@@ -2477,6 +2478,9 @@ class CARAHistory(generics.ListAPIView):
                 update_error_report_query = Constants.QUERIES['UPDATE_ERROR_REPORT'].format(
                     0, user, x[0])
                 cursor.execute(update_error_report_query)
+        if search_term:
+            history = [entry for entry in history
+                       if search_term in entry[0].lower() or search_term in ("|".join(entry[3])).lower()]
         history = self.paginate_queryset(history)
         search = [x[0] for x in history]
         time = [x[1] for x in history]
