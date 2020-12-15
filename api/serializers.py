@@ -2689,3 +2689,62 @@ class SecurityTagSerializer(serializers.ModelSerializer):
         if obj and obj.tag:
             return _(obj.tag)
         return None
+
+
+class UserPasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(
+        allow_blank=True, required=False, write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(
+        allow_blank=True, required=False, write_only=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = models.User
+        fields = ("old_password", "new_password",)
+
+    def _validate_old_password(self, user, old_pw):
+        ret = user.check_password(old_pw)
+        if ret is False:
+            raise exceptions.AuthenticationCheckError()
+
+    def _validate_new_password(self, user, new_pw):
+        validates.validate_password(user, new_pw)
+
+    def validate(self, data):
+        request = self.context.get("request", None)
+        if request is None:
+            raise exceptions.AuthenticationCheckError()
+        if request.method != "PATCH":
+            raise exceptions.ValidationError(detail="Invalid method for password update")
+        user = request.user
+        token = request.auth
+        enc_old_pw = data.get("old_password", None)
+        enc_new_pw = data.get("new_password", None)
+
+        if enc_old_pw is not None and enc_new_pw is not None:
+            timestamp = request.META.get(
+                'HTTP_X_AUTHORIZATION_TIMESTAMP', None)
+            old_pw = decrypt_message(enc_old_pw, timestamp)
+            new_pw = decrypt_message(enc_new_pw, timestamp)
+            if old_pw == new_pw:
+                raise exceptions.ValidationError(
+                    "old and new password are same.")
+            self._validate_old_password(user, old_pw)
+            self._validate_new_password(user, new_pw)
+            data["new_password"] = new_pw
+            try:
+                MultiToken.expire_token(token)
+            except self.model.DoesNotExist:
+                pass
+            new_token, _ = MultiToken.create_token(user)
+            data["token"] = new_token.key
+        else:
+            data["token"] = token.key
+
+        data["id"] = user.uid
+        return data
+
+    def update(self, instance, validated_data, *args, **kwargs):
+        instance.update(password=validated_data.get("new_password", None))
+        c = DefaultCache()
+        c.set("user_" + str(instance.id), instance, 0)
+        return instance
