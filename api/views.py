@@ -65,7 +65,8 @@ from .serializers import (
     InvitationSerializer, SocialSerializer, CATVBTCSerializer,
     CATVBTCTxlistSerializer, CATVHistorySerializer, CATVBTCCoinpathSerializer,
     CATVEthPathSerializer, CatvBtcPathSerializer, UserIndicatorSerializer,
-    CATVRequestListSerializer, CARARequestListSerializer, SecurityTagSerializer
+    CATVRequestListSerializer, CARARequestListSerializer, SecurityTagSerializer,
+    UserPasswordSerializer
 )
 from .throttling import (
     SignUpThrottle, UserLoginThrottle, ChangePasswordThrottle,
@@ -1728,6 +1729,19 @@ class UserDetailView(APIView):
             import traceback
             traceback.print_exc()
             raise exceptions.ValidationError("invalid data")
+
+    def patch(self, request, pk=None):
+        obj = self.get_object(pk)
+        serializer = UserPasswordSerializer(obj, data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        user = UserPostSerializer(instance=instance)
+        return APIResponse({
+            "data": {
+                "accessToken": serializer.validated_data["token"],
+                "user": user.data
+            }
+        })
 
 
 class IcfView(APIView):
