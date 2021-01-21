@@ -11,7 +11,7 @@ from .models import (
     Key, OrganizationUser, Notification, NotificationType,
     User, Usage, RoleUsageLimit, UserStatus,
     OrganizationUserStatus, Role, UserRoles, UserPermission,
-    SecurityTag
+    SecurityTag, CustomerSecurityTag
 )
 
 
@@ -75,3 +75,11 @@ def invalidate_tag_cache(sender, instance, created, **kwargs):
     request.path = reverse('security-tags')
     c = DefaultCache()
     c.delete_view_cache(request)
+
+@receiver(post_save, sender=CustomerSecurityTag)
+def invalidate_c_tag_cache(sender, instance, created, **kwargs):
+    request = HttpRequest()
+    request.path = reverse('customer-tags')
+    c = DefaultCache()
+    c.delete_view_cache(request)
+    
