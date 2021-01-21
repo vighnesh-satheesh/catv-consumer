@@ -2690,6 +2690,21 @@ class SecurityTagSerializer(serializers.ModelSerializer):
             return _(obj.tag)
         return None
 
+class CustomerSecurityTagSerializer(serializers.ModelSerializer):
+    tag = serializers.CharField(max_length=256)
+    description = fields.TruncatedCharField(truncate_len=api_settings.INDICATOR_LIST_DETAIL_LEN, required=False,
+                                            allow_blank=True, allow_null=True)
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.CustomerSecurityTag
+        fields = ("tag", "description", "label")
+        read_only_fields = ("tag", "description", "label")
+
+    def get_label(self, obj):
+        if obj and obj.tag:
+            return _(obj.tag)
+        return None
 
 class UserPasswordSerializer(serializers.ModelSerializer):
     old_password = serializers.CharField(

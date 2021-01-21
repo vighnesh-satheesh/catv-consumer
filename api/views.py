@@ -46,7 +46,7 @@ from .models import (
     UserIndicator, IndicatorPoint, CatvResult,
     Role, RoleUsageLimit, UserRoles,
     UserUpgrade, UpgradeVerifyStatus, CaraSearchHistory,
-    SecurityTag
+    SecurityTag, CustomerSecurityTag
 )
 from .serializers import (
     LoginSerializer, ChangePasswordSerializer,
@@ -66,7 +66,7 @@ from .serializers import (
     CATVBTCTxlistSerializer, CATVHistorySerializer, CATVBTCCoinpathSerializer,
     CATVEthPathSerializer, CatvBtcPathSerializer, UserIndicatorSerializer,
     CATVRequestListSerializer, CARARequestListSerializer, SecurityTagSerializer,
-    UserPasswordSerializer
+    UserPasswordSerializer, CustomerSecurityTagSerializer
 )
 from .throttling import (
     SignUpThrottle, UserLoginThrottle, ChangePasswordThrottle,
@@ -3360,6 +3360,25 @@ class SecurityTagView(generics.ListCreateAPIView):
             })
         )
 
+class CustomerSecurityTagView(generics.ListCreateAPIView):
+    authentication_classes = (CachedTokenAuthentication,)
+    permission_classes = (AllowAny,)
+    model = CustomerSecurityTag
+
+    def list(self, request, *args, **kwargs):
+        c = DefaultCache()
+        cached_response = c.get_view_cache(request)
+        if cached_response:
+            return APIResponse(cached_response)
+        queryset = self.model.objects.all()
+        serializer = CustomerSecurityTagSerializer(queryset, many=True)
+        return APIResponse(
+            c.set_view_cache(request, {
+                "data": {
+                    "items": serializer.data
+                }
+            })
+        )
 
 class RequestSearchView(generics.ListAPIView):
     authentication_classes = (CachedTokenAuthentication,)
