@@ -573,7 +573,7 @@ class CaseView(generics.ListCreateAPIView):
         return qs
     
     def list(self, request, *args, **kwargs):
-        filter_keys = set(["user_case", "security_category", "pattern_type", "pattern_subtype", "keyword", "start_date", "end_date"])
+        filter_keys = set(["user_case", "security_category", "pattern_type", "customer_tag", "pattern_subtype", "keyword", "start_date", "end_date"])
         filter_match = next((key for key in self.request.query_params.keys() if key in filter_keys), False)
         if filter_match and api_settings.SWITCH_ES_SEARCH:
             search_wrapper = CaseSearchES(request)

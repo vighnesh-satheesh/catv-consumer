@@ -669,6 +669,7 @@ class Case(models.Model):
     block_num = models.IntegerField(null=True, blank=True)
     # block_id = models.CharField(max_length=64, null=True, blank=True)
     transaction_id = models.CharField(max_length=64, null=True, blank=True)
+    customer_tag = models.CharField(max_length=64, null=True, blank=True)
 
     ico = models.ForeignKey('ICO', null=True, blank=True,
                             on_delete=models.DO_NOTHING)
@@ -702,6 +703,7 @@ class Case(models.Model):
             models.Index(fields=['status', ]),
             models.Index(fields=['owner', ]),
             models.Index(fields=['created', ]),
+            models.Index(fields=['customer_tag', ]),
             CustomGinIndex(fields=['title', ]),
         ]
 

@@ -1221,7 +1221,7 @@ class CasePostSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Case
         fields = ("title", "detail", "rich_text_detail", "reporter_info",
-                  "ico", "indicators", "files", "related_case")
+                  "ico", "indicators", "files", "related_case", "customer_tag")
         read_only_fields = ("id", "uid", "created")
 
     def validate_files(self, data):

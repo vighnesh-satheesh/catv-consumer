@@ -67,6 +67,23 @@ def validate_security_type_tag(security_category, security_tag, model=False):
         if not set(security_tag).issubset(set(tags)):
             raise exc_class({"security_tags": "security tags should be picked from the system defined list of tags"})
 
+def validate_customer_security_type_tag(customer_security_tag, model=False):
+    exc_class = ValidationError if model is True else exceptions.ValidationError
+
+    if customer_security_tag is None:
+        return
+    elif isinstance(customer_security_tag, list) and len(customer_security_tag) == 0:
+        return
+    elif not isinstance(customer_security_tag, list):
+        raise exc_class({"customer_security_tag": "list of string is required."})
+    else:
+        c = DefaultCache()
+        tags = c.get_c_tags()
+        if not tags:
+            tags = models.SecurityTag.objects.all().values_list('tag', flat=True)
+            c.set_c_tags(list(tags))
+        if not set(customer_security_tag).issubset(set(tags)):
+            raise exc_class({"customer_security_tag": "customer security tags should be picked from the system defined list of tags"})
 
 def validate_max_length(text, model=False, limit=128, field_name="text"):
     exc_class = ValidationError if model is True else exceptions.ValidationError
