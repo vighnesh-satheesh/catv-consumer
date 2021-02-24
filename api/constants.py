@@ -94,19 +94,19 @@ class Constants:
                                     "WHERE date_created > '{0}';",
         "INSERT_CARA_HISTORY": "INSERT INTO cara_search_history(id, address, query_time, blockchain) VALUES(%s,%s,%s,%s);",
         "DELETE_ADDRESS_FROM_HISTORY": "DELETE from cara_search_history where address='{0}' and id='{1}'",
-        "CARA_HISTORY_USER": "SELECT address, query_time, blockchain, labels, request_id from cara_search_history "
+        "CARA_HISTORY_USER": "SELECT lower(address), query_time, blockchain, labels, request_id from cara_search_history "
                              "where id = '{0}' order by query_time desc",
-        "CARA_HISTORY_FAILED_USER": "select cs.address,cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address in" 
+        "CARA_HISTORY_FAILED_USER": "select lower(cs.address),cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address in" 
                                    "(select cr.address from cara_report cr "
                                    "where cr.report_generated_time > cs.query_time and cr.error!=''"
                                    "order by cr.report_generated_time)" 
                                    "order by cs.query_time desc",
-        "CARA_HISTORY_PROGRESS_USER": "select cs.address,cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address not in"
+        "CARA_HISTORY_PROGRESS_USER": "select lower(cs.address),cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address not in"
                                       "(select cr.address from cara_report cr "
                                       "where cr.report_generated_time > cs.query_time "
                                       "order by cr.report_generated_time)"
                                       "order by cs.query_time desc",
-        "CARA_HISTORY_RELEASED_USER": "select cs.address,cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address in"
+        "CARA_HISTORY_RELEASED_USER": "select lower(cs.address),cs.query_time,cs.blockchain, labels, request_id from cara_search_history cs where cs.id='{0}' and address in"
                                     "(select cr.address from cara_report cr "
                                     "where cr.report_generated_time > cs.query_time and cr.error=''"
                                     "order by cr.report_generated_time)"
@@ -124,8 +124,8 @@ class Constants:
                               "values(%s,%s ,%s,%s,%s ,%s ,%s ,%s ,%s ,%s ,%s ,%s,%s,%s,%s,%s, %s, %s, %s, %s, %s)",
         "KAFKA_LISTENER_PARAMS": "SELECT kafka_offset from kafka_listener_parameters where id=1",
         "KAFKA_OFFSET_UPDATE": "UPDATE kafka_listener_parameters set kafka_offset={0} where id=1",
-        "CARA_REPORT_ADDRESS_GENERATED": "SELECT cr.address, cr.error, cr.risk_score, cr.ground_truth_label, cr.id, cr.report_generated_time from cara_report as cr JOIN cara_search_history as cs on cs.address = cr.address where cr.address='{0}' and cr.report_generated_time > '{1}' and cs.id = '{2}' and cr.report_generated_time < '{3}' and cs.query_time < cr.report_generated_time",
-        "CARA_REPORT_ORPHAN": "SELECT address, error, risk_score, ground_truth_label, id, report_generated_time from cara_report where address='{0}' and report_generated_time > '{1}'",
+        "CARA_REPORT_ADDRESS_GENERATED": "SELECT cr.address, cr.error, cr.risk_score, cr.ground_truth_label, cr.id, cr.report_generated_time from cara_report as cr JOIN cara_search_history as cs on cs.address = cr.address where lower(cr.address)=lower('{0}') and cr.report_generated_time > '{1}' and cs.id = '{2}' and cr.report_generated_time < '{3}' and cs.query_time < cr.report_generated_time",
+        "CARA_REPORT_ORPHAN": "SELECT address, error, risk_score, ground_truth_label, id, report_generated_time from cara_report where lower(address)=lower('{0}') and report_generated_time > '{1}'",
         "CARA_REPORT_QUERY": "SELECT cr.id, cr.address, cr.risk_score, cr.analysis_end_time, cr.total_amt, cr.estimated_mal_amt, cr.estimated_mal_tx, cr.distinct_transaction_patterns,"
                              "cr.direct_links_to_malicious_activities, cr.illegit_activity_links, cr.error, cr.ground_truth_label, cr.num_blacklisted_addr_contacted, cr.tx_interfere_with_funds,"
                              "cs.blockchain, cr.blacklisted_addr_list, cr.distinct_tx_patterns_details, cr.illegit_activity_links_details, cr.mal_activities_details,"
