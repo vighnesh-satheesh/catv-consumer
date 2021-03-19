@@ -2604,7 +2604,7 @@ class CARAReportDownload(APIView):
     permission_classes = (AllowAny,)
 
     def get(self, request):
-        mal_dict = self.request.GET.get('mal_dict')
+        #mal_dict = self.request.GET.get('mal_dict')
         prev_risk_score = self.request.GET.get('prev_risk_score')
         prev_verdict = _(self.request.GET.get('prev_verdict'))
         cara_search_time = self.request.GET.get('date_s')
@@ -2766,7 +2766,7 @@ class CARAReportDownload(APIView):
                            dor=dor, dor_v=dor_v, lar_bal_c=lar_bal_c, lar_bal=lar_bal, lar_bal_v=lar_bal_v, hi_tx_fee_c="circle-inv",
                            hi_tx_fee="und", hi_tx_fee_v="/", hi_cry_tx_c=hi_cry_tx_c, hi_cry_tx=hi_cry_tx, hi_cry_tx_v=hi_cry_tx_v,
                            rel_c=rel_c, rel=rel, rel_v=rel_v, mix_c=mix_c, mix=mix, mix_v=mix_v, cara_search=cara_search_time, cara_rep=cara_rep_time,
-                           rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v, mal_dict=mal_dict)
+                           rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v)
         font_config = FontConfiguration()
         css2 = CSS(string='''
             @font-face {
