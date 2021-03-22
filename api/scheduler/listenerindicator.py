@@ -234,9 +234,9 @@ class Listener_Indicator:
                     ntime = datetime.datetime.utcnow()
                     if "Error" in dict_item.keys():
                         error = dict_item["Error"]
-                        data_dict = (dict_item["address"], "0", datetime.datetime.now(datetime.timezone.utc),
+                        data_dict = (dict_item["address"], "0", "-2", datetime.datetime.now(datetime.timezone.utc),
                                      datetime.datetime.now(datetime.timezone.utc),
-                                     "0", "0",
+                                     "0", "0", "0", "0",
                                      "0", "0", "0", "",
                                      "", "", datetime.datetime.now(datetime.timezone.utc), error,
                                      "", "", "", "", "", "", "")
@@ -251,6 +251,11 @@ class Listener_Indicator:
                         direct_links = ast.literal_eval(dict_item["illegit_activity_links"])
                         activity = ast.literal_eval(dict_item["direct_links_to_malicious_activities"])
                         tx_funds = ast.literal_eval(dict_item["tx_interfere_with_funds"])
+                        total_amt = dict_item["total_amt"]
+                        total_amt_bc = total_amt[dict_item["blockchain"]]
+                        estimated_mal_amt = dict_item["estimated_mal_amt"]
+                        mal_amt_bc = estimated_mal_amt[dict_item["blockchain"]]
+                        prv_risk_score = dict_item["previous_risk_score"]
                         pattern_string = ""
                         patterns = ""
                         links_string = ""
@@ -410,9 +415,9 @@ class Listener_Indicator:
                                 activity_string = activity_string + a2
                                 activities = activities + "darkweb"
 
-                        data_dict = (dict_item["address"], dict_item["risk_score"], dict_item["analysis_start_time"],
-                                     dict_item["analysis_end_time"], dict_item["total_amt"],
-                                     dict_item["estimated_mal_amt"], dict_item["total_tx"],
+                        data_dict = (dict_item["address"], dict_item["risk_score"], prv_risk_score, dict_item["analysis_start_time"],
+                                     dict_item["analysis_end_time"], total_amt_bc, mal_amt_bc, str(total_amt),
+                                     str(estimated_mal_amt), dict_item["total_tx"],
                                      dict_item["estimated_mal_tx"],
                                      len(dict_item["num_blacklisted_addr_contacted"]) - 2, patterns, links, activities,
                                      datetime.datetime.now(datetime.timezone.utc), error,
