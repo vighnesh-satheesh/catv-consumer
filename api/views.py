@@ -2604,10 +2604,14 @@ class CARAReport(APIView):
         with connections['readonly'].cursor() as cursor:
             cursor.execute(report_query)
             report = cursor.fetchone()
+            import ast
+            mal = ast.literal_eval(report[22])
+            for key in mal:
+                mal[key] = str(mal[key])
             cursor.execute(case_query)
             case = cursor.fetchone()
             if report is not None:
-                data = {'report': report}
+                data = {'report': report, 'mal_dict': mal}
             else:
                 data = {'report': ""}
             if case is not None:
@@ -2622,6 +2626,9 @@ class CARAReportDownload(APIView):
     permission_classes = (AllowAny,)
 
     def get(self, request):
+        mal_dict = self.request.GET.get('mal_dict')
+        prev_risk_score = self.request.GET.get('prev_risk_score')
+        prev_verdict = _(self.request.GET.get('prev_verdict'))
         cara_search_time = self.request.GET.get('date_s')
         cara_rep_time = self.request.GET.get('rep_gen_time')
         address = self.request.GET.get('address')
@@ -2741,7 +2748,8 @@ class CARAReportDownload(APIView):
                            cara_st_head=_("CARA Search Time"), report_gt_head=_("Report Generation Time"),
                            ml_ta_head=_("Machine Learning Transaction Analysis Results"), result_head=_("Result"),
                            score_head=_("Score"), lr_head=_("Low Risk"), mr_head=_("Medium Risk"),
-                           hr_head=("High Risk"), ehr_head=_("Extremely High Risk"),
+                           pr_result_head=_("Previous Result"), pr_risk_score=prev_risk_score, pr_verdict=prev_verdict,
+                           hr_head=("High Risk"), ehr_head=_("Extremely High Risk"), pr_score_head=_("Previous Score"),
                            risk_ind_head=_("List of Risk Indicators"),
                            link_mal_head=_("Direct Links to Malicious Activities"),
                            black_head=_("Contacted Blacklist Addresses"), malware_head=_("Malware Wallet"),
@@ -2782,7 +2790,7 @@ class CARAReportDownload(APIView):
                            dor=dor, dor_v=dor_v, lar_bal_c=lar_bal_c, lar_bal=lar_bal, lar_bal_v=lar_bal_v, hi_tx_fee_c="circle-inv",
                            hi_tx_fee="und", hi_tx_fee_v="/", hi_cry_tx_c=hi_cry_tx_c, hi_cry_tx=hi_cry_tx, hi_cry_tx_v=hi_cry_tx_v,
                            rel_c=rel_c, rel=rel, rel_v=rel_v, mix_c=mix_c, mix=mix, mix_v=mix_v, cara_search=cara_search_time, cara_rep=cara_rep_time,
-                           rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v)
+                           rel_mix_c=rel_mix_c, rel_mix=rel_mix, rel_mix_v=rel_mix_v, tum_c=tum_c, tum=tum, tum_v=tum_v, mal_dict=mal_dict)
         font_config = FontConfiguration()
         css2 = CSS(string='''
                     @font-face {
