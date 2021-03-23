@@ -698,7 +698,6 @@ class CaseDetailView(APIView):
             obj, data=request.data, partial=True, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
         c = DefaultCache()
         c.delete_key(Constants.CACHE_KEY['LEFT_PANEL_VALUES'])
         c.delete_key(Constants.CACHE_KEY['NUMBER_OF_INDICATORS_CASES'])
@@ -719,18 +718,33 @@ class CaseDetailView(APIView):
                     "type": "case"
                 }
             )
-            e = Email()
+            #e = Email()
             kv = {
                 "nickname": obj.reporter.nickname,
                 "case_exp": "Case #{0} status has been updated to {1}".format(obj.id, serializer.data["status"]),
                 "link": api_settings.WEB_URL + '/case/' + str(obj.uid)
             }
-            SendEmail().delay(kv=kv,
-                              subject=Constants.EMAIL_TITLE["NOTIFICATION_PATCH_CASE"].format(request.user.nickname,
-                                                                                              obj.status.value),
-                              email_type=e.EMAIL_TYPE["NOTIFICATION"],
-                              sender=e.EMAIL_SENDER["NO-REPLY"],
-                              recipient=[obj.reporter.email])
+            email = Email()
+            print("Srnding mail")
+            # print("rec:", kwargs["recipient"])
+            try:
+                email.sendemail(
+                    kv=kv,
+                    subject=Constants.EMAIL_TITLE["NOTIFICATION_MODIFY_CASE"].format(
+                        request.user.nickname),
+                    email_type=email.EMAIL_TYPE["NOTIFICATION"],
+                    sender=email.EMAIL_SENDER["NO-REPLY"],
+                    recipient=[obj.reporter.email]
+                )
+            except Exception as e:
+                print(e)
+                print("Sending mail failed")
+            # SendEmail().delay(kv=kv,
+            #                  subject=Constants.EMAIL_TITLE["NOTIFICATION_MODIFY_CASE"].format(
+            #                      request.user.nickname),
+            #                  email_type=email.EMAIL_TYPE["NOTIFICATION"],
+            #                  sender=email.EMAIL_SENDER["NO-REPLY"],
+            #                  recipient=[obj.reporter.email])
 
         return APIResponse({"data": {
             'case_permission': permission_data
