@@ -111,6 +111,7 @@ class CaseSearchES:
         """
         case_filter = self.__make_shared_filter(is_user_view=False)
         keyword_filter = Q()
+        tag_filter = Q()
         print("Inside filter es")
         order_by = self.request.GET.get('order_by', 'id_desc')
         security_category = self.request.GET.getlist("security_category") or []
@@ -122,6 +123,10 @@ class CaseSearchES:
         tz = self.request.query_params.get('timezone', None)
         page = self.request.GET.get('page', 1)
         customer_tag = self.request.GET.getlist("customer_tag") or []
+        cust = self.request.query_params.getlist("customer_tag") or []
+        print("cust:", customer_tag)
+        print("key:", keyword)
+        print("cust2:", cust)
         order_by = order_by.split('_')
         key = ''
         if order_by[1] == 'desc':
@@ -132,7 +137,11 @@ class CaseSearchES:
         if len(security_category) > 0:
             case_filter &= Q(security_category__in=security_category)
         if len(customer_tag) > 0:
-            case_filter &= Q(customer_tag__in=customer_tag)
+            for tag in customer_tag:
+                case_filter &= Q(customer_tag=tag)
+                #print("Tag:", tag_filter)
+            #case_filter &= tag_filter
+            print("case:", case_filter)
         if len(pattern_type) > 0:
             case_filter &= Q(pattern_type__in=pattern_type)
         if len(pattern_subtype) > 0:
