@@ -27,7 +27,7 @@ class CaseDocumentSerializer(serializers.Serializer):
     owned_by = serializers.SerializerMethodField()
     indicators = serializers.SerializerMethodField()
     detail = serializers.CharField()
-    customer_tag = serializers.CharField()
+    customer_tag = serializers.SerializerMethodField()
 
     class Meta(object):
 
@@ -101,3 +101,10 @@ class CaseDocumentSerializer(serializers.Serializer):
 
     def get_indicators(self, obj):
         return []
+
+    def get_customer_tag(self, obj):
+        """Get tags."""
+        if obj.customer_tag:
+            return list(obj.customer_tag)
+        else:
+            return []

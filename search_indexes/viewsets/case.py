@@ -4,7 +4,9 @@ from django_elasticsearch_dsl_drf.constants import (
     LOOKUP_QUERY_CONTAINS,
     LOOKUP_FILTER_RANGE,
     LOOKUP_QUERY_GTE,
-    LOOKUP_QUERY_LTE
+    LOOKUP_QUERY_LTE,
+    LOOKUP_FILTER_TERMS,
+    LOOKUP_FILTER_PREFIX,
 )
 from django_elasticsearch_dsl_drf.filter_backends import (
     IdsFilterBackend,
@@ -57,6 +59,8 @@ class CaseDocumentView(BaseDocumentViewSet):
                 LOOKUP_QUERY_IN,
                 LOOKUP_QUERY_CONTAINS,
                 LOOKUP_FILTER_WILDCARD,
+                LOOKUP_FILTER_TERMS,
+                LOOKUP_FILTER_PREFIX,
             ],
         },
         'security_category': {
