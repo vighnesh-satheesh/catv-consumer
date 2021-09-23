@@ -153,7 +153,6 @@ class UserPermission(Enum):
 
 class ProductType(Enum):
     CATV = 'catv'
-    CARA = 'cara'
     ICF = 'api'
 
 
@@ -228,6 +227,8 @@ class IndicatorPatternSubtype(Enum):
     XLM = 'XLM'
     BNB = 'BNB'
     ADA = 'ADA'
+    DOGE = 'DOGE'
+    BSC = 'BSC'
     # network address
     URL = 'url'
     EMAIL = 'email'
@@ -250,7 +251,7 @@ class IndicatorPatternSubtype(Enum):
     def cryptoaddr_subtypes(cls):
         return [cls.ETH, cls.ETC, cls.EOS, cls.BTC, cls.BCH,
                 cls.LTC, cls.DASH, cls.ZEC, cls.XMR, cls.NEO, cls.XRP, cls.NA,
-                cls.KLAY, cls.TRON, cls.XLM, cls.BNB, cls.ADA]
+                cls.KLAY, cls.TRON, cls.XLM, cls.BNB, cls.ADA, cls.DOGE, cls.BSC]
 
     @classmethod
     def networkaddr_subtypes(cls):
@@ -362,7 +363,7 @@ class CatvTokens(Enum):
     XLM = 'XLM'
     BNB = 'BNB'
     ADA = 'ADA'
-
+    BSC = 'BSC'
 
 class CatvSearchType(Enum):
     PATH = 'path'
@@ -632,11 +633,13 @@ class RoleUsageLimit(models.Model):
     api_limit = models.IntegerField(null=True, default=5)
     catv_limit = models.IntegerField(null=True, default=5)
     cara_limit = models.IntegerField(null=True, default=5)
+    cams_limit = models.IntegerField(null=True, default=5)
     org_invite_limit = models.IntegerField(null=True, default=0)
     max_api_keys = models.IntegerField(null=True, default=1)
     api_limit_y = models.IntegerField(null=False, default=5)
     catv_limit_y = models.IntegerField(null=False, default=5)
     cara_limit_y = models.IntegerField(null=False, default=5)
+    cams_limit_y = models.IntegerField(null=False, default=5)
 
     class Meta:
         db_table = 'api_role_usage_limit'
@@ -1143,12 +1146,15 @@ class Usage(models.Model):
     api_calls_left = models.IntegerField(default=0)
     catv_calls_left = models.IntegerField(default=0)
     cara_calls_left = models.IntegerField(default=0)
+    cams_calls_left = models.IntegerField(default=0)
     api_calls_left_y = models.IntegerField(default=0)
     catv_calls_left_y = models.IntegerField(default=0)
     cara_calls_left_y = models.IntegerField(default=0)
+    cams_calls_left_y = models.IntegerField(default=0)
     api_calls = models.IntegerField(default=0)
     catv_calls = models.IntegerField(default=0)
     cara_calls = models.IntegerField(default=0)
+    cams_calls = models.IntegerField(default=0)
     last_renewal_at = models.DateTimeField(null=True)
     last_renewal_at_y = models.DateTimeField(null=True)
 
@@ -1354,6 +1360,8 @@ class CatvRequestStatus(models.Model):
     created = models.DateTimeField(default=now)
     updated = models.DateTimeField(auto_now=True)
     labels = ArrayField(models.CharField(max_length=100, blank=False), default=list)
+    token_type = EnumField(CatvTokens, default=CatvTokens.ETH)
+
 
     class Meta:
         db_table = 'api_catv_request_status'
@@ -1466,17 +1474,3 @@ class RoleInfo(models.Model):
     org_access = models.BooleanField(default=False)
     role = models.ForeignKey(
         Role, null=False, blank=False, on_delete=models.CASCADE, related_name='info_role')
-
-
-class CaraSearchHistory(models.Model):
-    id = models.UUIDField(primary_key=False)
-    address = models.CharField(max_length=200)
-    query_time = models.DateTimeField()
-    error_generated = models.IntegerField(blank=True, null=True)
-    blockchain = models.CharField(max_length=10, blank=True, null=True)
-    labels = ArrayField(models.CharField(max_length=100, blank=False), default=list)
-    request_id = models.AutoField(primary_key=True)
-
-    class Meta:
-        db_table = 'cara_search_history'
-        managed = False

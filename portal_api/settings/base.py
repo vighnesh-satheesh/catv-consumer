@@ -17,11 +17,11 @@ from corsheaders.defaults import default_headers
 from datetime import timedelta
 
 env = environ.Env()
-env_path = os.environ.get('PORTAL_API_ENV_PATH')
+env_path = os.environ.get('CATVMS_API_ENV_PATH')
 if env_path and os.path.exists(env_path):
-    env.read_env(env.str('PORTAL_API_ENV_PATH', '.env'))
+    env.read_env(env.str('CATVMS_API_ENV_PATH', '.env'))
 
-ENVIRONMENT = env.str('PORTAL_API_ENV', 'development')
+ENVIRONMENT = env.str('CATVMS_API_ENV_PATH', 'development')
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -44,17 +44,13 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'elasticapm.contrib.django',
     'djcelery',
     'corsheaders',
     'rest_framework',
-    'django_elasticsearch_dsl',
-    'django_elasticsearch_dsl_drf',
     'django_filters',
     'django_extensions',
     'social_django',
-    'api',
-    'search_indexes',
+    'api'
 ]
 
 MIDDLEWARE = [
@@ -153,20 +149,6 @@ CACHES = {
     }
 }
 
-ELASTICSEARCH_DSL = {
-    'default': {
-        'hosts': env.str('API_ELASTICSEARCH_HOST', 'localhost:9200'),
-        'timeout': env.str('API_ELASTICSEARCH_TIMEOUT', 7200),
-        'http_auth': env.str('API_ELASTICSEARCH_CREDENTIALS', '')
-    },
-}
-
-ELASTICSEARCH_DSL_AUTOSYNC = False
-
-ELASTICSEARCH_INDEX_NAMES = {
-    'search_indexes.documents.case': 'case',
-    'search_indexes.documents.indicator': 'indicator',
-}
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
@@ -200,18 +182,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_THROTTLE_RATES': {
-        'userLogin': '5/min',
-        'changePassword': '5/min',
-        'fileUpload': '20/min',
-        'casePost': '5/min',
-        "signup": "5/min",
-        'emailVerification': '5/min',
-        'indicatorPost': '20/min',
-        'caraPost': '3/min',
         'catvPost': '5/min',
-        'guestSearchGet': '20/min',
-        'catvInternalPost': '1/min',
-        'upgradePostPut': '5/hour'
+        'catvInternalPost': '1/min'
     },
     'NUM_PROXIES': 2,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -354,9 +326,6 @@ API_SETTINGS = {
     "SWITCH_ES_SEARCH": env.bool('API_SWITCH_ES_SEARCH', True),
     "BASE_API_URL": env.str('API_BASE_URL', 'http://localhost:8000/'),
     "LYZE_API_KEY": env.str('API_LYZE_KEY'),
-    "ELASTICSEARCH_HOST": env.str('API_ELASTICSEARCH_HOST', 'http://localhost:9200'),
-    "ELASTICSEARCH_CREDENTIALS": env.str('API_ELASTICSEARCH_CREDENTIALS', ''),
-    "ELASTICSEARCH_INDICATOR_IDX": env.str("API_ELASTIC_INDICATOR_IDX", 'dev_indicator'),
     "KAFKA_CRAWLED_CASE_TOPIC": env.str("API_KAFKA_CRAWLED_CASE_TOPIC", "crawled-cases"),
     "KAFKA_PORTAL_CASE_TOPIC": env.str("API_KAFKA_PORTAL_CASE_TOPIC", "portal-cases"),
     "KAFKA_DELAYED_CASE_TOPIC": env.str("API_KAFKA_DELAYED_CASE_TOPIC", "crawled-delayed-cases"),
@@ -367,7 +336,6 @@ API_SETTINGS = {
     "CATV_MAX_SCALED_NODES": env.int("API_CATV_MAX_SCALED_NODES", 500),
     "CATV_GRAPH_NODES_CUTOFF": env.int("API_CATV_GRAPH_NODES_CUTOFF", 1000),
     "CATV_NUM_JOBS_PICK": env.int("API_CATV_NUM_JOBS_PICK", 3),
-    "ELASTICSEARCH_CASE_IDX": env.str("API_ELASTIC_CASE_IDX", 'dev_case'),
     "SEARCH_BACKEND_URL": env.str("API_SEARCH_BACKEND_URL", "http://localhost:8000/"),
     "MAINNET_URL": env.str("API_MAINNET_URL", "https://mainnet.infura.io/v3/acc7e98bea464efa91f383ce2dd3d764"),
     "VERIFY_TX_AMT": env.str("API_VERIFY_TX_AMT", "0.000118"),
@@ -383,75 +351,21 @@ BROKER_URL = API_SETTINGS['CELERY_BROKER_URL']
 CELERY_RESULT_BACKEND = API_SETTINGS['CELERY_BROKER_URL']
 CELERYD_CONCURRENCY = 2
 CELERY_IMPORTS = ('api.tasks',)
-CELERYBEAT_SCHEDULE = {
-    'check-quota-every-thirty-minutes': {
-        'task': 'api.tasks.CheckUpdateUsageQuotaTask',
-        'schedule': timedelta(minutes=30),
-    },
-    'check-invites-every-45-minutes': {
-        'task': 'api.tasks.CheckDeleteInvitesTask',
-        'schedule': timedelta(minutes=45),
-    },
-    'check-user-upgrade-every-hour': {
-        'task': 'api.tasks.CheckUserUpgradeTask',
-        'schedule': timedelta(minutes=60),
-    },
-    'check-quota-every-year': {
-        'task': 'api.tasks.RefillCreditsYearlyTask',
-        'schedule': timedelta(minutes=30),
-    }
-}
-# email
-EMAIL_BACK_END = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_USE_TLS = True
-EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = API_SETTINGS['EMAIL_HOST_USER']
-EMAIL_HOST_PASSWORD = API_SETTINGS['EMAIL_HOST_PASSWORD']
+
 
 # BLOXY API
 BLOXY_API_KEY = env.str('API_BLOXY_KEY')
-BLOXY_DIST_ENDPOINT = env.str('API_BLOXY_DIST_ENDPOINT', 'https://apisentinel.bloxy.info/sentinel/outbound_graph_with_stat')
-BLOXY_SRC_ENDPOINT = env.str('API_BLOXY_SRC_ENDPOINT', 'https://apisentinel.bloxy.info/sentinel/inbound_graph_with_stat')
-BLOXY_BTC_SRC_ENDPOINT = env.str('API_BLOXY_BTC_SRC_ENDPOINT', 'https://apisentinel.bloxy.info/bitcoin:coinpath/inbound_graph')
-BLOXY_BTC_DIST_ENDPOINT = env.str('API_BLOXY_BTC_DIST_ENDPOINT', 'https://apisentinel.bloxy.info/bitcoin:coinpath/outbound_graph')
-BLOXY_ETHCOINPATH_ENDPOINT = env.str('API_BLOXY_ETHCOINPATH_ENDPOINT', 'https://apisentinel.bloxy.info/coinpath/paths')
-BLOXY_BTCCOINPATH_ENDPOINT = env.str('API_BLOXY_BTCCOINPATH_ENDPOINT', 'https://apisentinel.bloxy.info/bitcoin:coinpath/paths')
-BLOXY_ETH_DIST_ENDPOINT = env.str('API_BLOXY_ETH_DIST_ENDPOINT', 'https://apisentinel.bloxy.info/sentinel/outbound_graph_with_stat')
-BLOXY_ETH_SRC_ENDPOINT = env.str('API_BLOXY_ETH_SRC_ENDPOINT', 'https://apisentinel.bloxy.info/sentinel/inbound_graph_with_stat')
+
+BLOXY_DIST_ENDPOINT = env.str('API_BLOXY_DIST_ENDPOINT', 'https://sentinel.api.bitquery.io/coinpath/outbound_graph')
+BLOXY_SRC_ENDPOINT = env.str('API_BLOXY_SRC_ENDPOINT', 'https://sentinel.api.bitquery.io/coinpath/inbound_graph')
+BLOXY_BTC_SRC_ENDPOINT = env.str('API_BLOXY_BTC_SRC_ENDPOINT', 'https://sentinel.api.bitquery.io/bitcoin:coinpath/inbound_graph')
+BLOXY_BTC_DIST_ENDPOINT = env.str('API_BLOXY_BTC_DIST_ENDPOINT', 'https://sentinel.api.bitquery.io/bitcoin:coinpath/outbound_graph')
+BLOXY_ETHCOINPATH_ENDPOINT = env.str('API_BLOXY_ETHCOINPATH_ENDPOINT', 'https://sentinel.api.bitquery.io/coinpath/paths')
+BLOXY_BTCCOINPATH_ENDPOINT = env.str('API_BLOXY_BTCCOINPATH_ENDPOINT', 'https://sentinel.api.bitquery.io/bitcoin:coinpath/paths')
+BLOXY_ETH_DIST_ENDPOINT = env.str('API_BLOXY_ETH_DIST_ENDPOINT', 'https://sentinel.api.bitquery.io/sentinel/outbound_graph_with_stat')
+BLOXY_ETH_SRC_ENDPOINT = env.str('API_BLOXY_ETH_SRC_ENDPOINT', 'https://sentinel.api.bitquery.io/sentinel/inbound_graph_with_stat')
+
 LYZE_API_KEY = env.str('API_LYZE_KEY')
 LYZE_DIST_ENDPOINT = env.str('API_LYZE_DIST_ENDPOINT', 'https://upp.lyze.ai/btc_forward_tracking')
 LYZE_SRC_ENDPOINT = env.str('API_LYZE_SRC_ENDPOINT', 'https://upp.lyze.ai/btc_backward_tracking')
 LYZE_TXLIST_ENDPOINT = env.str('API_LYZE_TXLIST_ENDPOINT', 'https://upp.lyze.ai/btc_address_transfers')
-
-#CARA KAFKA
-KAFKA_BROKER_1 = API_SETTINGS['KAFKA_BROKER_1']
-KAFKA_BROKER_2 = API_SETTINGS['KAFKA_BROKER_2']
-KAFKA_BROKER_3 = API_SETTINGS['KAFKA_BROKER_3']
-KAFKA_USER_TOPIC = API_SETTINGS['KAFKA_USER_TOPIC']
-KAFKA_BATCH_TOPIC = API_SETTINGS['KAFKA_BATCH_TOPIC']
-KAFKA_CONSUMER_TOPIC = API_SETTINGS['KAFKA_CONSUMER_TOPIC']
-
-#CARA LISTENER
-TRDB_HOST = API_SETTINGS['TRDB_HOST']
-TRDB_USERNAME = API_SETTINGS['TRDB_USERNAME']
-TRDB_PASSWORD = API_SETTINGS['TRDB_PASSWORD']
-TRDB_PORT = API_SETTINGS['TRDB_PORT']
-TRDB_DBNAME = API_SETTINGS['TRDB_DBNAME']
-TRDB_SSL_MODE = API_SETTINGS['TRDB_SSL_MODE']
-LOCAL_HOST = API_SETTINGS['LOCAL_HOST']
-LOCAL_DBNAME = API_SETTINGS['LOCAL_DBNAME']
-LOCAL_USERNAME = API_SETTINGS['LOCAL_USERNAME']
-LOCAL_PASSWORD = API_SETTINGS['LOCAL_PASSWORD']
-LOCAL_PORT = API_SETTINGS['LOCAL_PORT']
-LOCAL_SSL_MODE = API_SETTINGS['LOCAL_SSL_MODE']
-TIME_INTERVAL = API_SETTINGS['TIME_INTERVAL']
-
-#REWARDS ADMIN
-ADMIN_WALLET_ADDRESS = API_SETTINGS['ADMIN_WALLET_ADDRESS']
-ADMIN_WALLET_KEY = API_SETTINGS['ADMIN_WALLET_KEY']
-CONTRACT_ADDRESS = API_SETTINGS['CONTRACT_ADDRESS']
-CONTRACT_ABI = API_SETTINGS['CONTRACT_ABI']
-REWARDS_URL = API_SETTINGS['REWARDS_URL']
-TOKEN_ADDRESS = API_SETTINGS['TOKEN_ADDRESS']
-TOKEN_ABI = API_SETTINGS['TOKEN_ABI']
