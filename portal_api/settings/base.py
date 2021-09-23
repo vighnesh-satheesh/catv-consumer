@@ -148,28 +148,6 @@ USE_TZ = True
 
 # Rest framework settings
 
-REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-    ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'api.multitoken.tokens_auth.CachedTokenAuthentication'
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_THROTTLE_RATES': {
-        'catvPost': '5/min',
-        'catvInternalPost': '1/min'
-    },
-    'NUM_PROXIES': 2,
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
-    'EXCEPTION_HANDLER': 'api.utils.custom_exception_handler',
-    'DATETIME_FORMAT': '%s'
-}
-
-
 # cross origin setting
 
 CORS_ORIGIN_WHITELIST = env.str('CORS_ORIGIN_WHITELIST', default="").split(",")
@@ -253,9 +231,6 @@ API_SETTINGS = {
     'EMAIL_HOST_PASSWORD': env.str('API_EMAIL_HOST_PASSWORD', None),
     'WEB_URL': env.str('API_WEB_URL', ''),
     "PORTAL_API_MODE": env.str("PORTAL_API_MODE", ''),
-    "KAFKA_BROKER_1": env.str("KAFKA_BROKER_1", None),
-    "KAFKA_BROKER_2": env.str("KAFKA_BROKER_2", None),
-    "KAFKA_BROKER_3": env.str("KAFKA_BROKER_3", None),
     "ADMIN_WALLET_ADDRESS": env.str('ADMIN_WALLET_ADDRESS', None),
     "ADMIN_WALLET_KEY": env.str('ADMIN_WALLET_KEY', None),
     "CONTRACT_ADDRESS": env.str('CONTRACT_ADDRESS', None),
@@ -276,15 +251,9 @@ API_SETTINGS = {
     "LOCAL_PORT": env.int('LOCAL_PORT', 5432),
     "LOCAL_SSL_MODE": env.str('LOCAL_SSL_MODE', 'prefer'),
     "TIME_INTERVAL": env.int('TIME_INTERVAL', 24),
-    "KAFKA_USER_TOPIC": env.str('KAFKA_USER_TOPIC', 'cara-address'),
-    "KAFKA_BATCH_TOPIC": env.str('KAFKA_BATCH_TOPIC', 'cara-indicator'),
-    "KAFKA_CONSUMER_TOPIC": env.str('KAFKA_CONSUMER_TOPIC', 'cara-address-results-test'),
     "SWITCH_ES_SEARCH": env.bool('API_SWITCH_ES_SEARCH', True),
     "BASE_API_URL": env.str('API_BASE_URL', 'http://localhost:8000/'),
     "LYZE_API_KEY": env.str('API_LYZE_KEY'),
-    "KAFKA_CRAWLED_CASE_TOPIC": env.str("API_KAFKA_CRAWLED_CASE_TOPIC", "crawled-cases"),
-    "KAFKA_PORTAL_CASE_TOPIC": env.str("API_KAFKA_PORTAL_CASE_TOPIC", "portal-cases"),
-    "KAFKA_DELAYED_CASE_TOPIC": env.str("API_KAFKA_DELAYED_CASE_TOPIC", "crawled-delayed-cases"),
     "KAFKA_CATV_TOPIC": env.str("API_KAFKA_CATV_TOPIC", "catv-requests"),
     "SWITCH_CATV_KAFKA": env.bool("API_SWITCH_CATV_KAFKA", True),
     "CATV_TX_LIMIT": env.int("API_CATV_TX_LIMIT", 50000),
