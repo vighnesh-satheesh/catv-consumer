@@ -49,9 +49,9 @@ class ApiConfig(AppConfig):
         if os.environ.get("CONTAINER_TYPE", None) == "catv_consumer_api":
             self.init_cache(self.get_model('User'))
             self.send_slack_webhook()
-            from api.scheduler import kafkascheduler
-            kafkascheduler.start()
-            import api.signals
+            # from api.scheduler import kafkascheduler
+            # kafkascheduler.start()
+            # import api.signals
             # import search_indexes.signals
 
             
