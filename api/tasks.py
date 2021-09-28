@@ -48,38 +48,5 @@ class CatvPathHistoryTask(Task):
                 cursor.execute(query_list[0].format(*query_data[0]))
         return True
 
-class CatvRequestTask:
-    def __init__(self, topic, **kwargs):
-        self.topic = topic
-        self.message_id = uuid.uuid4()
-        self.token_type = kwargs["token_type"]
-        self.search_type = kwargs["search_type"]
-        self.search_params = kwargs["search_params"]
-        self.user = kwargs["user"]
-        
-    def run(self):
-        message_body = {
-            "message_id": self.message_id.hex,
-            "user_id": self.user.id,
-            "token_type": self.token_type,
-            "search_type": self.search_type,
-            "search_params": self.search_params
-        }
-        CatvJobQueue.objects.create(message=message_body, retries_remaining=1)
-    
-    def save(self):
-        try:
-            with transaction.atomic():
-                task_record = CatvRequestStatus.objects.create(
-                    uid=self.message_id,
-                    params=self.search_params,
-                    user=self.user,
-                    token_type=self.token_type
-                )
-                CatvResult.objects.create(request=task_record)
-            return task_record
-        except IntegrityError:
-            raise DataIntegrityError("data integrity error")
-
 tasks.register(CatvHistoryTask)
 tasks.register(CatvPathHistoryTask)
