@@ -1,16 +1,10 @@
-import uuid
-
-from celery.task import Task
 from celery.registry import tasks
-from django.db import connections, transaction, IntegrityError
+from celery.task import Task
+from django.db import connections
 from django.utils.timezone import now
 
 from .constants import Constants
-from .exceptions import DataIntegrityError
-from .models import (
-    CatvJobQueue, CatvRequestStatus, CatvResult,
-)
-from .settings import api_settings
+
 
 class CatvHistoryTask(Task):
     def run(self, *args, **kwargs):

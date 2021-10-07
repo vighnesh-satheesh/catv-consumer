@@ -9,7 +9,6 @@ from django.utils.timezone import now
 from api.catvutils.metrics import CatvMetrics
 from api.exceptions import FileNotFound
 from api.models import (
-    AttachedFile,
     CatvTokens, CatvSearchType,
     CatvRequestStatus, CatvTaskStatusType,
     ConsumerErrorLogs, CatvResult,

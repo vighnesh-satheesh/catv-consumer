@@ -1,20 +1,10 @@
-import time
-from functools import wraps
 import re
 from datetime import datetime
 
-from django.db.models import Q
-from django.utils import six
-from django.utils.encoding import force_text
-
-from rest_framework import exceptions as rf_exceptions
-from rest_framework.views import exception_handler
-
-from .response import APIResponse
 from .models import (
-    CatvTokens, CatvHistory
+    CatvTokens
 )
-from . import exceptions
+
 
 def validate_dateformat(value, date_format):
     datetime.strptime(value, date_format)
