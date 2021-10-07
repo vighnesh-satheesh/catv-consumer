@@ -166,6 +166,8 @@ def process_catv_messages(job: CatvJobQueue):
             rpc = RPCClientSaveS3FileToDB()
             res = (rpc.call(message)).decode('utf-8')
             file_id = int(res)
+            if file_id == 0:
+                return "File did not get saved to S3"
 
             request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
             request_instance.status = task_status

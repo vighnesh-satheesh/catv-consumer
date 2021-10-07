@@ -15,13 +15,13 @@ class ApiConfig(AppConfig):
         app.config_from_object('django.conf:settings')
         app.autodiscover_tasks(lambda: [n.name for n in apps.get_app_configs()])
 
-    @classmethod
-    def init_cache(cls, user_model):
-        c = DefaultCache()
-        users = user_model.objects.all()
-        for u in users:
-            key = "user_" + str(u.pk)
-            c.set(key, u, 0)
+    # @classmethod
+    # def init_cache(cls, user_model):
+    #     c = DefaultCache()
+    #     users = user_model.objects.all()
+    #     for u in users:
+    #         key = "user_" + str(u.pk)
+    #         c.set(key, u, 0)
 
     @classmethod
     def send_slack_webhook(cls):
@@ -47,7 +47,7 @@ class ApiConfig(AppConfig):
         #Comment this if condition to run scheduler in local
         #Make sure you are not connected to prod if running this scheduler
         if os.environ.get("CONTAINER_TYPE", None) == "catv_consumer_api":
-            self.init_cache(self.get_model('User'))
+            # self.init_cache(self.get_model('User'))
             self.send_slack_webhook()
             # from api.scheduler import kafkascheduler
             # kafkascheduler.start()

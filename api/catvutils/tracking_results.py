@@ -158,7 +158,7 @@ class TrackingResults:
         indicators = ast.literal_eval(res)
         print("indicators:- ", indicators)
         seen_indicators = []
-
+        
         for item in indicators:
             if item['pattern'].lower() in seen_indicators:
                 continue
@@ -173,7 +173,7 @@ class TrackingResults:
             if cur_node.group == "Exchange & DEX":
                 seen_indicators.append(item['pattern'].lower())
                 continue
-            if item["security_category"].value == "graylist":
+            if item["security_category"] == "graylist":
                 if item["annotation"]:
                     cur_node.update(annotation=item["annotation"])
                     cur_node.set_group_from_annotation()
