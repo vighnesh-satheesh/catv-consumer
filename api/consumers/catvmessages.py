@@ -167,11 +167,12 @@ def process_catv_messages(job: CatvJobQueue):
             res = (rpc.call(message)).decode('utf-8')
             file_id = int(res)
             if file_id == 0:
-                return "File did not get saved to S3"
+                print("File did not get saved to S3")
 
-            request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
-            request_instance.status = task_status
-            request_instance.updated = now()
-            request_instance.save()
-            CatvResult.objects.filter(request=request_instance).update(result_file_id=file_id)
-            job.delete()
+            else:
+                request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
+                request_instance.status = task_status
+                request_instance.updated = now()
+                request_instance.save()
+                CatvResult.objects.filter(request=request_instance).update(result_file_id=file_id)
+                job.delete()

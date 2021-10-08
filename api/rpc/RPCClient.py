@@ -63,7 +63,7 @@ class RPCClientFetchIndicators:
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
             exchange='',
-            routing_key='rpc_catv_fetch_indicators',
+            routing_key='rpc_catv_consumer_fetch_indicators',
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,
