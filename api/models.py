@@ -152,8 +152,6 @@ class IndicatorExtraAnnotation(models.Model):
 class CatvResult(models.Model):
     request = models.ForeignKey(CatvRequestStatus, null=False,
                                 blank=False, on_delete=models.CASCADE, related_name='request')
-    # result_file = models.ForeignKey(
-    #     AttachedFile, null=True, blank=True, on_delete=models.CASCADE, related_name='result_file')
     result_file_id = models.IntegerField(null=True)
 
     class Meta:
