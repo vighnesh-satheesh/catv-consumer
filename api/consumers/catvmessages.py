@@ -9,7 +9,6 @@ from django.utils.timezone import now
 from api.catvutils.metrics import CatvMetrics
 from api.exceptions import FileNotFound
 from api.models import (
-    AttachedFile,
     CatvTokens, CatvSearchType,
     CatvRequestStatus, CatvTaskStatusType,
     ConsumerErrorLogs, CatvResult,
@@ -21,6 +20,7 @@ from api.serializers import (
 )
 from api.settings import api_settings
 from api.tasks import CatvHistoryTask, CatvPathHistoryTask
+from api.rpc.RPCClient import RPCClientSaveS3FileToDB
 
 __all__ = ('process_catv_messages',)
 
@@ -71,6 +71,10 @@ def process_catv_messages(job: CatvJobQueue):
         CatvTokens.ADA.value: {
             CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
             CatvSearchType.PATH.value: CatvBtcPathSerializer
+        },
+        CatvTokens.BSC.value: {
+            CatvSearchType.FLOW.value: CATVSerializer,
+            CatvSearchType.PATH.value: CATVEthPathSerializer
         }
     }
 
@@ -158,10 +162,17 @@ def process_catv_messages(job: CatvJobQueue):
         message = results or error_dict
         with transaction.atomic():
             file = ContentFile(bytes(json.dumps(message).encode('UTF-8')), name=f"{uuid4()}.json")
-            file_instance = AttachedFile.objects.create(file=file)
-            request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
-            request_instance.status = task_status
-            request_instance.updated = now()
-            request_instance.save()
-            CatvResult.objects.filter(request=request_instance).update(result_file=file_instance)
-            job.delete()
+            
+            rpc = RPCClientSaveS3FileToDB()
+            res = (rpc.call(message)).decode('utf-8')
+            file_id = int(res)
+            if file_id == 0:
+                print("File did not get saved to S3")
+
+            else:
+                request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
+                request_instance.status = task_status
+                request_instance.updated = now()
+                request_instance.save()
+                CatvResult.objects.filter(request=request_instance).update(result_file_id=file_id)
+                job.delete()
