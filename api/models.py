@@ -102,26 +102,6 @@ class BloxySource(models.Model):
                                  'from_time', 'till_time'])
         ]
 
-
-class CatvHistory(models.Model):
-    user_id = models.IntegerField(null=False)
-    wallet_address = models.CharField(null=False, max_length=256)
-    token_address = models.CharField(null=True, max_length=256)
-    source_depth = models.IntegerField(default=0)
-    distribution_depth = models.IntegerField(default=0)
-    transaction_limit = models.IntegerField(null=False)
-    from_date = models.CharField(null=False, max_length=10)
-    to_date = models.CharField(null=False, max_length=10)
-    # token_type = EnumField(CatvTokens, default=CatvTokens.ETH)
-    token_type = models.CharField(null=False, max_length=10)
-    logged_time = models.DateTimeField(default=now)
-
-    class Meta:
-        db_table = 'api_catv_history'
-        indexes = [
-            models.Index(fields=['user_id', ]),
-        ]
-
 class ConsumerErrorLogs(models.Model):
     topic = models.CharField(max_length=100)
     message = JSONField(default={})
