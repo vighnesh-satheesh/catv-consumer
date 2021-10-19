@@ -3,11 +3,12 @@ import uuid
 import pika
 
 from django.conf import settings
+from ..settings import api_settings
 
 class RPCClientSaveS3FileToDB:
     def __init__(self):
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='10.12.50.101'))
+            pika.ConnectionParameters(host=api_settings.RABBIT_MQ_URL))
 
         self.channel = self.connection.channel()
 
@@ -42,7 +43,7 @@ class RPCClientSaveS3FileToDB:
 class RPCClientFetchIndicators:
     def __init__(self):
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='10.12.50.101'))
+            pika.ConnectionParameters(host=api_settings.RABBIT_MQ_URL))
 
         self.channel = self.connection.channel()
 
