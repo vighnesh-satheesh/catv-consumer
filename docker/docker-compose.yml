@@ -4,7 +4,7 @@ services:
   catvconsumer_service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile_catvconsumer
+      dockerfile: docker/Dockerfile
     volumes:
       - ..:/app
     environment:
