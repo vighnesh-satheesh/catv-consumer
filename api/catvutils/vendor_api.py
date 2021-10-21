@@ -79,7 +79,8 @@ class BloxyBTCAPIInterface:
             'xlm': 'stellar',
             'bnb': 'binance',
             'ada': 'cardano',
-            'bsc': 'binance smart chain'
+            'bsc': 'binance smart chain',
+            'klay': 'klaytn'
         }
         updated_chain = chain.lower()
         if updated_chain in updated_chain_map.keys():
@@ -131,7 +132,8 @@ class BloxyEthAPIInterface:
             'xlm': 'stellar',
             'bnb': 'binance',
             'ada': 'cardano',
-            'bsc': 'binance smart chain'
+            'bsc': 'binance smart chain',
+            'klay': 'klaytn'
         }
         updated_chain = path_tracker.chain.lower()
         if updated_chain in updated_chain_map.keys():
