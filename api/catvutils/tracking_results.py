@@ -192,7 +192,6 @@ class TrackingResults:
                     elif transaction['receiver'].lower() == cur_node.address.lower():
                         transaction['receiver_annotation'] = cur_node.annotation
                 seen_indicators.append(item['pattern'].lower())
-        print("Indicators:", indicators)
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
