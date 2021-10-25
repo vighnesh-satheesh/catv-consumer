@@ -149,6 +149,7 @@ class TrackingResults:
         seen_indicators = []
         if len(indicators) > 0:
             for item in indicators:
+                item["security_category"] = item["security_category"].title()
                 if item['pattern'].lower() in seen_indicators:
                     continue
                 cur_node = nc.get_node(item["pattern"].lower())
