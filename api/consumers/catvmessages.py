@@ -76,7 +76,7 @@ def process_catv_messages(job: CatvJobQueue):
             CatvSearchType.FLOW.value: CATVSerializer,
             CatvSearchType.PATH.value: CATVEthPathSerializer
         },
-        CatvTokens.KLAY.value: {
+        CatvTokens.KLAYTN.value: {
             CatvSearchType.FLOW.value: CATVSerializer,
             CatvSearchType.PATH.value: CATVEthPathSerializer
         }
