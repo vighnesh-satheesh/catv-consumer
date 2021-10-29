@@ -162,7 +162,7 @@ class TrackingResults:
                 if cur_node.group == "Exchange & DEX":
                     seen_indicators.append(item['pattern'].lower())
                     continue
-                if item["security_category"] == "graylist":
+                if item["security_category"].lower() == "graylist":
                     if item["annotation"]:
                         cur_node.update(annotation=item["annotation"])
                         cur_node.set_group_from_annotation()
