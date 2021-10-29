@@ -149,7 +149,6 @@ class TrackingResults:
         seen_indicators = []
         if len(indicators) > 0:
             for item in indicators:
-                item["security_category"] = item["security_category"].title()
                 if item['pattern'].lower() in seen_indicators:
                     continue
                 cur_node = nc.get_node(item["pattern"].lower())
@@ -171,8 +170,7 @@ class TrackingResults:
                         cur_node.update(group="No Tag", annotation="")
                 else:
                     kwargs = {}
-                    # kwargs["group"] = item["security_category"].value.title()
-                    kwargs["group"] = item["security_category"]
+                    kwargs["group"] = item["security_category"].title()
                     if item["annotation"]:
                         kwargs["annotation"] = item["annotation"]
                         if "Exchange" in item["annotation"] or "DEX" in item["annotation"]:
