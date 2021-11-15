@@ -26,11 +26,13 @@ def src_exchanges(graph_data):
 def dist_exchanges(graph_data):
     dist_exchange_nodes = [node for node in graph_data['node_list'] if node['id']>=0 and node['group'] == 'Exchange & DEX']
     nodes_after_exchange = [edge['to'] for edge in graph_data['edge_list'] if edge['from'] == dist_exchange_nodes[0]['id']]
-    new_edge_list = []
+    edge_ids = []
+    node_ids = []
     for node in dist_exchange_nodes:
-        temp = [edge['to'] for edge in graph_data['edge_list'] if edge['from'] == node['id']]
-        new_edge_list = new_edge_list + temp
-    print("new edge list", new_edge_list)
+        temp = [edge for edge in graph_data['edge_list'] if edge['from'] == node['id']]
+        node_ids = node_ids + temp['to']
+        edge_ids = edge_ids + temp['id']
+    print("new edge list", node_ids, edge_ids)
     print("dist x-nodes ", dist_exchange_nodes)
     print("nodes after x-node ", nodes_after_exchange)
     return graph_data
