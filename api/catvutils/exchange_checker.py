@@ -86,26 +86,29 @@ class ExchangeChecker:
         print("node_addresses_to_be_removed", self.node_addresses_to_be_removed)
 
     def find_subsequent_nodes(self):
-        if len(self.node_ids_to_be_removed)>0:
+        if self.node_ids_to_be_removed:
             nodes_iter = self.node_ids_to_be_removed
         else:
             nodes_iter = self.dist_exchange_node_ids
         nodes_after_exchange = []
+        print("iter length:-", len(nodes_iter))
         for node_id in nodes_iter:
             temp_nodes_list = []
-            print(nodes_iter.index(node_id),"-exchange ", node_id)
+            print(nodes_iter.index(node_id), "-exchange ", node_id)
             temp_nodes_list = [edge['to'] for edge in self.edge_list if edge['from'] == node_id]
             nodes_after_exchange += temp_nodes_list
             if(len(temp_nodes_list) == 0): 
                 print("This address has no outgoing addresses")
+
         print("Nodes after exchange after for loop", nodes_after_exchange)
 
-        if(len(nodes_after_exchange) == 0):
-            return
-        else:
+        if nodes_after_exchange:
             self.node_addresses_to_be_removed += [
-                node['address'] for node in self.node_list 
-                    if node['id'] in nodes_after_exchange)
+                node['address'] for node in self.node_list
+                if node['id'] in nodes_after_exchange
             ]
-            self.node_ids_to_be_removed.append(nodes_after_exchange)
+            self.node_ids_to_be_removed.append(list(set(nodes_after_exchange)))
+            print("self.node_ids_to_be_removed:", self.node_ids_to_be_removed)
             self.find_subsequent_nodes()
+        else:
+            return
