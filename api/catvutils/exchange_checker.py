@@ -11,6 +11,8 @@ class ExchangeChecker:
         self.dist_exchange_node_addresses = []
         self.src_exchange_node_ids = []
         self.src_exchange_node_addresses = []
+        self.node_ids_to_be_removed = []
+        self.node_addresses_to_be_removed = []
 
     def stop_transfers_at_exchange(self):
         if len(self.dist_analysis['exchange'])==0 and len(self.src_analysis['exchange'])==0:
@@ -50,8 +52,8 @@ class ExchangeChecker:
         ]
         print("dist x-nodes", self.dist_exchange_node_ids)
 
-        # Data after calling the remove_graph_data method
-        nodes_to_be_removed, node_enum_to_be_removed = self.remove_graph_data()
+        # Data modified calling the remove_graph_data method
+        self.remove_graph_data()
 
         # Processing item_list
         print("Modifying item list...")
@@ -64,41 +66,46 @@ class ExchangeChecker:
         # Processing node_list
         self.graph_data['node_list'] = [
             node for node in self.graph_data['node_list'] 
-                if node['id'] not in nodes_to_be_removed
+                if node['id'] not in self.node_ids_to_be_removed
         ]
 
         # Processing edge_list
         self.graph_data['edge_list'] = [
             edge for edge in self.graph_data['edge_list'] 
-                if edge['from'] not in nodes_to_be_removed 
-                if edge['to'] not in nodes_to_be_removed
+                if edge['from'] not in self.node_ids_to_be_removed 
+                if edge['to'] not in self.node_ids_to_be_removed
         ]
 
         # Processing node_enum dict
-        for node_address in node_enum_to_be_removed:
+        for node_address in self.node_addresses_to_be_removed:
             self.graph_data['node_enum'].pop(node_address, None)
 
-        print("nodes to be removed", nodes_to_be_removed)
-
-    def remove_graph_data(self):
-        print("length of node list", len(self.dist_exchange_node_ids))    
-        
-        nodes_to_be_removed, node_enum_to_be_removed = self.find_subsequent_nodes()
-        print("nodes to be removed from inside method", nodes_to_be_removed)
-        print("node_enum_to_be_removed", node_enum_to_be_removed)
-        return nodes_to_be_removed, node_enum_to_be_removed
+    def remove_graph_data(self):       
+        self.find_subsequent_nodes()
+        print("nodes to be removed from inside method", self.node_ids_to_be_removed)
+        print("node_addresses_to_be_removed", self.node_addresses_to_be_removed)
 
     def find_subsequent_nodes(self):
+        if len(self.node_ids_to_be_removed)>0:
+            nodes_iter = self.node_ids_to_be_removed
+        else:
+            nodes_iter = self.dist_exchange_node_ids
         nodes_after_exchange = []
-        node_enum_to_be_removed = []
-        for node_id in self.dist_exchange_node_ids:
+        for node_id in nodes_iter:
             temp_nodes_list = []
-            print(self.dist_exchange_node_ids.index(node_id),"-exchange ", node_id)
+            print(nodes_iter.index(node_id),"-exchange ", node_id)
             temp_nodes_list = [edge['to'] for edge in self.edge_list if edge['from'] == node_id]
-            node_enum_to_be_removed += [node['address'] for node in self.node_list if node['id'] in temp_nodes_list]
             nodes_after_exchange += temp_nodes_list
             if(len(temp_nodes_list) == 0): 
-                print("This exchange has no outgoing")
+                print("This address has no outgoing addresses")
+        print("Nodes after exchange after for loop", nodes_after_exchange)
 
-        print("Nodes after exchange", nodes_after_exchange)
-        return nodes_after_exchange, node_enum_to_be_removed
+        if(len(nodes_after_exchange) == 0):
+            return
+        else:
+            self.node_addresses_to_be_removed += [
+                node['address'] for node in self.node_list 
+                    if node['id'] in nodes_after_exchange)
+            ]
+            self.node_ids_to_be_removed.append(nodes_after_exchange)
+            self.find_subsequent_nodes()
