@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import now
 
-from api.catvutils.exchange_checker import stop_transfers_at_exchange
+from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
 from api.exceptions import FileNotFound
 from api.models import (
@@ -131,7 +131,8 @@ def process_catv_messages(job: CatvJobQueue):
             print(len(graph_data["node_list"]))
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
-            graph_data = stop_transfers_at_exchange(graph_data, dist_analysis, src_analysis)
+            exchange_checker_obj = ExchangeChecker(graph_data, dist_analysis, src_analysis)
+            graph_data = exchange_checker_obj.stop_transfers_at_exchange()
         results = {
             "data": {
                 **graph_data,
