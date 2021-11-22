@@ -105,7 +105,7 @@ class ExchangeChecker:
         else:
             self.node_addresses_to_be_removed += [
                 node['address'] for node in self.node_list 
-                    if node['id'] in nodes_after_exchange)
+                    if node['id'] in nodes_after_exchange
             ]
             self.node_ids_to_be_removed.append(nodes_after_exchange)
             self.find_subsequent_nodes()
