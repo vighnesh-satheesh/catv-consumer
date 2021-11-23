@@ -16,22 +16,28 @@ class ExchangeChecker:
         self.node_ids_after_exchange = []
 
     def stop_transfers_at_exchange(self):
-        if len(self.dist_analysis['exchange'])==0 and len(self.src_analysis['exchange'])==0:
-            print("No exchanges found")
-
-        elif len(self.dist_analysis['exchange'])>0 and len(self.src_analysis['exchange'])==0:
-            print("Exchanges found in distribution nodes only")
-            self.dist_exchanges()
-        
-        elif len(self.dist_analysis['exchange'])==0 and len(self.src_analysis['exchange'])>0:
-            print("Exchanges found in source nodes only")
-            self.src_exchanges()
-
-        elif len(self.dist_analysis['exchange'])>0 and len(self.src_analysis['exchange'])>0:
-            print("Exchanges found in both source and distribution")
-            self.src_exchanges()
-            self.dist_exchanges()
-        
+        try:
+            if 'exchange' not in self.dist_analysis.keys():
+                self.dist_analysis['exchange'] = []
+            if 'exchange' not in self.src_analysis.keys():
+                self.src_analysis['exchange'] = []
+            
+            if not self.dist_analysis['exchange'] and not self.src_analysis['exchange']:
+                print("No exchanges found")
+            elif self.dist_analysis['exchange'] and not self.src_analysis['exchange']:
+                print("Exchanges found in distribution nodes only")
+                self.dist_exchanges()
+            elif not self.dist_analysis['exchange'] and self.src_analysis['exchange']:
+                print("Exchanges found in source nodes only")
+                self.src_exchanges()
+            elif self.dist_analysis['exchange'] and self.src_analysis['exchange']:
+                print("Exchanges found in both source and distribution")
+                self.src_exchanges()
+                self.dist_exchanges()
+        except Exception as e:
+            print("An exception occurred while trying to get exchanges", e)
+            return self.graph_data
+            
         return self.graph_data
 
     def src_exchanges(self):
@@ -57,12 +63,10 @@ class ExchangeChecker:
         self.remove_graph_data()
 
         # Processing item_list
-        print("Modifying item list...")
         self.graph_data['item_list'] = [
             item for item in self.graph_data['item_list'] 
                 if item['sender'] not in self.dist_exchange_node_addresses
         ]
-        print("Modified item list")
 
         # Processing node_list
         self.graph_data['node_list'] = [
