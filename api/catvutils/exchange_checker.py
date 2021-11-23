@@ -13,6 +13,7 @@ class ExchangeChecker:
         self.src_exchange_node_addresses = []
         self.node_ids_to_be_removed = []
         self.node_addresses_to_be_removed = []
+        self.node_ids_after_exchange = []
 
     def stop_transfers_at_exchange(self):
         if len(self.dist_analysis['exchange'])==0 and len(self.src_analysis['exchange'])==0:
@@ -81,31 +82,36 @@ class ExchangeChecker:
             self.graph_data['node_enum'].pop(node_address, None)
 
     def remove_graph_data(self):       
-        self.find_subsequent_nodes()
+        self.find_subsequent_nodes([], 0)
         print("nodes to be removed from inside method", self.node_ids_to_be_removed)
         print("node_addresses_to_be_removed", self.node_addresses_to_be_removed)
 
-    def find_subsequent_nodes(self):
-        if len(self.node_ids_to_be_removed)>0:
-            nodes_iter = self.node_ids_to_be_removed
-        else:
+    def find_subsequent_nodes(self, node_ids_after_exchange, iter):
+        iter = iter + 1
+        print("iteration number", iter)
+        if not node_ids_after_exchange:
             nodes_iter = self.dist_exchange_node_ids
-        nodes_after_exchange = []
+        else:
+            nodes_iter = node_ids_after_exchange
+            node_ids_after_exchange = []
+        print("nodes_iter", nodes_iter)
         for node_id in nodes_iter:
             temp_nodes_list = []
-            print(nodes_iter.index(node_id),"-exchange ", node_id)
+            print(nodes_iter.index(node_id),"index", node_id)
             temp_nodes_list = [edge['to'] for edge in self.edge_list if edge['from'] == node_id]
-            nodes_after_exchange += temp_nodes_list
+            node_ids_after_exchange += temp_nodes_list
             if(len(temp_nodes_list) == 0): 
                 print("This address has no outgoing addresses")
-        print("Nodes after exchange after for loop", nodes_after_exchange)
+        unique_node_ids_after_exchange = list(set(node_ids_after_exchange))
+        print("Nodes after exchange after for loop", unique_node_ids_after_exchange)
 
-        if(len(nodes_after_exchange) == 0):
-            return
-        else:
+        if unique_node_ids_after_exchange:
             self.node_addresses_to_be_removed += [
                 node['address'] for node in self.node_list 
-                    if node['id'] in nodes_after_exchange
+                    if node['id'] in unique_node_ids_after_exchange
             ]
-            self.node_ids_to_be_removed.append(nodes_after_exchange)
-            self.find_subsequent_nodes()
+            self.node_ids_to_be_removed += unique_node_ids_after_exchange
+            self.find_subsequent_nodes(unique_node_ids_after_exchange, iter)
+        else:
+            print("Final nodes to be removed", self.node_ids_to_be_removed)
+            return
