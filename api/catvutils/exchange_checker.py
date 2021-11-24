@@ -1,3 +1,6 @@
+import sys
+
+
 class ExchangeChecker:
     def __init__(self, graph_data, dist_analysis, src_analysis):
         self.graph_data = graph_data
@@ -14,6 +17,8 @@ class ExchangeChecker:
         self.node_ids_to_be_removed = []
         self.node_addresses_to_be_removed = []
         self.node_ids_after_exchange = []
+        self.previous_nodes_iter_list = []
+        sys.setrecursionlimit(10 ** 6)
 
     def stop_transfers_at_exchange(self):
         try:
@@ -86,31 +91,55 @@ class ExchangeChecker:
         print("nodes to be removed from inside method", self.node_ids_to_be_removed)
         print("node_addresses_to_be_removed", self.node_addresses_to_be_removed)
 
-    def find_subsequent_nodes(self, node_ids_after_exchange, iter):
-        iter = iter + 1
-        print("iteration number", iter)
+    def find_subsequent_nodes(self, node_ids_after_exchange, recur):
+        recur = recur + 1
         if not node_ids_after_exchange:
             nodes_iter = self.dist_exchange_node_ids
         else:
-            nodes_iter = node_ids_after_exchange
-            node_ids_after_exchange = []
-        print("nodes_iter", nodes_iter)
+            if self.previous_nodes_iter_list:
+                filtered_node_ids_after_exchange = self.filter_node_ids_after_exchange(node_ids_after_exchange)
+                nodes_iter = filtered_node_ids_after_exchange
+                node_ids_after_exchange = []
+        print("====================================================================")
+        print(f"recursion {recur} nodes_iter:-", nodes_iter)
         for node_id in nodes_iter:
-            temp_nodes_list = []
-            print(nodes_iter.index(node_id), "index", node_id)
+            # print(nodes_iter.index(node_id), "-->", node_id)
             temp_nodes_list = [edge['to'] for edge in self.edge_list if edge['from'] == node_id]
             node_ids_after_exchange += temp_nodes_list
-            if (len(temp_nodes_list) == 0):
-                print("This address has no outgoing addresses")
+            if temp_nodes_list:
+                print(f"node id {node_id} has outgoing addresses {temp_nodes_list}")
+            else:
+                print(f"node id {node_id} has no outgoing addresses")
+
         unique_node_ids_after_exchange = list(set(node_ids_after_exchange))
-        print("Nodes after exchange after for loop", unique_node_ids_after_exchange)
+        unique_node_ids_after_exchange.sort()
+        print(f"Unique nodes for iteration {recur}:-", unique_node_ids_after_exchange)
         if unique_node_ids_after_exchange:
             self.node_addresses_to_be_removed += [
                 node['address'] for node in self.node_list
                 if node['id'] in unique_node_ids_after_exchange
             ]
+            # print("self.node_addresses_to_be_removed:- ", self.node_addresses_to_be_removed)
+            # print("unique_node_ids_after_exchange:- ", unique_node_ids_after_exchange)
+
             self.node_ids_to_be_removed += unique_node_ids_after_exchange
-            self.find_subsequent_nodes(unique_node_ids_after_exchange, iter)
+            # print("self.node_ids_to_be_removed:- ", self.node_ids_to_be_removed)
+
+            self.node_ids_to_be_removed = list(set(self.node_ids_to_be_removed))
+            self.node_ids_to_be_removed.sort()
+            # print("sorted duplicates removed self.node_ids_to_be_removed:- ", self.node_ids_to_be_removed)
+            self.previous_nodes_iter_list += nodes_iter
+            print(f"sorted node_ids_to_be_removed after recursion {recur} :-", self.node_ids_to_be_removed)
+            self.find_subsequent_nodes(unique_node_ids_after_exchange, recur)
         else:
             print("Final nodes to be removed", self.node_ids_to_be_removed)
             return
+
+    def filter_node_ids_after_exchange(self, node_ids_after_exchange):
+        print("previous_node_iter_list----------------->", self.previous_nodes_iter_list)
+        print("node_ids_after_exchange--------------->", node_ids_after_exchange)
+        self.previous_nodes_iter_list = list(set(self.previous_nodes_iter_list))
+        filtered_node_ids_after_exchange = [node_id for node_id in node_ids_after_exchange if
+                                            node_id not in self.previous_nodes_iter_list]
+        print("filtered_node_ids_after_exchange---------------------->", filtered_node_ids_after_exchange)
+        return filtered_node_ids_after_exchange
