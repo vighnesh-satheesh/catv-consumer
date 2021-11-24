@@ -1,5 +1,47 @@
 import sys
 
+class ExchangeNode:
+    def __init__(self, node_list, type):
+        self.node_list = node_list
+        self.src_exchange_nodes = []
+        self.dist_exchange_nodes = []
+        self.type = type
+    
+    def find_exchange_nodes(self):
+        if self.type == 'dist':
+            self.dist_exchange_nodes = [node for node in self.node_list if node['id'] >= 0 and 'exchange' in node['group'].lower()]
+        elif self.type == 'src':
+            self.src_exchange_nodes = [node for node in self.node_list if node['id'] <= 0 and 'exchange' in node['group'].lower()]
+        else:
+            print("Invalid input")
+
+    def get_node_ids(self):
+        if self.type == 'dist':
+            return [node['id'] for node in self.dist_exchange_nodes]
+        elif self.type == 'src':
+            return [node['id'] for node in self.src_exchange_nodes]
+        else:
+            print("Invalid type")
+            return []
+
+    def get_lowest_level_exchange_node_ids(self):
+        node_levels = [node['level'] for node in self.dist_exchange_nodes]
+        list(set(node_levels)).sort()
+        return [
+            node['id'] for node in self.dist_exchange_nodes
+                if node['level'] == node_levels[0]
+        ]
+    def get_highest_level_exchange_node_ids(self):
+        pass
+
+    def get_node_addresses(self):
+        if self.type == 'dist':
+            return [node['address'] for node in self.dist_exchange_nodes]
+        elif self.type == 'src':
+            return [node['address'] for node in self.src_exchange_nodes]
+        else:
+            print("Invalid type")
+            return []
 
 class ExchangeChecker:
     def __init__(self, graph_data, dist_analysis, src_analysis):
@@ -10,15 +52,16 @@ class ExchangeChecker:
         self.node_enum = graph_data['node_enum']
         self.dist_analysis = dist_analysis
         self.src_analysis = src_analysis
+        self.dist_lowest_level_exchange_node_ids = []
         self.dist_exchange_node_ids = []
         self.dist_exchange_node_addresses = []
+        self.src_highest_level_exchange_node_ids = []
         self.src_exchange_node_ids = []
         self.src_exchange_node_addresses = []
         self.node_ids_to_be_removed = []
         self.node_addresses_to_be_removed = []
         self.node_ids_after_exchange = []
         self.previous_nodes_iter_list = []
-        sys.setrecursionlimit(10 ** 6)
 
     def stop_transfers_at_exchange(self):
         try:
@@ -54,18 +97,19 @@ class ExchangeChecker:
         return self.graph_data
 
     def dist_exchanges(self):
-        # Getting the initial list of exchange nodes
-        self.dist_exchange_node_ids = [
-            node['id'] for node in self.node_list
-            if node['id'] >= 0 and node['group'] == 'Exchange & DEX'
-        ]
-        self.dist_exchange_node_addresses = [
-            node['address'] for node in self.node_list
-            if node['id'] >= 0 and node['group'] == 'Exchange & DEX'
-        ]
+        # Getting the initial list of exchange node data
+        dist_exchange_nodes_obj = ExchangeNode(self.node_list, 'dist')
+        dist_exchange_nodes_obj.find_exchange_nodes()
+        self.dist_exchange_node_ids = dist_exchange_nodes_obj.get_node_ids()
+        self.dist_exchange_node_addresses = dist_exchange_nodes_obj.get_node_addresses()
+        self.dist_lowest_level_exchange_node_ids = dist_exchange_nodes_obj.get_lowest_level_exchange_node_ids()
+        print("dist_lowest_level_exchange_node_ids", self.dist_lowest_level_exchange_node_ids)
         print("dist x-nodes", self.dist_exchange_node_ids)
-        # Data modified calling the remove_graph_data method
-        self.remove_graph_data()
+
+        # Getting nodes for removal and validating
+        self.find_subsequent_nodes()
+        self.validate_nodes_to_be_removed()
+
         # Processing item_list
         self.graph_data['item_list'] = [
             item for item in self.graph_data['item_list']
@@ -86,12 +130,7 @@ class ExchangeChecker:
         for node_address in self.node_addresses_to_be_removed:
             self.graph_data['node_enum'].pop(node_address, None)
 
-    def remove_graph_data(self):
-        self.find_subsequent_nodes([], 0)
-        print("nodes to be removed from inside method", self.node_ids_to_be_removed)
-        print("node_addresses_to_be_removed", self.node_addresses_to_be_removed)
-
-    def find_subsequent_nodes(self, node_ids_after_exchange, recur):
+    def find_subsequent_nodes(self, node_ids_after_exchange=[], recur=0):
         recur = recur + 1
         if not node_ids_after_exchange:
             nodes_iter = self.dist_exchange_node_ids
@@ -115,10 +154,11 @@ class ExchangeChecker:
         unique_node_ids_after_exchange.sort()
         print(f"Unique nodes for iteration {recur}:-", unique_node_ids_after_exchange)
         if unique_node_ids_after_exchange:
-            self.node_addresses_to_be_removed += [
-                node['address'] for node in self.node_list
-                if node['id'] in unique_node_ids_after_exchange
-            ]
+            # Addresses will be obtained in the last step after ids are validated
+            # self.node_addresses_to_be_removed += [
+            #     node['address'] for node in self.node_list
+            #     if node['id'] in unique_node_ids_after_exchange
+            # ]
             # print("self.node_addresses_to_be_removed:- ", self.node_addresses_to_be_removed)
             # print("unique_node_ids_after_exchange:- ", unique_node_ids_after_exchange)
 
@@ -143,3 +183,17 @@ class ExchangeChecker:
                                             node_id not in self.previous_nodes_iter_list]
         print("filtered_node_ids_after_exchange---------------------->", filtered_node_ids_after_exchange)
         return filtered_node_ids_after_exchange
+
+    def validate_nodes_to_be_removed(self):
+        # Validating node ids
+        self.node_ids_to_be_removed = [
+            node_id for node_id in self.node_ids_to_be_removed 
+                if node_id not in self.dist_lowest_level_exchange_node_ids
+            ]
+        print("Final nodes to be removed after validation", self.node_ids_to_be_removed)
+        # Validating node addresses
+        self.node_addresses_to_be_removed = [
+            node['address'] for node in self.node_list
+                if node['id'] in self.node_ids_to_be_removed
+        ]
+        print("node_addresses_to_be_removed:- ", self.node_addresses_to_be_removed)
