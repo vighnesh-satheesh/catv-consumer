@@ -145,7 +145,7 @@ class ExchangeChecker:
             temp_nodes_list = [
                 edge['to'] for edge in self.edge_list 
                     if edge['from'] == node_id
-                    if current_node_level < self.get_node_level(edge['to'])
+                    # if current_node_level < self.get_node_level(edge['to'])
             ]
             node_ids_after_exchange += temp_nodes_list
             if temp_nodes_list:
