@@ -15,7 +15,13 @@ class ExchangeNodeList:
         else:
             print("Invalid input")
 
-    def get_node_ids(self):
+    def get_exchange_nodes(self):
+        if self.type == 'dist':
+            return self.dist_exchange_nodes
+        if self.type == 'src':
+            return self.src_exchange_nodes
+
+    def get_exchange_node_ids(self):
         if self.type == 'dist':
             return [node['id'] for node in self.dist_exchange_nodes]
         elif self.type == 'src':
@@ -24,7 +30,7 @@ class ExchangeNodeList:
             print("Invalid type")
             return []
 
-    def get_node_addresses(self):
+    def get_exchange_node_addresses(self):
         if self.type == 'dist':
             return [node['address'] for node in self.dist_exchange_nodes]
         elif self.type == 'src':
@@ -94,9 +100,10 @@ class ExchangeChecker:
         # Getting the initial list of exchange node data
         dist_exchange_nodes_obj = ExchangeNodeList(self.node_list, 'dist')
         dist_exchange_nodes_obj.find_exchange_nodes()
-        self.dist_exchange_node_ids = dist_exchange_nodes_obj.get_node_ids()
-        self.dist_exchange_node_addresses = dist_exchange_nodes_obj.get_node_addresses()
-        print("dist x-nodes", self.dist_exchange_node_ids)
+        self.dist_exchange_node_ids = dist_exchange_nodes_obj.get_exchange_node_ids()
+        self.dist_exchange_node_addresses = dist_exchange_nodes_obj.get_exchange_node_addresses()
+        exchange_nodes = dist_exchange_nodes_obj.get_exchange_nodes()
+        print("dist x-nodes", exchange_nodes)
 
         # Getting nodes for removal and validating
         self.find_subsequent_nodes()
@@ -106,6 +113,8 @@ class ExchangeChecker:
         self.graph_data['item_list'] = [
             item for item in self.graph_data['item_list']
             if item['sender'] not in self.dist_exchange_node_addresses
+            if item['sender'] not in self.node_addresses_to_be_removed
+            if item['receiver'] not in self.node_addresses_to_be_removed
         ]
         # Processing node_list
         self.graph_data['node_list'] = [
