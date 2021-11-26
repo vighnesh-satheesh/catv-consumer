@@ -56,6 +56,8 @@ class ExchangeChecker:
         self.node_addresses_to_be_removed = []
         self.node_ids_after_exchange = []
         self.previous_nodes_iter_list = []
+        self.remove_incoming_edge = []
+        self.remove_outgoing_edge = []
 
     def stop_transfers_at_exchange(self):
         try:
@@ -124,8 +126,8 @@ class ExchangeChecker:
         # Processing edge_list
         self.graph_data['edge_list'] = [
             edge for edge in self.graph_data['edge_list']
-            if edge['from'] not in self.node_ids_to_be_removed
-            if edge['to'] not in self.node_ids_to_be_removed
+            if edge['from'] not in self.remove_outgoing_edge
+            if edge['to'] not in self.remove_incoming_edge
         ]
         # Processing node_enum dict
         for node_address in self.node_addresses_to_be_removed:
@@ -149,8 +151,10 @@ class ExchangeChecker:
             ]
             node_ids_after_exchange += temp_nodes_list
             if temp_nodes_list:
+                self.process_edge_list('from', node_id)
                 print(f"node id {node_id} has outgoing addresses {temp_nodes_list}")
             else:
+                self.process_edge_list('to', node_id)
                 print(f"node id {node_id} has no outgoing addresses")
 
         unique_node_ids_after_exchange = list(set(node_ids_after_exchange))
@@ -161,8 +165,8 @@ class ExchangeChecker:
             self.node_ids_to_be_removed = list(set(self.node_ids_to_be_removed))
             self.node_ids_to_be_removed.sort()
             self.previous_nodes_iter_list += nodes_iter
-            self.find_subsequent_nodes(unique_node_ids_after_exchange, recur)
             print(f"sorted node_ids_to_be_removed after recursion {recur} :-", self.node_ids_to_be_removed)
+            self.find_subsequent_nodes(unique_node_ids_after_exchange, recur)
         else:
             print("Final nodes to be removed", self.node_ids_to_be_removed)
             return
@@ -181,3 +185,9 @@ class ExchangeChecker:
             node['address'] for node in self.node_list
                 if node['id'] in self.node_ids_to_be_removed
         ]
+
+    def process_edge_list(self, edge_type, node_id):
+        if edge_type == 'to':
+            self.remove_incoming_edge.append(node_id)
+        if edge_type == 'from':
+            self.remove_outgoing_edge.append(node_id)
