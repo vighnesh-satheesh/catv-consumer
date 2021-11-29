@@ -205,10 +205,8 @@ class ExchangeChecker:
     def remove_orphan_nodes(self):
         edge_to_list = [edge['to'] for edge in self.edge_list]
         edge_from_list = [edge['from'] for edge in self.edge_list]
-        print('edge_to_list:-', edge_to_list)
-        print('edge_from_list:-', edge_from_list)
 
-        orphan_nodes = [node for node in self.node_list if
+        orphan_nodes = [node['id'] for node in self.node_list if
                         all([node['id'] not in edge_to_list, node['id'] not in edge_from_list])]
         print(orphan_nodes)
         self.node_list = [node for node in self.node_list if node['id'] not in orphan_nodes]
