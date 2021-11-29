@@ -119,16 +119,26 @@ class ExchangeChecker:
             if item['receiver'] not in self.node_addresses_to_be_removed
         ]
         # Processing node_list
-        self.graph_data['node_list'] = [
+        self.node_list = [
             node for node in self.graph_data['node_list']
             if node['id'] not in self.node_ids_to_be_removed
         ]
+        # list of final node ids
+        node_ids = [node['id'] for node in self.node_list]
+
         # Processing edge_list
-        self.graph_data['edge_list'] = [
+        self.edge_list = [
             edge for edge in self.graph_data['edge_list']
-            if edge['from'] not in self.remove_outgoing_edge
-            if edge['to'] not in self.remove_incoming_edge
+            if edge['from'] in node_ids
+            if edge['to'] in node_ids
         ]
+
+        self.remove_orphan_nodes()
+
+        self.graph_data['node_list'] = self.node_list
+
+        self.graph_data['edge_list'] = self.edge_list
+
         # Processing node_enum dict
         for node_address in self.node_addresses_to_be_removed:
             self.graph_data['node_enum'].pop(node_address, None)
@@ -143,18 +153,18 @@ class ExchangeChecker:
         print("====================================================================")
         print(f"recursion {recur} nodes_iter:-", nodes_iter)
         for node_id in nodes_iter:
-            current_node_level = self.get_node_level(node_id)
+            # current_node_level = self.get_node_level(node_id)
             temp_nodes_list = [
-                edge['to'] for edge in self.edge_list 
-                    if edge['from'] == node_id
-                    # if current_node_level < self.get_node_level(edge['to'])
+                edge['to'] for edge in self.edge_list
+                if edge['from'] == node_id
+                # if current_node_level < self.get_node_level(edge['to'])
             ]
             node_ids_after_exchange += temp_nodes_list
             if temp_nodes_list:
-                self.process_edge_list('from', node_id)
+                # self.process_edge_list('from', node_id)
                 print(f"node id {node_id} has outgoing addresses {temp_nodes_list}")
             else:
-                self.process_edge_list('to', node_id)
+                # self.process_edge_list('to', node_id)
                 print(f"node id {node_id} has no outgoing addresses")
 
         unique_node_ids_after_exchange = list(set(node_ids_after_exchange))
@@ -186,8 +196,19 @@ class ExchangeChecker:
                 if node['id'] in self.node_ids_to_be_removed
         ]
 
-    def process_edge_list(self, edge_type, node_id):
-        if edge_type == 'to':
-            self.remove_incoming_edge.append(node_id)
-        if edge_type == 'from':
-            self.remove_outgoing_edge.append(node_id)
+    # def process_edge_list(self, edge_type, node_id):
+    #     if edge_type == 'to':
+    #         self.remove_incoming_edge.append(node_id)
+    #     if edge_type == 'from':
+    #         self.remove_outgoing_edge.append(node_id)
+
+    def remove_orphan_nodes(self):
+        edge_to_list = [edge['to'] for edge in self.edge_list]
+        edge_from_list = [edge['from'] for edge in self.edge_list]
+        print('edge_to_list:-', edge_to_list)
+        print('edge_from_list:-', edge_from_list)
+
+        orphan_nodes = [node for node in self.node_list if
+                        all([node['id'] not in edge_to_list, node['id'] not in edge_from_list])]
+        print(orphan_nodes)
+        self.node_list = [node for node in self.node_list if node['id'] not in orphan_nodes]
