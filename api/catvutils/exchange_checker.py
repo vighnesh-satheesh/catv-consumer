@@ -58,6 +58,7 @@ class ExchangeChecker:
         self.previous_nodes_iter_list = []
         self.remove_incoming_edge = []
         self.remove_outgoing_edge = []
+        self.orphan_node_ids = []
 
     def stop_transfers_at_exchange(self):
         try:
@@ -79,7 +80,7 @@ class ExchangeChecker:
                 self.src_exchanges()
                 self.dist_exchanges()
         except Exception as e:
-            print("An exception occurred while trying to get exchanges", e)
+            print("The following exception occurred while trying to get exchanges:", e)
             return self.graph_data
 
         return self.graph_data
@@ -109,39 +110,40 @@ class ExchangeChecker:
 
         # Getting nodes for removal and validating
         self.find_subsequent_nodes()
-        self.validate_node_addresses_to_be_removed()
 
-        # Processing item_list
-        self.graph_data['item_list'] = [
-            item for item in self.graph_data['item_list']
-            if item['sender'] not in self.dist_exchange_node_addresses
-            if item['sender'] not in self.node_addresses_to_be_removed
-            if item['receiver'] not in self.node_addresses_to_be_removed
-        ]
         # Processing node_list
         self.node_list = [
             node for node in self.graph_data['node_list']
             if node['id'] not in self.node_ids_to_be_removed
         ]
-        # list of final node ids
-        node_ids = [node['id'] for node in self.node_list]
 
         # Processing edge_list
+        node_ids = [node['id'] for node in self.node_list]
         self.edge_list = [
             edge for edge in self.graph_data['edge_list']
-            if edge['from'] in node_ids
-            if edge['to'] in node_ids
+                if edge['from'] in node_ids
+                if edge['to'] in node_ids
+        ]
+        self.remove_orphan_nodes()
+        self.validate_node_addresses_to_be_removed()
+
+        # Processing item_list
+        self.graph_data['item_list'] = [
+            item for item in self.graph_data['item_list']
+                if item['sender'] not in self.dist_exchange_node_addresses
+                if item['sender'] not in self.node_addresses_to_be_removed
+                if item['receiver'] not in self.node_addresses_to_be_removed
+            
         ]
 
-        self.remove_orphan_nodes()
-
-        self.graph_data['node_list'] = self.node_list
-
-        self.graph_data['edge_list'] = self.edge_list
-
-        # Processing node_enum dict
+        # Processing node_enum and send_count dicts
         for node_address in self.node_addresses_to_be_removed:
             self.graph_data['node_enum'].pop(node_address, None)
+            self.graph_data['send_count'].pop(node_address, None)
+
+        self.graph_data['node_list'] = self.node_list
+        self.graph_data['edge_list'] = self.edge_list
+            
 
     def find_subsequent_nodes(self, node_ids_after_exchange=[], recur=0):
         recur = recur + 1
@@ -191,9 +193,10 @@ class ExchangeChecker:
         return filtered_node_ids_after_exchange
 
     def validate_node_addresses_to_be_removed(self):
+        combined_node_ids = self.node_ids_to_be_removed + self.orphan_node_ids
         self.node_addresses_to_be_removed = [
-            node['address'] for node in self.node_list
-                if node['id'] in self.node_ids_to_be_removed
+            node['address'] for node in self.graph_data['node_list']
+                if node['id'] in combined_node_ids
         ]
 
     # def process_edge_list(self, edge_type, node_id):
@@ -206,7 +209,11 @@ class ExchangeChecker:
         edge_to_list = [edge['to'] for edge in self.edge_list]
         edge_from_list = [edge['from'] for edge in self.edge_list]
 
-        orphan_nodes = [node['id'] for node in self.node_list if
-                        all([node['id'] not in edge_to_list, node['id'] not in edge_from_list])]
-        print(orphan_nodes)
-        self.node_list = [node for node in self.node_list if node['id'] not in orphan_nodes]
+        self.orphan_node_ids = [node['id'] for node in self.node_list 
+                                if all([
+                                    node['id'] not in edge_to_list, 
+                                    node['id'] not in edge_from_list
+                                ])
+                            ]
+        print("orphan nodes", self.orphan_node_ids)
+        self.node_list = [node for node in self.node_list if node['id'] not in self.orphan_node_ids]
