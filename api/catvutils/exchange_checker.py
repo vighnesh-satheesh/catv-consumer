@@ -109,7 +109,19 @@ class ExchangeChecker:
         # finds nodes for removal pre exchange (source)
         self.find_subsequent_nodes(mode=-1)
 
-        return self.graph_data
+        # remove post exchange nodes from node_list
+        self.process_node_list()
+
+        # remove edges of already removed nodes from edge_list
+        self.process_edge_list()
+
+        self.remove_orphan_nodes()
+
+        # find node addresses to removed
+        self.validate_node_addresses_to_be_removed()
+
+        # set final graph_data
+        self.set_graph_data()
 
     def dist_exchanges(self):
         # Getting the initial list of exchange node data
@@ -234,7 +246,7 @@ class ExchangeChecker:
     def set_graph_data(self):
         self.graph_data['item_list'] = [
             item for item in self.graph_data['item_list']
-            if item['sender'] not in self.dist_exchange_node_addresses
+            if item['receiver'] not in self.dist_exchange_node_addresses
             if item['sender'] not in self.node_addresses_to_be_removed
             if item['receiver'] not in self.node_addresses_to_be_removed
         ]
