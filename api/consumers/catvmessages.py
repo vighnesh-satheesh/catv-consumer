@@ -6,6 +6,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import now
 
+from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
 from api.exceptions import FileNotFound
 from api.models import (
@@ -18,6 +19,7 @@ from api.serializers import (
     CATVSerializer, CATVBTCCoinpathSerializer,
     CatvBtcPathSerializer, CATVEthPathSerializer
 )
+
 from api.settings import api_settings
 from api.tasks import CatvHistoryTask, CatvPathHistoryTask
 from api.rpc.RPCClient import RPCClientSaveS3FileToDB
@@ -129,6 +131,8 @@ def process_catv_messages(job: CatvJobQueue):
             print(len(graph_data["node_list"]))
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
+            exchange_checker_obj = ExchangeChecker(graph_data, dist_analysis, src_analysis)
+            graph_data = exchange_checker_obj.stop_transfers_at_exchange()
         results = {
             "data": {
                 **graph_data,
