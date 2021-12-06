@@ -1,6 +1,4 @@
-import sys
-from multiprocessing import Pool
-from multiprocessing.pool import ThreadPool
+from operator import attrgetter
 
 FROM = 'from'
 TO = 'to'
@@ -59,6 +57,7 @@ class ExchangeChecker:
         self.dist_analysis = dist_analysis
         self.src_analysis = src_analysis
 
+        self.exchange_nodes = []
         self.exchange_node_ids = []
         self.exchange_node_addresses = []
 
@@ -111,11 +110,13 @@ class ExchangeChecker:
         exchange_nodes_obj.find_exchange_nodes()
         self.exchange_node_ids = exchange_nodes_obj.get_exchange_node_ids()
         self.exchange_node_addresses = exchange_nodes_obj.get_exchange_node_addresses()
-        exchange_nodes = exchange_nodes_obj.get_exchange_nodes()
-        print("exchange nodes", exchange_nodes)
+        self.exchange_nodes = exchange_nodes_obj.get_exchange_nodes()
+        print("exchange nodes", self.exchange_nodes)
 
         # finds nodes for removal
         self.find_subsequent_nodes(node_ids_after_exchange=[], mode=mode)
+        # checking for mandatory exchange nodes (lowest level nodes)
+        self.check_for_mandatory_exchanges(mode=mode)
         # remove post exchange nodes from node_list
         self.process_node_list()
         # remove edges of already removed nodes from edge_list
@@ -126,6 +127,7 @@ class ExchangeChecker:
         self.validate_node_addresses_to_be_removed()
         # set final graph_data
         self.set_graph_data(mode=mode)
+        print("Final nodes to be removed", self.node_ids_to_be_removed)
 
     def find_subsequent_nodes(self, node_ids_after_exchange=[], mode=1, recur=0):
         recur = recur + 1
@@ -171,7 +173,6 @@ class ExchangeChecker:
             # print(f"sorted node_ids_to_be_removed after recursion {recur} :-", self.node_ids_to_be_removed)
             self.find_subsequent_nodes(unique_node_ids_after_exchange, mode, recur)
         else:
-            print("Final nodes to be removed", self.node_ids_to_be_removed)
             return
 
     def filter_node_ids_after_exchange(self, node_ids_after_exchange):
@@ -237,5 +238,15 @@ class ExchangeChecker:
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
 
-    def bfs_dist_connected_nodes(self):
-        pass
+    def check_for_mandatory_exchanges(self, mode):
+        if mode == -1:
+            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
+            exchange_levels.sort(reverse = True)
+        else:
+            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
+            exchange_levels.sort()
+        
+        for exchange in self.exchange_nodes:
+            if exchange['level'] == exchange_levels[0]:
+                if exchange['id'] in self.node_ids_to_be_removed:
+                    self.node_ids_to_be_removed.remove(exchange['id'])
