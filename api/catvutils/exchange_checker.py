@@ -219,16 +219,17 @@ class ExchangeChecker:
         self.node_list = [node for node in self.node_list if node['id'] not in self.orphan_node_ids]
 
     def set_graph_data(self, mode):
-        if mode == 1:
-            key = 'sender'
-        else:
-            key = 'receiver'
-        self.graph_data['item_list'] = [
-            item for item in self.graph_data['item_list']
-                if item[key] not in self.exchange_node_addresses
-                if item['sender'] not in self.node_addresses_to_be_removed
-                if item['receiver'] not in self.node_addresses_to_be_removed
-            ]
+        tx_data_list = [edge['data'] for edge in self.edge_list]
+        flat_tx_data_list = [item for sublist in tx_data_list for item in sublist]
+        print(flat_tx_data_list)
+        tx_hash_list = [tx_data['tx_hash'] for tx_data in flat_tx_data_list]
+
+        print("tx_hash_list:", tx_hash_list)
+
+        self.item_list = [
+            item for item in self.item_list
+            if item['tx_hash'] in tx_hash_list
+        ]
 
         # process node_enum and send_count dicts
         for node_address in self.node_addresses_to_be_removed:
@@ -237,6 +238,7 @@ class ExchangeChecker:
 
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
+        self.graph_data['item_list'] = self.item_list
 
     def check_for_mandatory_exchanges(self, mode):
         if mode == -1:
