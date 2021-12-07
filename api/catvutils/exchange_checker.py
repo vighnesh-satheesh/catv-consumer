@@ -1,4 +1,5 @@
 from operator import attrgetter
+from api.models import CatvTokens
 
 FROM = 'from'
 TO = 'to'
@@ -47,15 +48,17 @@ class ExchangeNodeList:
 
 
 class ExchangeChecker:
-    def __init__(self, graph_data, dist_analysis, src_analysis):
+    def __init__(self, token_type, graph_data, dist_analysis, src_analysis):
+        self.token_type = token_type
         self.graph_data = graph_data
+        self.dist_analysis = dist_analysis
+        self.src_analysis = src_analysis
+
         self.item_list = graph_data['item_list']
         self.node_list = graph_data['node_list']
         self.edge_list = graph_data['edge_list']
         self.node_enum = graph_data['node_enum']
-
-        self.dist_analysis = dist_analysis
-        self.src_analysis = src_analysis
+        self.send_count = graph_data['send_count']
 
         self.exchange_nodes = []
         self.exchange_node_ids = []
@@ -125,6 +128,8 @@ class ExchangeChecker:
         self.remove_orphan_nodes()
         # find node addresses to removed
         self.validate_node_addresses_to_be_removed()
+        # remove extra transactions from item_list
+        self.process_item_list()
         # set final graph_data
         self.set_graph_data(mode=mode)
         print("Final nodes to be removed", self.node_ids_to_be_removed)
@@ -198,11 +203,34 @@ class ExchangeChecker:
             if edge[TO] in node_ids
         ]
 
+    def process_item_list(self):
+        print("Processing item list for token type", self.token_type)
+        tx_data_list = [edge['data'] for edge in self.edge_list]
+        flat_tx_data_list = [item for sublist in tx_data_list for item in sublist]
+        tx_hash_list = [tx_data['tx_hash'] for tx_data in flat_tx_data_list]
+        self.item_list = [
+            item for item in self.item_list
+                if item['tx_hash'] in tx_hash_list
+        ]
+
+        if self.token_type in [
+            CatvTokens.BTC.value,
+            CatvTokens.LTC.value,
+            CatvTokens.BCH.value
+        ]:
+            tx_hash_list_from_item_list = [item['tx_hash'] for item in self.item_list]
+            if len(tx_hash_list_from_item_list)>len(set(tx_hash_list_from_item_list)):                
+                node_addresses = [node['address'] for node in self.node_list]
+                self.item_list = [
+                    item for item in self.item_list
+                        if item['sender'] in node_addresses and item['receiver'] in node_addresses
+                ]
+
     def validate_node_addresses_to_be_removed(self):
         combined_node_ids = self.node_ids_to_be_removed + self.orphan_node_ids
         self.node_addresses_to_be_removed = [
             node['address'] for node in self.graph_data['node_list']
-            if node['id'] in combined_node_ids
+                if node['id'] in combined_node_ids
         ]
 
     def remove_orphan_nodes(self):
@@ -219,26 +247,17 @@ class ExchangeChecker:
         self.node_list = [node for node in self.node_list if node['id'] not in self.orphan_node_ids]
 
     def set_graph_data(self, mode):
-        tx_data_list = [edge['data'] for edge in self.edge_list]
-        flat_tx_data_list = [item for sublist in tx_data_list for item in sublist]
-        print(flat_tx_data_list)
-        tx_hash_list = [tx_data['tx_hash'] for tx_data in flat_tx_data_list]
-
-        print("tx_hash_list:", tx_hash_list)
-
-        self.item_list = [
-            item for item in self.item_list
-            if item['tx_hash'] in tx_hash_list
-        ]
-
         # process node_enum and send_count dicts
         for node_address in self.node_addresses_to_be_removed:
-            self.graph_data['node_enum'].pop(node_address, None)
-            self.graph_data['send_count'].pop(node_address, None)
+            self.node_enum.pop(node_address, None)
+            self.send_count.pop(node_address, None)
 
+        # updating the final values for graph_data
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
         self.graph_data['item_list'] = self.item_list
+        self.graph_data['node_enum'] = self.node_enum
+        self.graph_data['send_count'] = self.send_count
 
     def check_for_mandatory_exchanges(self, mode):
         if mode == -1:
