@@ -1,6 +1,4 @@
-import sys
-from multiprocessing import Pool
-from multiprocessing.pool import ThreadPool
+from api.models import CatvTokens
 
 FROM = 'from'
 TO = 'to'
@@ -49,16 +47,19 @@ class ExchangeNodeList:
 
 
 class ExchangeChecker:
-    def __init__(self, graph_data, dist_analysis, src_analysis):
+    def __init__(self, token_type, graph_data, dist_analysis, src_analysis):
+        self.token_type = token_type
         self.graph_data = graph_data
+        self.dist_analysis = dist_analysis
+        self.src_analysis = src_analysis
+
         self.item_list = graph_data['item_list']
         self.node_list = graph_data['node_list']
         self.edge_list = graph_data['edge_list']
         self.node_enum = graph_data['node_enum']
+        self.send_count = graph_data['send_count']
 
-        self.dist_analysis = dist_analysis
-        self.src_analysis = src_analysis
-
+        self.exchange_nodes = []
         self.exchange_node_ids = []
         self.exchange_node_addresses = []
 
@@ -111,11 +112,13 @@ class ExchangeChecker:
         exchange_nodes_obj.find_exchange_nodes()
         self.exchange_node_ids = exchange_nodes_obj.get_exchange_node_ids()
         self.exchange_node_addresses = exchange_nodes_obj.get_exchange_node_addresses()
-        exchange_nodes = exchange_nodes_obj.get_exchange_nodes()
-        print("exchange nodes", exchange_nodes)
+        self.exchange_nodes = exchange_nodes_obj.get_exchange_nodes()
+        print("exchange nodes", self.exchange_nodes)
 
         # finds nodes for removal
         self.find_subsequent_nodes(node_ids_after_exchange=[], mode=mode)
+        # checking for mandatory exchange nodes (lowest level nodes)
+        self.check_for_mandatory_exchanges(mode=mode)
         # remove post exchange nodes from node_list
         self.process_node_list()
         # remove edges of already removed nodes from edge_list
@@ -124,8 +127,11 @@ class ExchangeChecker:
         self.remove_orphan_nodes()
         # find node addresses to removed
         self.validate_node_addresses_to_be_removed()
+        # remove extra transactions from item_list
+        self.process_item_list()
         # set final graph_data
         self.set_graph_data(mode=mode)
+        print("Final nodes to be removed", self.node_ids_to_be_removed)
 
     def find_subsequent_nodes(self, node_ids_after_exchange=[], mode=1, recur=0):
         recur = recur + 1
@@ -171,7 +177,6 @@ class ExchangeChecker:
             # print(f"sorted node_ids_to_be_removed after recursion {recur} :-", self.node_ids_to_be_removed)
             self.find_subsequent_nodes(unique_node_ids_after_exchange, mode, recur)
         else:
-            print("Final nodes to be removed", self.node_ids_to_be_removed)
             return
 
     def filter_node_ids_after_exchange(self, node_ids_after_exchange):
@@ -197,11 +202,34 @@ class ExchangeChecker:
             if edge[TO] in node_ids
         ]
 
+    def process_item_list(self):
+        print("Processing item list for token type", self.token_type)
+        tx_data_list = [edge['data'] for edge in self.edge_list]
+        flat_tx_data_list = [item for sublist in tx_data_list for item in sublist]
+        tx_hash_list = [tx_data['tx_hash'] for tx_data in flat_tx_data_list]
+        self.item_list = [
+            item for item in self.item_list
+                if item['tx_hash'] in tx_hash_list
+        ]
+
+        if self.token_type in [
+            CatvTokens.BTC.value,
+            CatvTokens.LTC.value,
+            CatvTokens.BCH.value
+        ]:
+            tx_hash_list_from_item_list = [item['tx_hash'] for item in self.item_list]
+            if len(tx_hash_list_from_item_list)>len(set(tx_hash_list_from_item_list)):                
+                node_addresses = [node['address'] for node in self.node_list]
+                self.item_list = [
+                    item for item in self.item_list
+                        if item['sender'] in node_addresses and item['receiver'] in node_addresses
+                ]
+
     def validate_node_addresses_to_be_removed(self):
         combined_node_ids = self.node_ids_to_be_removed + self.orphan_node_ids
         self.node_addresses_to_be_removed = [
             node['address'] for node in self.graph_data['node_list']
-            if node['id'] in combined_node_ids
+                if node['id'] in combined_node_ids
         ]
 
     def remove_orphan_nodes(self):
@@ -218,24 +246,27 @@ class ExchangeChecker:
         self.node_list = [node for node in self.node_list if node['id'] not in self.orphan_node_ids]
 
     def set_graph_data(self, mode):
-        if mode == 1:
-            key = 'sender'
-        else:
-            key = 'receiver'
-        self.graph_data['item_list'] = [
-            item for item in self.graph_data['item_list']
-                if item[key] not in self.exchange_node_addresses
-                if item['sender'] not in self.node_addresses_to_be_removed
-                if item['receiver'] not in self.node_addresses_to_be_removed
-            ]
-
         # process node_enum and send_count dicts
         for node_address in self.node_addresses_to_be_removed:
-            self.graph_data['node_enum'].pop(node_address, None)
-            self.graph_data['send_count'].pop(node_address, None)
+            self.node_enum.pop(node_address, None)
+            self.send_count.pop(node_address, None)
 
+        # updating the final values for graph_data
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
+        self.graph_data['item_list'] = self.item_list
+        self.graph_data['node_enum'] = self.node_enum
+        self.graph_data['send_count'] = self.send_count
 
-    def bfs_dist_connected_nodes(self):
-        pass
+    def check_for_mandatory_exchanges(self, mode):
+        if mode == -1:
+            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
+            exchange_levels.sort(reverse = True)
+        else:
+            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
+            exchange_levels.sort()
+        
+        for exchange in self.exchange_nodes:
+            if exchange['level'] == exchange_levels[0]:
+                if exchange['id'] in self.node_ids_to_be_removed:
+                    self.node_ids_to_be_removed.remove(exchange['id'])
