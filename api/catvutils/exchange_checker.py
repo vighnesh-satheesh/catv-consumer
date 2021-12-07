@@ -1,4 +1,3 @@
-from operator import attrgetter
 from api.models import CatvTokens
 
 FROM = 'from'
