@@ -131,6 +131,7 @@ def process_catv_messages(job: CatvJobQueue):
             print(len(graph_data["node_list"]))
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
+
             exchange_checker_obj = ExchangeChecker(
                 source_depth,
                 distribution_depth,
@@ -139,6 +140,7 @@ def process_catv_messages(job: CatvJobQueue):
                 dist_analysis, 
                 src_analysis
             )
+            
             graph_data = exchange_checker_obj.stop_transfers_at_exchange()
         results = {
             "data": {
