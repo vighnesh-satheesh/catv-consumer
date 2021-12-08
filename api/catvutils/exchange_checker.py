@@ -1,9 +1,40 @@
+'''
+This module implements a functionality where all nodes originating
+from exchange addresses on the distribution side are removed, and
+all nodes ending in exchange addresses on the source side are removed.
+This is done in the following sequence of steps:
+    1. Check if exchanges exist in the source side, distribution
+        side or both.
+    2. The edge list is modified with a list comprehension, in order
+        to remove all edges that are originating from exchanges (distribution)
+        or ending in exchanges (source). We now have a disjointed graph with
+        missing edges wherever there are exchange nodes.
+    3. Two breadth-first search methods (one for source and one for distribution) 
+        are implemented to find the node ids of all nodes originating from the 
+        origin node (node['id']=0) or ending in the origin node. These nodes are 
+        the ones that will be kept in the final data that is returned.
+    4. Once we have these mandatory nodes for both source as well as distribution,
+        the exchange nodes with the highest level (on source side) and with the 
+        lowest level (on distribution side) are extracted. These are the exchange
+        nodes that must be kept in the final data.
+    5. Now we have all the necessary node data. Using this, the node_list, edge_list 
+        and the item_list data are updated, along with the node_enum, send_count and 
+        receive_count dictionaries. These are all stored in the global variables inside
+        the ExchangeChecker class.
+    6. Once we have all the updated data, the graph_data dictionary is updated accordingly
+        and returned back from the stop_transfers_at_exchange() method.
+'''
+
+
 from api.models import CatvTokens
 
 FROM = 'from'
 TO = 'to'
 
-
+'''
+This class performs all operations related to getting 
+exchange address data like nodes and node ids for exchanges
+'''
 class ExchangeNodeList:
     def __init__(self, node_list, type):
         self.node_list = node_list
@@ -36,18 +67,14 @@ class ExchangeNodeList:
             print("Invalid type")
             return []
 
-    def get_exchange_node_addresses(self):
-        if self.type == 'dist':
-            return [node['address'] for node in self.dist_exchange_nodes]
-        elif self.type == 'src':
-            return [node['address'] for node in self.src_exchange_nodes]
-        else:
-            print("Invalid type")
-            return []
 
-
+'''
+This class removes the nodes coming out of or going into exchanges 
+depending on whether it's on the source side or the dist side
+'''
 class ExchangeChecker:
     def __init__(self, source_depth, distribution_depth, token_type, graph_data, dist_analysis, src_analysis):
+        # data received as input
         self.source_depth = source_depth
         self.distribution_depth = distribution_depth
         self.token_type = token_type
@@ -55,31 +82,46 @@ class ExchangeChecker:
         self.dist_analysis = dist_analysis
         self.src_analysis = src_analysis
 
+        # creating our custom objects with input data for better readability
         self.item_list = graph_data['item_list']
         self.node_list = graph_data['node_list']
         self.edge_list = graph_data['edge_list']
         self.node_enum = graph_data['node_enum']
-        self.send_count = graph_data['send_count']
+        self.receive_count = None
+        self.send_count = None
 
+        # checking if send_count and receive_count exist
+        if 'send_count' in self.graph_data.keys():
+            self.send_count = graph_data['send_count']
+        if 'receive_count' in self.graph_data.keys():
+            self.receive_count = self.graph_data['receive_count']           
+
+        # splitting the src and dist nodes for easier BFS processing
+        self.src_node_list = [
+            node for node in self.node_list
+                if node['id'] <= 0
+        ]
+        self.dist_node_list = [
+            node for node in self.node_list
+                if node['id'] >= 0
+        ]
+
+        # exchange data
         self.exchange_nodes = []
         self.exchange_node_ids = []
-        self.exchange_node_addresses = []
+        self.mandatory_exchange_nodes = []
 
-        self.check_if_dist_bfs_complete = False
-        self.check_if_src_bfs_complete = False
+        # lists needed for BFS (both src and dist, done separately)
         self.dist_visited_connected_nodes_list = [0]
         self.dist_connected_nodes_list = []
         self.src_visited_connected_nodes_list = [0]
         self.src_connected_nodes_list = [0]
-        self.node_ids_to_be_removed = []
-        self.node_addresses_to_be_removed = []
-        self.node_ids_after_exchange = []
-        self.previous_nodes_iter_list = []
-        self.orphan_node_ids = []
+
+        # node address that will be part of the final data
+        self.required_node_addresses = []
 
 
     def stop_transfers_at_exchange(self):
-        self.graph_data["original_edge_list"] = self.edge_list
         try:
             if 'exchange' not in self.dist_analysis.keys():
                 self.dist_analysis['exchange'] = []
@@ -108,118 +150,111 @@ class ExchangeChecker:
 
     def tracking_exchanges(self, mode):
         self.exchange_node_ids = []
-        self.exchange_node_addresses = []
-        self.node_ids_to_be_removed = []
-        self.node_addresses_to_be_removed = []
-        self.node_ids_after_exchange = []
-        self.previous_nodes_iter_list = []
-        self.orphan_node_ids = []
+        self.required_node_addresses = []
 
         if mode == -1:
-            exchange_nodes_obj = ExchangeNodeList(self.node_list, 'src')
+            exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'], 'src')
         else:
-            exchange_nodes_obj = ExchangeNodeList(self.node_list, 'dist')
+            exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'], 'dist')
         
         exchange_nodes_obj.find_exchange_nodes()
         self.exchange_node_ids = exchange_nodes_obj.get_exchange_node_ids()
-        self.exchange_node_addresses = exchange_nodes_obj.get_exchange_node_addresses()
         self.exchange_nodes = exchange_nodes_obj.get_exchange_nodes()
         print("exchange nodes", self.exchange_nodes)
 
-        # finds nodes for removal
-        self.find_subsequent_nodes(node_ids_after_exchange=[], mode=mode)
-        # checking for mandatory exchange nodes (lowest level nodes)
+        if mode == -1:
+            # removing all edges ending in exchanges
+            self.edge_list = [
+                edge for edge in self.edge_list
+                    if edge[TO] not in self.exchange_node_ids
+            ]
+            self.bfs_src_connected_nodes()
+            # modifying src node list after BFS
+            self.src_node_list = [
+                node for node in self.src_node_list
+                    if node['id'] in self.src_connected_nodes_list
+            ]
+        else:
+            # removing all edges originating from exchanges
+            self.edge_list = [
+                edge for edge in self.edge_list
+                    if edge[FROM] not in self.exchange_node_ids
+            ]
+            self.bfs_dist_connected_nodes()
+            # modifying dist node list after BFS
+            self.dist_node_list = [
+                node for node in self.dist_node_list
+                    if node['id'] in self.dist_connected_nodes_list
+            ]
+
+        '''
+        Keeping track of the exchange addresses at the lowest level, 
+        since these should not be removed from the final graph data
+        '''
         self.check_for_mandatory_exchanges(mode=mode)
-        # remove post exchange nodes from node_list
+        
+        # processing the node list first to remove irrelevant nodes
         self.process_node_list()
-        # remove incorrectly connected nodes
-        self.check_graph_connectivity_using_bfs()
         # remove edges of already removed nodes from edge_list
         self.process_edge_list()
-        # find node addresses to removed
-        self.validate_node_addresses_to_be_removed()
+        # find node addresses to kept
+        self.validate_node_addresses()
+        # process node_enum, receive_count and send_count
+        self.process_address_data()
         # remove extra transactions from item_list
         self.process_item_list()
         # set final graph_data
         self.set_graph_data(mode=mode)
-        print("Final nodes to be removed", self.node_ids_to_be_removed)
 
 
-    def find_subsequent_nodes(self, node_ids_after_exchange=[], mode=1, recur=0):
-        recur = recur + 1
-        if mode == -1:
-            outer = FROM
-            inner = TO
-        else:
-            outer = TO
-            inner = FROM
+    # breadth-first search to remove disconnected nodes from the main graph in src side
+    def bfs_src_connected_nodes(self):
+        node_ids = [node['id'] for node in self.src_node_list]
+        src_edges = [
+            edge for edge in self.edge_list
+                if edge[TO] <= 0 and edge[FROM] < 0 and edge[TO] in node_ids and edge[FROM] in node_ids 
+        ]
 
-        if not node_ids_after_exchange:
-            nodes_iter = self.exchange_node_ids
-        else:
-            nodes_iter = self.filter_node_ids_after_exchange(node_ids_after_exchange)
-            node_ids_after_exchange = []
-        # print("====================================================================")
-        # print(f"recursion {recur} nodes_iter:-", nodes_iter)
-        for node_id in nodes_iter:
-            current_nodes_list = [
-                edge[outer] for edge in self.edge_list
-                    if edge[inner] == node_id
-            ]
-            node_ids_after_exchange += current_nodes_list
-            # if current_nodes_list:
-            #     if mode == -1:
-            #         print(f"node id {node_id} has incoming addresses {current_nodes_list}")
-            #     else:
-            #         print(f"node id {node_id} has outgoing addresses {current_nodes_list}")
-            # else:
-            #     if mode == -1:
-            #         print(f"node id {node_id} has no incoming addresses")
-            #     else:
-            #         print(f"node id {node_id} has no outgoing addresses")
-
-        unique_node_ids_after_exchange = list(set(node_ids_after_exchange))
-        unique_node_ids_after_exchange.sort()
-        # print(f"Unique nodes for iteration {recur}:-", unique_node_ids_after_exchange)
-        if unique_node_ids_after_exchange:
-            self.node_ids_to_be_removed += unique_node_ids_after_exchange
-            self.node_ids_to_be_removed = list(set(self.node_ids_to_be_removed))
-            self.node_ids_to_be_removed.sort()
-            self.previous_nodes_iter_list += nodes_iter
-            # print(f"sorted node_ids_to_be_removed after recursion {recur} :-", self.node_ids_to_be_removed)
-            self.find_subsequent_nodes(unique_node_ids_after_exchange, mode, recur)
-        else:
-            return
+        # Adding origin node to the current node list to start the while loop
+        current_nodes_list = [0]
+        while len(current_nodes_list) > 0:
+            previously_visited_nodes = list(set(current_nodes_list))
+            current_nodes_list = list(set([
+                edge[FROM] for edge in src_edges
+                    if edge[TO] in previously_visited_nodes and edge[FROM] not in self.src_visited_connected_nodes_list
+            ]))
+            self.src_visited_connected_nodes_list += current_nodes_list
+        self.src_connected_nodes_list = list(set(self.src_visited_connected_nodes_list))
 
 
-    def filter_node_ids_after_exchange(self, node_ids_after_exchange):
-        # print("previous_node_iter_list----------------->", self.previous_nodes_iter_list)
-        # print("node_ids_after_exchange--------------->", node_ids_after_exchange)
-        self.previous_nodes_iter_list = list(set(self.previous_nodes_iter_list))
-        filtered_node_ids_after_exchange = [node_id for node_id in node_ids_after_exchange if
-                                            node_id not in self.previous_nodes_iter_list]
-        # print("filtered_node_ids_after_exchange---------------------->", filtered_node_ids_after_exchange)
-        return filtered_node_ids_after_exchange
+    # breadth-first search to remove disconnected nodes from the main graph in dist side
+    def bfs_dist_connected_nodes(self):
+        node_ids = [node['id'] for node in self.dist_node_list]
+        dist_edges = [
+            edge for edge in self.edge_list
+                if edge[TO] > 0 and edge[FROM] >=0 and edge[FROM] in node_ids and edge[TO] in node_ids
+        ]
 
-
-    def check_for_mandatory_exchanges(self, mode):
-        if mode == -1:
-            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
-            exchange_levels.sort(reverse = True)
-        else:
-            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
-            exchange_levels.sort()
-        
-        for exchange in self.exchange_nodes:
-            if exchange['level'] == exchange_levels[0]:
-                if exchange['id'] in self.node_ids_to_be_removed:
-                    self.node_ids_to_be_removed.remove(exchange['id'])
+        # Adding origin node to the current node list to start the while loop
+        current_nodes_list = [0]
+        while len(current_nodes_list) > 0:
+            previously_visited_nodes = list(set(current_nodes_list))
+            current_nodes_list = list(set([
+                edge[TO] for edge in dist_edges
+                    if edge[FROM] in previously_visited_nodes and edge[TO] not in self.dist_visited_connected_nodes_list
+            ]))
+            self.dist_visited_connected_nodes_list += current_nodes_list
+        self.dist_connected_nodes_list = list(set(self.dist_visited_connected_nodes_list))
 
 
     def process_node_list(self):
+        src_node_ids = [node['id'] for node in self.src_node_list]
+        dist_node_ids = [node['id'] for node in self.dist_node_list]
+        mandatory_exchange_node_ids = [node['id'] for node in self.mandatory_exchange_nodes]
+        final_node_ids = list(set(src_node_ids + dist_node_ids + mandatory_exchange_node_ids))
         self.node_list = [
             node for node in self.graph_data['node_list']
-                if node['id'] not in self.node_ids_to_be_removed
+                if node['id'] in final_node_ids
         ]
 
 
@@ -232,6 +267,44 @@ class ExchangeChecker:
         ]
 
 
+    # getting the node addresses that will be kept after processing
+    def validate_node_addresses(self):
+        self.required_node_addresses = [
+            node['address'] for node in self.node_list
+        ]
+
+
+    def process_address_data(self):
+        # verifying that all node addresses in the list are unique
+        required_node_addresses = set(self.required_node_addresses)
+
+        # filter node_enum dictionary
+        node_addresses_to_be_removed_from_node_enum = [
+            node_address for node_address in self.node_enum.keys() 
+                if node_address not in required_node_addresses
+        ]
+        for node_address in node_addresses_to_be_removed_from_node_enum:
+            self.node_enum.pop(node_address, None)
+
+        # check if send_count exists and modify it if it does
+        if self.send_count is not None:
+            node_addresses_to_be_removed_from_send_count = [
+                node_address for node_address in self.send_count.keys() 
+                    if node_address not in required_node_addresses
+            ]
+            for node_address in node_addresses_to_be_removed_from_send_count:
+                self.send_count.pop(node_address, None)
+
+        # check if receive_count exists and modify it if it does
+        if self.receive_count is not None:
+            node_addresses_to_be_removed_from_receive_count = [
+                node_address for node_address in self.receive_count.keys() 
+                    if node_address not in required_node_addresses
+            ]
+            for node_address in node_addresses_to_be_removed_from_receive_count:
+                self.receive_count.pop(node_address, None)
+
+
     def process_item_list(self):
         print("Processing item list for token type", self.token_type)
         tx_data_list = [edge['data'] for edge in self.edge_list]
@@ -242,6 +315,11 @@ class ExchangeChecker:
                 if item['tx_hash'] in tx_hash_list
         ]
 
+        '''        
+        BTC, LTC and BCH can have multiple txns with the same hash. This
+        verifies and removes those txns accordingly by searching for the 
+        src and dist addresses along with the tx_hash
+        '''
         if self.token_type in [
             CatvTokens.BTC.value,
             CatvTokens.LTC.value,
@@ -249,119 +327,33 @@ class ExchangeChecker:
         ]:
             tx_hash_list_from_item_list = [item['tx_hash'] for item in self.item_list]
             if len(tx_hash_list_from_item_list)>len(set(tx_hash_list_from_item_list)):                
-                node_addresses = [node['address'] for node in self.node_list]
                 self.item_list = [
                     item for item in self.item_list
-                        if item['sender'] in node_addresses and item['receiver'] in node_addresses
+                        if item['sender'] in self.required_node_addresses and 
+                            item['receiver'] in self.required_node_addresses
                 ]
 
 
-    def validate_node_addresses_to_be_removed(self):
-        combined_node_ids = self.node_ids_to_be_removed + self.orphan_node_ids
-        self.node_addresses_to_be_removed = [
-            node['address'] for node in self.graph_data['node_list']
-                if node['id'] in combined_node_ids
-        ]
-
-
-    def remove_orphan_nodes(self):
-        edge_to_list = [edge[TO] for edge in self.edge_list]
-        edge_from_list = [edge[FROM] for edge in self.edge_list]
-
-        self.orphan_node_ids = [node['id'] for node in self.node_list
-                                    if all([
-                                        node['id'] not in edge_to_list, 
-                                        node['id'] not in edge_from_list
-                                    ])
-                                ]
-        print("orphan nodes", self.orphan_node_ids)
-        self.node_list = [node for node in self.node_list if node['id'] not in self.orphan_node_ids]
-
+    def check_for_mandatory_exchanges(self, mode):
+        if mode == -1:
+            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
+            exchange_levels.sort(reverse = True)
+        else:
+            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
+            exchange_levels.sort()
+        
+        for exchange in self.exchange_nodes:
+            if exchange['level'] == exchange_levels[0]:
+                self.mandatory_exchange_nodes.append(exchange)
+        
 
     def set_graph_data(self, mode):
-        # process node_enum and send_count dicts
-        for node_address in self.node_addresses_to_be_removed:
-            self.node_enum.pop(node_address, None)
-            self.send_count.pop(node_address, None)
-
         # updating the final values for graph_data
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
         self.graph_data['item_list'] = self.item_list
         self.graph_data['node_enum'] = self.node_enum
-        self.graph_data['send_count'] = self.send_count
-
-    
-    def bfs_dist_connected_nodes(self):
-        if self.check_if_dist_bfs_complete:
-            return
-        print("inside dist bfs")
-        node_ids = [node['id'] for node in self.node_list]
-        dist_edges = [
-            edge for edge in self.edge_list
-                if edge[TO] > 0 and edge[FROM] >=0 and edge[FROM] in node_ids and edge[TO] in node_ids
-        ]
-        current_nodes_list = [0]
-        while len(current_nodes_list) > 0:
-            previously_visited_nodes = list(set(current_nodes_list))
-            current_nodes_list = list(set([
-                edge[TO] for edge in dist_edges
-                    if edge[FROM] in previously_visited_nodes and edge[TO] not in self.dist_visited_connected_nodes_list
-            ]))
-            self.dist_visited_connected_nodes_list += current_nodes_list
-        self.dist_connected_nodes_list = list(set(self.dist_visited_connected_nodes_list))
-        self.check_if_dist_bfs_complete = True
-
-        print("dist connected_list", len(self.dist_connected_nodes_list))
-
-
-    def bfs_src_connected_nodes(self):
-        if self.check_if_src_bfs_complete:
-            return
-        print("inside src bfs")
-        node_ids = [node['id'] for node in self.node_list]
-        src_edges = [
-            edge for edge in self.edge_list
-                if edge[TO] <= 0 and edge[FROM] < 0 and edge[TO] in node_ids and edge[FROM] in node_ids 
-        ]
-        current_nodes_list = [0]
-        while len(current_nodes_list) > 0:
-            previously_visited_nodes = list(set(current_nodes_list))
-            current_nodes_list = list(set([
-                edge[FROM] for edge in src_edges
-                    if edge[TO] in previously_visited_nodes and edge[FROM] not in self.src_visited_connected_nodes_list
-            ]))
-            self.src_visited_connected_nodes_list += current_nodes_list
-        self.src_connected_nodes_list = list(set(self.src_visited_connected_nodes_list))
-        self.check_if_src_bfs_complete = True
-
-        print("src connected_list", len(self.src_connected_nodes_list))
-
-
-    def check_graph_connectivity_using_bfs(self):
-        if self.source_depth > 0 and self.distribution_depth == 0:
-            print("src nodes only")
-            self.bfs_src_connected_nodes()
-            self.node_list = [
-                node for node in self.node_list
-                    if node['id'] in self.src_connected_nodes_list
-            ]
-        elif self.source_depth == 0 and self.distribution_depth > 0:
-            print("dist nodes only")
-            self.bfs_dist_connected_nodes()
-            self.node_list = [
-                node for node in self.node_list
-                    if node['id'] in self.dist_connected_nodes_list
-            ]
-        elif self.source_depth > 0 and self.distribution_depth > 0:
-            print("both src and dist nodes")
-            self.bfs_src_connected_nodes()
-            self.bfs_dist_connected_nodes()
-            all_connected_nodes = list(set(self.src_connected_nodes_list + self.dist_connected_nodes_list))
-            if 0 not in all_connected_nodes:
-                all_connected_nodes.append(0)
-            self.node_list = [
-                node for node in self.node_list
-                    if node['id'] in all_connected_nodes
-            ]
-        
+        if self.send_count is not None:
+            self.graph_data['send_count'] = self.send_count
+        if self.receive_count is not None:
+            self.graph_data['receive_count'] = self.receive_count
