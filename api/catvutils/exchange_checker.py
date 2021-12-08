@@ -78,7 +78,6 @@ class ExchangeChecker:
         self.source_depth = source_depth
         self.distribution_depth = distribution_depth
         self.token_type = token_type
-        self.pristine_graph_data = graph_data
         self.graph_data = graph_data
         self.dist_analysis = dist_analysis
         self.src_analysis = src_analysis
@@ -152,7 +151,6 @@ class ExchangeChecker:
     def tracking_exchanges(self, mode):
         self.exchange_node_ids = []
         self.required_node_addresses = []
-        self.graph_data = self.pristine_graph_data
 
         if mode == -1:
             exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'], 'src')
@@ -198,7 +196,7 @@ class ExchangeChecker:
         # processing the node list first to remove irrelevant nodes
         self.process_node_list()
         # remove edges of already removed nodes from edge_list
-        self.process_edge_list()
+        self.process_edge_list(mode=mode)
         # find node addresses to kept
         self.validate_node_addresses()
         # process node_enum, receive_count and send_count
@@ -214,7 +212,9 @@ class ExchangeChecker:
         node_ids = [node['id'] for node in self.src_node_list]
         src_edges = [
             edge for edge in self.edge_list
-                if edge[TO] <= 0 and edge[FROM] < 0 and edge[TO] in node_ids and edge[FROM] in node_ids 
+                if edge[TO] <= 0 and edge[FROM] < 0 and 
+                    edge[TO] in node_ids and 
+                    edge[FROM] in node_ids 
         ]
 
         # Adding origin node to the current node list to start the while loop
@@ -223,7 +223,8 @@ class ExchangeChecker:
             previously_visited_nodes = list(set(current_nodes_list))
             current_nodes_list = list(set([
                 edge[FROM] for edge in src_edges
-                    if edge[TO] in previously_visited_nodes and edge[FROM] not in self.src_visited_connected_nodes_list
+                    if edge[TO] in previously_visited_nodes and 
+                        edge[FROM] not in self.src_visited_connected_nodes_list
             ]))
             self.src_visited_connected_nodes_list += current_nodes_list
         self.src_connected_nodes_list = list(set(self.src_visited_connected_nodes_list))
@@ -234,7 +235,9 @@ class ExchangeChecker:
         node_ids = [node['id'] for node in self.dist_node_list]
         dist_edges = [
             edge for edge in self.edge_list
-                if edge[TO] > 0 and edge[FROM] >=0 and edge[FROM] in node_ids and edge[TO] in node_ids
+                if edge[TO] > 0 and edge[FROM] >=0 and 
+                    edge[FROM] in node_ids and 
+                    edge[TO] in node_ids
         ]
 
         # Adding origin node to the current node list to start the while loop
@@ -243,7 +246,8 @@ class ExchangeChecker:
             previously_visited_nodes = list(set(current_nodes_list))
             current_nodes_list = list(set([
                 edge[TO] for edge in dist_edges
-                    if edge[FROM] in previously_visited_nodes and edge[TO] not in self.dist_visited_connected_nodes_list
+                    if edge[FROM] in previously_visited_nodes and 
+                        edge[TO] not in self.dist_visited_connected_nodes_list
             ]))
             self.dist_visited_connected_nodes_list += current_nodes_list
         self.dist_connected_nodes_list = list(set(self.dist_visited_connected_nodes_list))
@@ -260,12 +264,17 @@ class ExchangeChecker:
         ]
 
 
-    def process_edge_list(self):
+    def process_edge_list(self, mode):
+        if mode == -1:
+            key = TO
+        else:
+            key = FROM
         node_ids = [node['id'] for node in self.node_list]
         self.edge_list = [
             edge for edge in self.graph_data['edge_list']
-                if edge[FROM] in node_ids
-                if edge[TO] in node_ids
+                if edge[FROM] in node_ids and
+                    edge[TO] in node_ids and
+                    edge[key] not in self.exchange_node_ids
         ]
 
 
