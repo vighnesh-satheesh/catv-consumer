@@ -78,6 +78,7 @@ class ExchangeChecker:
         self.source_depth = source_depth
         self.distribution_depth = distribution_depth
         self.token_type = token_type
+        self.pristine_graph_data = graph_data
         self.graph_data = graph_data
         self.dist_analysis = dist_analysis
         self.src_analysis = src_analysis
@@ -151,6 +152,7 @@ class ExchangeChecker:
     def tracking_exchanges(self, mode):
         self.exchange_node_ids = []
         self.required_node_addresses = []
+        self.graph_data = self.pristine_graph_data
 
         if mode == -1:
             exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'], 'src')
