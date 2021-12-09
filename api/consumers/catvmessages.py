@@ -111,14 +111,6 @@ def process_catv_messages(job: CatvJobQueue):
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
 
-        exchange_checker_obj = ExchangeChecker(
-            source_depth,
-            distribution_depth,
-            token_type,
-            graph_data,
-        )
-        graph_data = exchange_checker_obj.stop_transfers_at_exchange()
-
         if 'graph_node_list' in graph_data and graph_data['graph_node_list']:
             if len(graph_data['node_list']) != len(graph_data['graph_node_list']):
                 core_results["messages"]["source"] += f"\nThis address has too many transactions. Viewing all transactions would be difficult, "\
@@ -127,6 +119,14 @@ def process_catv_messages(job: CatvJobQueue):
             graph_data["edge_list"] = graph_data["graph_edge_list"] if graph_data["graph_edge_list"] else graph_data["edge_list"]
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
+
+        exchange_checker_obj = ExchangeChecker(
+            source_depth,
+            distribution_depth,
+            token_type,
+            graph_data,
+        )
+        graph_data = exchange_checker_obj.stop_transfers_at_exchange()
 
         catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
@@ -141,7 +141,7 @@ def process_catv_messages(job: CatvJobQueue):
                 dist_analysis = catv_metrics.generate_metrics(gt)
         catv_metrics.save_annotations()
         print(len(graph_data["node_list"]))
-        
+
         results = {
             "data": {
                 **graph_data,
