@@ -36,51 +36,43 @@ This class performs all operations related to getting
 exchange address data like nodes and node ids for exchanges
 '''
 class ExchangeNodeList:
-    def __init__(self, node_list, type):
+    def __init__(self, node_list):
         self.node_list = node_list
         self.src_exchange_nodes = []
         self.dist_exchange_nodes = []
-        self.type = type
 
     def find_exchange_nodes(self):
-        if self.type == 'dist':
-            self.dist_exchange_nodes = [node for node in self.node_list if
+        self.dist_exchange_nodes = [node for node in self.node_list if
                                         node['id'] >= 0 and 'exchange' in node['group'].lower()]
-        elif self.type == 'src':
-            self.src_exchange_nodes = [node for node in self.node_list if
+        self.src_exchange_nodes = [node for node in self.node_list if
                                        node['id'] <= 0 and 'exchange' in node['group'].lower()]
-        else:
-            print("Invalid input")
+        return self.dist_exchange_nodes, self.src_exchange_nodes
 
-    def get_exchange_nodes(self):
-        if self.type == 'dist':
+    def get_exchange_nodes(self, mode):
+        if mode == 1:
             return self.dist_exchange_nodes
-        if self.type == 'src':
+        else:
             return self.src_exchange_nodes
 
-    def get_exchange_node_ids(self):
-        if self.type == 'dist':
+    def get_exchange_node_ids(self, mode):
+        if mode == 1:
             return [node['id'] for node in self.dist_exchange_nodes]
-        elif self.type == 'src':
-            return [node['id'] for node in self.src_exchange_nodes]
         else:
-            print("Invalid type")
-            return []
-
+            return [node['id'] for node in self.src_exchange_nodes]
 
 '''
 This class removes the nodes coming out of or going into exchanges 
 depending on whether it's on the source side or the dist side
 '''
 class ExchangeChecker:
-    def __init__(self, source_depth, distribution_depth, token_type, graph_data, dist_analysis, src_analysis):
+    def __init__(self, source_depth, distribution_depth, token_type, graph_data):
         # data received as input
         self.source_depth = source_depth
         self.distribution_depth = distribution_depth
         self.token_type = token_type
         self.graph_data = graph_data
-        self.dist_analysis = dist_analysis
-        self.src_analysis = src_analysis
+        # self.dist_analysis = dist_analysis
+        # self.src_analysis = src_analysis
 
         # creating our custom objects with input data for better readability
         self.item_list = graph_data['item_list']
@@ -89,6 +81,7 @@ class ExchangeChecker:
         self.node_enum = graph_data['node_enum']
         self.receive_count = None
         self.send_count = None
+        self.exchange_nodes_obj = None
 
         # checking if send_count and receive_count exist
         if 'send_count' in self.graph_data.keys():
@@ -123,24 +116,21 @@ class ExchangeChecker:
 
     def stop_transfers_at_exchange(self):
         try:
-            if 'exchange' not in self.dist_analysis.keys():
-                self.dist_analysis['exchange'] = []
-            if 'exchange' not in self.src_analysis.keys():
-                self.src_analysis['exchange'] = []
+            self.exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'])
+            dist_exchange_nodes, src_exchange_nodes = self.exchange_nodes_obj.find_exchange_nodes()
 
-            if not self.dist_analysis['exchange'] and not self.src_analysis['exchange']:
+            if not dist_exchange_nodes and not src_exchange_nodes:
                 print("No exchanges found")
-            elif self.dist_analysis['exchange'] and not self.src_analysis['exchange']:
+            elif dist_exchange_nodes and not src_exchange_nodes:
                 print("Exchanges found in distribution nodes only")
                 self.tracking_exchanges(mode=1)
-            elif not self.dist_analysis['exchange'] and self.src_analysis['exchange']:
+            elif not dist_exchange_nodes and src_exchange_nodes:
                 print("Exchanges found in source nodes only")
                 self.tracking_exchanges(mode=-1)
-            elif self.dist_analysis['exchange'] and self.src_analysis['exchange']:
+            elif dist_exchange_nodes and src_exchange_nodes:
                 print("Exchanges found in both source and distribution")
                 self.tracking_exchanges(1)
                 self.tracking_exchanges(-1)
-
         except Exception as e:
             print("The following exception occurred while trying to get exchanges:", e)
             return self.graph_data
@@ -151,15 +141,8 @@ class ExchangeChecker:
     def tracking_exchanges(self, mode):
         self.exchange_node_ids = []
         self.required_node_addresses = []
-
-        if mode == -1:
-            exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'], 'src')
-        else:
-            exchange_nodes_obj = ExchangeNodeList(self.graph_data['node_list'], 'dist')
-        
-        exchange_nodes_obj.find_exchange_nodes()
-        self.exchange_node_ids = exchange_nodes_obj.get_exchange_node_ids()
-        self.exchange_nodes = exchange_nodes_obj.get_exchange_nodes()
+        self.exchange_node_ids = self.exchange_nodes_obj.get_exchange_node_ids(mode)
+        self.exchange_nodes = self.exchange_nodes_obj.get_exchange_nodes(mode)
         print("exchange nodes", self.exchange_nodes)
 
         if mode == -1:

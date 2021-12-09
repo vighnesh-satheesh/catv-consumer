@@ -110,6 +110,16 @@ def process_catv_messages(job: CatvJobQueue):
         else:
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
+
+        exchange_checker_obj = ExchangeChecker(
+            source_depth,
+            distribution_depth,
+            token_type,
+            graph_data,
+        )
+
+        graph_data = exchange_checker_obj.stop_transfers_at_exchange()
+
         catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
         src_analysis = {}
@@ -132,16 +142,6 @@ def process_catv_messages(job: CatvJobQueue):
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
 
-            exchange_checker_obj = ExchangeChecker(
-                source_depth,
-                distribution_depth,
-                token_type, 
-                graph_data, 
-                dist_analysis, 
-                src_analysis
-            )
-            
-            graph_data = exchange_checker_obj.stop_transfers_at_exchange()
         results = {
             "data": {
                 **graph_data,
