@@ -13,15 +13,11 @@ This is done in the following sequence of steps:
         are implemented to find the node ids of all nodes originating from the 
         origin node (node['id']=0) or ending in the origin node. These nodes are 
         the ones that will be kept in the final data that is returned.
-    4. Once we have these mandatory nodes for both source as well as distribution,
-        the exchange nodes with the highest level (on source side) and with the 
-        lowest level (on distribution side) are extracted. These are the exchange
-        nodes that must be kept in the final data.
-    5. Now we have all the necessary node data. Using this, the node_list, edge_list 
+    4. Now we have all the necessary node data. Using this, the node_list, edge_list 
         and the item_list data are updated, along with the node_enum, send_count and 
         receive_count dictionaries. These are all stored in the global variables inside
         the ExchangeChecker class.
-    6. Once we have all the updated data, the graph_data dictionary is updated accordingly
+    5. Once we have all the updated data, the graph_data dictionary is updated accordingly
         and returned back from the stop_transfers_at_exchange() method.
 '''
 
@@ -30,6 +26,8 @@ from api.models import CatvTokens
 
 FROM = 'from'
 TO = 'to'
+
+
 
 '''
 This class performs all operations related to getting 
@@ -59,6 +57,8 @@ class ExchangeNodeList:
             return [node['id'] for node in self.dist_exchange_nodes]
         else:
             return [node['id'] for node in self.src_exchange_nodes]
+
+
 
 '''
 This class removes the nodes coming out of or going into exchanges 
@@ -102,7 +102,6 @@ class ExchangeChecker:
         # exchange data
         self.exchange_nodes = []
         self.exchange_node_ids = []
-        self.mandatory_exchange_nodes = []
 
         # lists needed for BFS (both src and dist, done separately)
         self.dist_visited_connected_nodes_list = [0]
@@ -169,12 +168,6 @@ class ExchangeChecker:
                 node for node in self.dist_node_list
                     if node['id'] in self.dist_connected_nodes_list
             ]
-
-        '''
-        Keeping track of the exchange addresses at the lowest level, 
-        since these should not be removed from the final graph data
-        '''
-        self.check_for_mandatory_exchanges(mode=mode)
         
         # processing the node list first to remove irrelevant nodes
         self.process_node_list()
@@ -239,8 +232,7 @@ class ExchangeChecker:
     def process_node_list(self):
         src_node_ids = [node['id'] for node in self.src_node_list]
         dist_node_ids = [node['id'] for node in self.dist_node_list]
-        mandatory_exchange_node_ids = [node['id'] for node in self.mandatory_exchange_nodes]
-        final_node_ids = list(set(src_node_ids + dist_node_ids + mandatory_exchange_node_ids))
+        final_node_ids = list(set(src_node_ids + dist_node_ids))
         self.node_list = [
             node for node in self.graph_data['node_list']
                 if node['id'] in final_node_ids
@@ -326,19 +318,6 @@ class ExchangeChecker:
                         if item['sender'] in self.required_node_addresses and 
                             item['receiver'] in self.required_node_addresses
                 ]
-
-
-    def check_for_mandatory_exchanges(self, mode):
-        if mode == -1:
-            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
-            exchange_levels.sort(reverse = True)
-        else:
-            exchange_levels = [exchange['level'] for exchange in self.exchange_nodes]
-            exchange_levels.sort()
-        
-        for exchange in self.exchange_nodes:
-            if exchange['level'] == exchange_levels[0]:
-                self.mandatory_exchange_nodes.append(exchange)
         
 
     def set_graph_data(self, mode):

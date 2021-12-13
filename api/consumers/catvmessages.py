@@ -120,13 +120,15 @@ def process_catv_messages(job: CatvJobQueue):
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
 
-        exchange_checker_obj = ExchangeChecker(
-            source_depth,
-            distribution_depth,
-            token_type,
-            graph_data,
-        )
-        graph_data = exchange_checker_obj.stop_transfers_at_exchange()
+        if "exchange" not in graph_data["node_list"][0]["group"].lower():
+            print("Origin node is not an exchange")
+            exchange_checker_obj = ExchangeChecker(
+                source_depth,
+                distribution_depth,
+                token_type,
+                graph_data,
+            )
+            graph_data = exchange_checker_obj.stop_transfers_at_exchange()
 
         catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
