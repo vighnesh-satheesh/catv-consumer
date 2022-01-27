@@ -173,10 +173,7 @@ class TrackingResults:
                     kwargs["group"] = item["security_category"].title()
                     if item["annotation"]:
                         kwargs["annotation"] = item["annotation"]
-                        if "Exchange" in item["annotation"] 
-                        or "DEX" in item["annotation"] 
-                        or "Bridge" in item["annotation"] 
-                        or "Mixer" in item["annotation"]:
+                        if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item["annotation"] or "Mixer" in item["annotation"]:
                             kwargs["group"] = "Exchange & DEX"
                     else:
                         kwargs["annotation"] = ""
