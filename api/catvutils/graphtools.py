@@ -34,7 +34,7 @@ class Node:
         if 'Scamming' in annotation_list or 'Phishing' in annotation_list:
             self.group = 'Suspicious'
         # exchange could appear as "Exchange Wallet" for example
-        elif 'Dex' in annotation_list or 'Exchange' in self.annotation or 'Bridge' in self.annotation or 'Mixer' in self.annotation:
+        elif 'Dex' in annotation_list or 'Exchange' in annotation_list or 'Bridge' in annotation_list or 'Mixer' in annotation_list:
             self.group = 'Exchange & DEX'
         elif self.type != 'Wallet':
             self.group = 'Smart Contract'
@@ -57,7 +57,7 @@ class BTCNode(Node):
         if 'Scamming' in annotation_list or 'Phishing' in annotation_list:
             self.group = 'Suspicious'
         # exchange could appear as "Exchange Wallet" for example
-        elif 'Dex' in annotation_list or 'Exchange' in self.annotation or 'Bridge' in self.annotation or 'Mixer' in self.annotation:
+        elif 'Dex' in annotation_list or 'Exchange' in annotation_list or 'Bridge' in annotation_list or 'Mixer' in annotation_list:
             self.group = 'Exchange & DEX'
         elif self.annotation:
             self.group = 'Annotated'
