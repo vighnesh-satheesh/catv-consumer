@@ -4,12 +4,18 @@ import pika
 
 from django.conf import settings
 from ..settings import api_settings
+from .BasicPikaClient import PikaRabbitMQConfig
 
 class RPCClientSaveS3FileToDB:
     def __init__(self):
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=api_settings.RABBIT_MQ_URL))
+        basic_pika_publisher = PikaRabbitMQConfig(
+            api_settings.RABBIT_MQ_BROKER_ID, 
+            api_settings.RABBIT_MQ_USERNAME, 
+            api_settings.RABBIT_MQ_PASSWORD, 
+            api_settings.RABBIT_MQ_REGION
+        )
 
+        self.connection = basic_pika_publisher._get_connection()
         self.channel = self.connection.channel()
 
         result = self.channel.queue_declare(queue='', exclusive=True)
@@ -42,9 +48,14 @@ class RPCClientSaveS3FileToDB:
 
 class RPCClientFetchIndicators:
     def __init__(self):
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=api_settings.RABBIT_MQ_URL))
+        basic_pika_publisher = PikaRabbitMQConfig(
+            api_settings.RABBIT_MQ_BROKER_ID, 
+            api_settings.RABBIT_MQ_USERNAME, 
+            api_settings.RABBIT_MQ_PASSWORD, 
+            api_settings.RABBIT_MQ_REGION
+        )
 
+        self.connection = basic_pika_publisher._get_connection()
         self.channel = self.connection.channel()
 
         result = self.channel.queue_declare(queue='', exclusive=True)
