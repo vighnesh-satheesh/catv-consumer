@@ -46,7 +46,7 @@ class CatvMetrics:
         black_wallets_top = pick_n_unique(black_wallets_top, "address", 10)
         black_wallets_top = [{"address": wallet["address"], "balance": wallet["balance"]} for wallet in black_wallets_top]
         # top 10 exchange wallets by balance
-        exchange_wallets = list(filter(lambda node: node["group"] == 'Exchange & DEX', self.seg_node_list))
+        exchange_wallets = list(filter(lambda node: node["group"] == 'Exchange/DEX/Bridge/Mixer', self.seg_node_list))
         exchange_wallets_top = sorted(exchange_wallets, key=lambda wallet: wallet["amount_in"], reverse=True)[:15]
         exchange_wallets_clean = {}
         skip_words = (["exchange", "wallet", "exchange wallet", "user wallet", "fiat gateway",

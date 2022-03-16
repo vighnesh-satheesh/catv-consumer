@@ -31,17 +31,17 @@ class Node:
 
     def set_group_from_annotation(self):
         annotation_list = self.annotation.split(", ")
-        if 'Scamming' in annotation_list or 'Phishing' in annotation_list:
-            self.group = 'Suspicious'
-        # exchange could appear as "Exchange Wallet" for example
-        elif 'Dex' in annotation_list or 'Exchange' in annotation_list or 'Bridge' in annotation_list or 'Mixer' in annotation_list:
-            self.group = 'Exchange & DEX'
-        elif self.type != 'Wallet':
-            self.group = 'Smart Contract'
-        elif self.annotation:
-            self.group = 'Annotated'
-        else:
-            self.group = "No Tag"
+        for annotation in annotation_list:
+            if 'Scamming' in annotation or 'Phishing' in annotation:
+                self.group = 'Suspicious'
+            elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
+                self.group = 'Exchange/DEX/Bridge/Mixer'
+            elif self.type != 'Wallet':
+                self.group = 'Smart Contract'
+            elif self.annotation:
+                self.group = 'Annotated'
+            else:
+                self.group = "No Tag"
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -54,15 +54,15 @@ class BTCNode(Node):
 
     def set_group_from_annotation(self):
         annotation_list = self.annotation.split(", ")
-        if 'Scamming' in annotation_list or 'Phishing' in annotation_list:
-            self.group = 'Suspicious'
-        # exchange could appear as "Exchange Wallet" for example
-        elif 'Dex' in annotation_list or 'Exchange' in annotation_list or 'Bridge' in annotation_list or 'Mixer' in annotation_list:
-            self.group = 'Exchange & DEX'
-        elif self.annotation:
-            self.group = 'Annotated'
-        else:
-            self.group = "No Tag"
+        for annotation in annotation_list:
+            if 'Scamming' in annotation or 'Phishing' in annotation:
+                self.group = 'Suspicious'
+            elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
+                self.group = 'Exchange/DEX/Bridge/Mixer'
+            elif self.annotation:
+                self.group = 'Annotated'
+            else:
+                self.group = "No Tag"
 
 
 class NodesCollection:
