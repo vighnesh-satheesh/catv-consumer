@@ -1,4 +1,5 @@
 name: PRD-PORTAL-CATV-CONSUMER-API
+on:
   push:
     branches:
       - master
