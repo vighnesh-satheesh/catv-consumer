@@ -6,6 +6,7 @@ from django.utils.timezone import now
 
 from api.catvutils.tracking_results import chunks
 from api.models import IndicatorExtraAnnotation
+from api.settings import api_settings
 
 __all__ = ('CatvMetrics',)
 
@@ -46,7 +47,7 @@ class CatvMetrics:
         black_wallets_top = pick_n_unique(black_wallets_top, "address", 10)
         black_wallets_top = [{"address": wallet["address"], "balance": wallet["balance"]} for wallet in black_wallets_top]
         # top 10 exchange wallets by balance
-        exchange_wallets = list(filter(lambda node: node["group"] == 'Exchange & DEX', self.seg_node_list))
+        exchange_wallets = list(filter(lambda node: node["group"] == 'Exchange/DEX/Bridge/Mixer', self.seg_node_list))
         exchange_wallets_top = sorted(exchange_wallets, key=lambda wallet: wallet["amount_in"], reverse=True)[:15]
         exchange_wallets_clean = {}
         skip_words = (["exchange", "wallet", "exchange wallet", "user wallet", "fiat gateway",
@@ -104,19 +105,19 @@ class CatvMetrics:
     def save_annotations(self):
         all_nodes = {node["address"]: node for node in self.node_list}
         all_node_keys = list(all_nodes.keys())
-        for node_chunk in chunks(all_node_keys, 2000):
-            bulk_indicators = []
-            matched_nodes = IndicatorExtraAnnotation.objects.filter(pattern__in=node_chunk)
-            matched_nodes_addr = [node.pattern for node in matched_nodes]
-            missing_nodes_addr = set(node_chunk) - set(matched_nodes_addr)
-            for matched_node in matched_nodes:
-                matched_node.annotation = all_nodes[matched_node.pattern]["annotation"]
-                matched_node.updated = now()
-            for missing in missing_nodes_addr:
-                bulk_indicators.append(
-                    IndicatorExtraAnnotation(pattern=missing, annotation=all_nodes[missing]["annotation"])
-                )
-            IndicatorExtraAnnotation.objects.bulk_create(bulk_indicators)
-            IndicatorExtraAnnotation.objects.bulk_update(matched_nodes, update_fields=['annotation', 'updated'])
-
+        if api_settings.SAVE_EXTRA_ANNOTATE:
+            for node_chunk in chunks(all_node_keys, api_settings.QUERY_CHUNK_SIZE):
+                bulk_indicators = []
+                matched_nodes = IndicatorExtraAnnotation.objects.filter(pattern__in=node_chunk)
+                matched_nodes_addr = [node.pattern for node in matched_nodes]
+                missing_nodes_addr = set(node_chunk) - set(matched_nodes_addr)
+                for matched_node in matched_nodes:
+                    matched_node.annotation = all_nodes[matched_node.pattern]["annotation"]
+                    matched_node.updated = now()
+                for missing in missing_nodes_addr:
+                    bulk_indicators.append(
+                        IndicatorExtraAnnotation(pattern=missing, annotation=all_nodes[missing]["annotation"])
+                    )
+                IndicatorExtraAnnotation.objects.bulk_create(bulk_indicators)
+                IndicatorExtraAnnotation.objects.bulk_update(matched_nodes, update_fields=['annotation', 'updated'])
 

@@ -159,7 +159,7 @@ class TrackingResults:
                                         'security_category': item['security_category'],
                                         'pattern_type': item['pattern_type'],
                                         'pattern_subtype': item['pattern_subtype']})
-                if cur_node.group == "Exchange & DEX":
+                if cur_node.group == "Exchange/DEX/Bridge/Mixer":
                     seen_indicators.append(item['pattern'].lower())
                     continue
                 if item["security_category"].lower() == "graylist":
@@ -173,8 +173,8 @@ class TrackingResults:
                     kwargs["group"] = item["security_category"].title()
                     if item["annotation"]:
                         kwargs["annotation"] = item["annotation"]
-                        if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item["annotation"] or "Mixer" in item["annotation"]:
-                            kwargs["group"] = "Exchange & DEX"
+                        if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item["annotation"] or "Mixer" in item["annotation"] or "bridge" in item["annotation"] or "mixer" in item["annotation"]:
+                            kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
                     else:
                         kwargs["annotation"] = ""
                     cur_node.update(**kwargs)
