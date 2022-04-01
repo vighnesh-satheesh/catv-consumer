@@ -27,7 +27,7 @@ class Command(BaseCommand):
                         print(job.message)
                         process_catv_messages(job)
                 else:
-                    print("Relaxing for some time...")
+                    print("Relaxing for some time....")
                     sleep(15)
         except KeyboardInterrupt:
             self.stdout.write(self.style.ERROR("Encountered a keyboard interrupt, exiting..."))
