@@ -1,4 +1,5 @@
 import json
+import traceback
 from operator import gt, lt
 from uuid import UUID, uuid4
 
@@ -162,7 +163,7 @@ def process_catv_messages(job: CatvJobQueue):
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
         error_trace = str(e)
-        print(error_trace)
+        print(traceback.print_exc())
         generic_error = "Internal server error. Please try again later"
         safe_error_trace = error_trace if isinstance(e, FileNotFound) else generic_error
         error_dict = {
