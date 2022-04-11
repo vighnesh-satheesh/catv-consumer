@@ -107,11 +107,6 @@ class TrackingResults:
                     self.ext_api_calls += 1
                 else:
                     transaction_data = db_results[0]['result']
-            temp_transaction_data = []
-            for item in transaction_data:
-                if len(item["receiver"]) > 0:
-                    temp_transaction_data.append(item)
-            transaction_data = temp_transaction_data
             return transaction_data
         except IndexError:
             self.error_messages[error_placeholder] = "Missing {} results for the wallet address within the date " \
@@ -145,7 +140,6 @@ class TrackingResults:
 
     @staticmethod
     def update_annotations(nc, item_list, token_type):
-        print("inside update annotation")
         addr_list = nc.get_node_enum().keys()
         addr_list = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list, 'token_type': str(token_type)}
