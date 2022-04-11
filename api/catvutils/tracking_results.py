@@ -152,10 +152,13 @@ class TrackingResults:
         rpc = RPCClientFetchIndicators()
         res = rpc.call(request_dict).decode("utf-8")
         indicators = ast.literal_eval(res)
+        print("indicators length ", len(indicators))
         seen_indicators = []
         if len(indicators) > 0:
             try:
                 for item in indicators:
+                    if "annotation" not in item.keys():
+                        item["annotation"] = ""
                     if item['pattern'].lower() in seen_indicators:
                         continue
                     cur_node = nc.get_node(item["pattern"].lower())
@@ -198,7 +201,7 @@ class TrackingResults:
                             transaction['receiver_annotation'] = cur_node.annotation
                     seen_indicators.append(item['pattern'].lower())
             except Exception as e:
-                traceback.print_exc()
+                print(traceback.print_exc())
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
