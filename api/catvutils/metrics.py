@@ -105,8 +105,7 @@ class CatvMetrics:
     def save_annotations(self):
         all_nodes = {node["address"]: node for node in self.node_list}
         all_node_keys = list(all_nodes.keys())
-        # if api_settings.SAVE_EXTRA_ANNOTATE:
-        if True:
+        if api_settings.SAVE_EXTRA_ANNOTATE:
             for node_chunk in chunks(all_node_keys, api_settings.QUERY_CHUNK_SIZE):
                 bulk_indicators = []
                 matched_nodes = IndicatorExtraAnnotation.objects.filter(pattern__in=node_chunk)
