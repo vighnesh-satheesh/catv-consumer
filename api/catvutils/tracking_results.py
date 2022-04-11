@@ -146,6 +146,7 @@ class TrackingResults:
         rpc = RPCClientFetchIndicators()
         res = rpc.call(request_dict).decode("utf-8")
         indicators = ast.literal_eval(res)
+        print("length of indicators", len(indicators))
         seen_indicators = []
         if len(indicators) > 0:
             for item in indicators:
