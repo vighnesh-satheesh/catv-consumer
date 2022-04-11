@@ -1,4 +1,5 @@
 import ast
+import traceback
 from datetime import datetime
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
@@ -153,48 +154,51 @@ class TrackingResults:
         indicators = ast.literal_eval(res)
         seen_indicators = []
         if len(indicators) > 0:
-            for item in indicators:
-                if item['pattern'].lower() in seen_indicators:
-                    continue
-                cur_node = nc.get_node(item["pattern"].lower())
-                cur_node = nc.get_node(item["pattern"]) if cur_node is None else cur_node
-                if cur_node is None:
-                    continue
-                cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
-                                        'security_category': item['security_category'],
-                                        'pattern_type': item['pattern_type'],
-                                        'pattern_subtype': item['pattern_subtype']})
-                if cur_node.group == "Exchange/DEX/Bridge/Mixer":
-                    seen_indicators.append(item['pattern'].lower())
-                    continue
-                if item["security_category"].lower() == "graylist":
-                    if item["annotation"]:
-                        cur_node.update(annotation=item["annotation"])
-                        cur_node.set_group_from_annotation()
+            try:
+                for item in indicators:
+                    if item['pattern'].lower() in seen_indicators:
+                        continue
+                    cur_node = nc.get_node(item["pattern"].lower())
+                    cur_node = nc.get_node(item["pattern"]) if cur_node is None else cur_node
+                    if cur_node is None:
+                        continue
+                    cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
+                                            'security_category': item['security_category'],
+                                            'pattern_type': item['pattern_type'],
+                                            'pattern_subtype': item['pattern_subtype']})
+                    if cur_node.group == "Exchange/DEX/Bridge/Mixer":
+                        seen_indicators.append(item['pattern'].lower())
+                        continue
+                    if item["security_category"].lower() == "graylist":
+                        if item["annotation"]:
+                            cur_node.update(annotation=item["annotation"])
+                            cur_node.set_group_from_annotation()
+                        else:
+                            cur_node.update(group="No Tag", annotation="")
                     else:
-                        cur_node.update(group="No Tag", annotation="")
-                else:
-                    kwargs = {}
-                    kwargs["group"] = item["security_category"].title()
-                    if item["annotation"]:
-                        kwargs["annotation"] = item["annotation"]
-                        if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item["annotation"] or "Mixer" in item["annotation"] or "bridge" in item["annotation"] or "mixer" in item["annotation"]:
-                            kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
-                    else:
-                        kwargs["annotation"] = ""
-                    cur_node.update(**kwargs)
-                nc.update_node(item['pattern'].lower(), cur_node)
-                for transaction in item_list:
-                    if not transaction.get('sender_annotation', None):
-                        transaction['sender_annotation'] = ''
-                    if not transaction.get('receiver_annotation', None):
-                        transaction['receiver_annotation'] = ''
+                        kwargs = {}
+                        kwargs["group"] = item["security_category"].title()
+                        if item["annotation"]:
+                            kwargs["annotation"] = item["annotation"]
+                            if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item["annotation"] or "Mixer" in item["annotation"] or "bridge" in item["annotation"] or "mixer" in item["annotation"]:
+                                kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
+                        else:
+                            kwargs["annotation"] = ""
+                        cur_node.update(**kwargs)
+                    nc.update_node(item['pattern'].lower(), cur_node)
+                    for transaction in item_list:
+                        if not transaction.get('sender_annotation', None):
+                            transaction['sender_annotation'] = ''
+                        if not transaction.get('receiver_annotation', None):
+                            transaction['receiver_annotation'] = ''
 
-                    if transaction['sender'].lower() == cur_node.address.lower():
-                        transaction['sender_annotation'] = cur_node.annotation
-                    elif transaction['receiver'].lower() == cur_node.address.lower():
-                        transaction['receiver_annotation'] = cur_node.annotation
-                seen_indicators.append(item['pattern'].lower())
+                        if transaction['sender'].lower() == cur_node.address.lower():
+                            transaction['sender_annotation'] = cur_node.annotation
+                        elif transaction['receiver'].lower() == cur_node.address.lower():
+                            transaction['receiver_annotation'] = cur_node.annotation
+                    seen_indicators.append(item['pattern'].lower())
+            except Exception as e:
+                traceback.print_exc()
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
