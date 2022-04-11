@@ -81,9 +81,12 @@ class CATVSerializer(serializers.Serializer):
         tracking_results = TrackingResults(**self.data, chain=self._token_type)
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
+            print("after get tracking data")
             tracking_results.create_graph_data(build_lossy_graph)
+            print("after create graph data")
             tracking_results.set_annotations_from_db(
                 token_type=models.CatvTokens.ETH.value)
+            print("after set annotations")
             return {
                 "graph": tracking_results.make_graph_dict(),
                 "api_calls": tracking_results.ext_api_calls,
@@ -98,7 +101,6 @@ class CATVSerializer(serializers.Serializer):
                 err_msg = tracking_results.error
             elif e:
                 err_msg = "Oops! Something went wrong while getting results for this address. Please try again later."
-                print(e)
             raise exceptions.FileNotFound(err_msg)
 
 
