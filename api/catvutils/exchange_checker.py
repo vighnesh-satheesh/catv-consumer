@@ -50,6 +50,7 @@ class ExchangeNodeList:
         if send_count:
             dist_nodes_marked_as_exchange = [node for node in self.dist_node_list
                                              if node['id'] != 0 and node['address'] in send_count and send_count[node['address']] >= 2000]
+            print('dist_nodes_marked_as_exchange:-', dist_nodes_marked_as_exchange)
             # adding dist side marked nodes into dist_exchange_nodes
             self.dist_exchange_nodes.extend(node for node in dist_nodes_marked_as_exchange
                                             if node not in self.dist_exchange_nodes)
@@ -57,6 +58,7 @@ class ExchangeNodeList:
         if receive_count:
             src_nodes_marked_as_exchange = [node for node in self.src_node_list
                                             if node['id'] != 0 and node['address'] in receive_count and receive_count[node['address']] >= 2000]
+            print('src_nodes_marked_as_exchange:-', src_nodes_marked_as_exchange)
             # adding src side marked nodes into src_exchange_nodes
             self.src_exchange_nodes.extend(node for node in src_nodes_marked_as_exchange
                                            if node not in self.src_exchange_nodes)
