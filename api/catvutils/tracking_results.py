@@ -17,7 +17,7 @@ from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInter
 from ..models import (
     BloxyDistribution, BloxySource, CatvTokens
 )
-from ..rpc.RPCClient import RPCClientFetchIndicators
+from ..rpc.RPCClient import RPCClientFetchIndicators, RPCClientCARAReports
 
 
 def chunks(iterable, size):
@@ -153,6 +153,13 @@ class TrackingResults:
         res = rpc.call(request_dict).decode("utf-8")
         indicators = ast.literal_eval(res)
         print("indicators length ", len(indicators))
+        # Extremely High Node
+        cara_addr_list = nc.get_node_enum().keys()
+        cara_addr_list = [addr for addr in cara_addr_list]
+        request_dict_cara = {'addr_list': cara_addr_list}
+        rpc_cara = RPCClientCARAReports()
+        res_cara = rpc_cara.call(request_dict_cara).decode("utf-8")
+        new_addresses = ast.literal_eval(res_cara)
         seen_indicators = []
         if len(indicators) > 0:
             try:
@@ -203,6 +210,15 @@ class TrackingResults:
             except Exception as e:
                 traceback.print_exc()
                 raise
+
+        if len(new_addresses) > 0:
+            for address in new_addresses:
+                add_node = nc.get_node(address)
+                if add_node is None:
+                    continue
+                else:
+                    add_node.update(group="Suspicious", annotation="Extremely High Risk")
+                    nc.update_node(address, add_node)
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
