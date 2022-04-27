@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from requests.exceptions import ReadTimeout
-
+import traceback
 
 from . import exceptions
 from . import models
@@ -93,6 +93,7 @@ class CATVSerializer(serializers.Serializer):
             raise exceptions.FileNotFound("Timeout exceeded while fetching/processing data.")
         except Exception as e:
             print(e)
+            traceback.print_exc()
             err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
             if tracking_results.error:
                 err_msg = tracking_results.error
@@ -135,6 +136,8 @@ class CATVBTCSerializer(CATVSerializer):
         except ReadTimeout:
             raise exceptions.FileNotFound("Timeout exceeded while fetching/processing data.")
         except Exception as e:
+            print(e)
+            traceback.print_exc()
             err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
             if tracking_results.error:
                 err_msg = tracking_results.error
@@ -215,6 +218,8 @@ class CATVBTCCoinpathSerializer(CATVSerializer):
         except ReadTimeout:
             raise exceptions.FileNotFound("Timeout exceeded while fetching/processing data.")
         except Exception as e:
+            print(e)
+            traceback.print_exc()
             err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
             if tracking_results.error:
                 err_msg = tracking_results.error
@@ -301,7 +306,7 @@ class CATVEthPathSerializer(serializers.Serializer):
         except ReadTimeout:
             raise exceptions.FileNotFound("Timeout exceeded while fetching/processing data.")
         except Exception as e:
-            import traceback
+            print(e)
             traceback.print_exc()
             err_msg = "Incorrect or missing transactions. Please try adjusting your search criteria."
             if tracking_instance.error:
