@@ -201,28 +201,32 @@ class TrackingResults:
                             transaction['receiver_annotation'] = cur_node.annotation
                     seen_indicators.append(item['pattern'].lower())
             except Exception as e:
-                print(traceback.print_exc())
+                traceback.print_exc()
+                raise
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
-        if not self._skip_source and self._async_source_graph:
-            tracking_results, nc = self._async_source_graph.get()
-            updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
-            tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['item_list'] = updated_item_list
-            updated_nc.filter_update_nodes()
-            tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['node_enum'] = updated_nc.get_node_enum()
-            self._source_graph = tracking_results
-        if not self._skip_dist and self._async_dist_graph:
-            tracking_results, nc = self._async_dist_graph.get()
-            updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
-            tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['item_list'] = updated_item_list
-            updated_nc.filter_update_nodes()
-            tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['node_enum'] = updated_nc.get_node_enum()
-            self._dist_graph = tracking_results
+        try:
+            if not self._skip_source and self._async_source_graph:
+                tracking_results, nc = self._async_source_graph.get()
+                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
+                tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['item_list'] = updated_item_list
+                updated_nc.filter_update_nodes()
+                tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['node_enum'] = updated_nc.get_node_enum()
+                self._source_graph = tracking_results
+            if not self._skip_dist and self._async_dist_graph:
+                tracking_results, nc = self._async_dist_graph.get()
+                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
+                tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['item_list'] = updated_item_list
+                updated_nc.filter_update_nodes()
+                tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['node_enum'] = updated_nc.get_node_enum()
+                self._dist_graph = tracking_results
+        except Exception as e:
+            raise
 
     def make_graph_dict(self):
         graph_dict = {}
