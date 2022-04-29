@@ -17,7 +17,7 @@ from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInter
 from ..models import (
     BloxyDistribution, BloxySource, CatvTokens
 )
-from ..rpc.RPCClient import RPCClientFetchIndicators
+from ..rpc.RPCClient import RPCClientFetchIndicators, RPCClientCARAReports
 
 
 def chunks(iterable, size):
@@ -148,6 +148,13 @@ class TrackingResults:
         res = rpc.call(request_dict).decode("utf-8")
         indicators = ast.literal_eval(res)
         print("indicators length ", len(indicators))
+        # Extremely High Node
+        cara_addr_list = nc.get_node_enum().keys()
+        cara_addr_list = [addr for addr in cara_addr_list]
+        request_dict_cara = {'addr_list': cara_addr_list}
+        rpc_cara = RPCClientCARAReports()
+        res_cara = rpc_cara.call(request_dict_cara).decode("utf-8")
+        new_addresses = ast.literal_eval(res_cara)
         seen_indicators = []
         if len(indicators) > 0:
             try:
@@ -196,28 +203,40 @@ class TrackingResults:
                             transaction['receiver_annotation'] = cur_node.annotation
                     seen_indicators.append(item['pattern'].lower())
             except Exception as e:
-                print(traceback.print_exc())
+                traceback.print_exc()
+                raise
+        if len(new_addresses) > 0:
+            for address in new_addresses:
+                add_node = nc.get_node(address)
+                if add_node is None:
+                    continue
+                else:
+                    add_node.update(group="Suspicious", annotation="Extremely High Risk")
+                    nc.update_node(address, add_node)
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
-        if not self._skip_source and self._async_source_graph:
-            tracking_results, nc = self._async_source_graph.get()
-            updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
-            tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['item_list'] = updated_item_list
-            updated_nc.filter_update_nodes()
-            tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['node_enum'] = updated_nc.get_node_enum()
-            self._source_graph = tracking_results
-        if not self._skip_dist and self._async_dist_graph:
-            tracking_results, nc = self._async_dist_graph.get()
-            updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
-            tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['item_list'] = updated_item_list
-            updated_nc.filter_update_nodes()
-            tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
-            tracking_results['node_enum'] = updated_nc.get_node_enum()
-            self._dist_graph = tracking_results
+        try:
+            if not self._skip_source and self._async_source_graph:
+                tracking_results, nc = self._async_source_graph.get()
+                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
+                tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['item_list'] = updated_item_list
+                updated_nc.filter_update_nodes()
+                tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['node_enum'] = updated_nc.get_node_enum()
+                self._source_graph = tracking_results
+            if not self._skip_dist and self._async_dist_graph:
+                tracking_results, nc = self._async_dist_graph.get()
+                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
+                tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['item_list'] = updated_item_list
+                updated_nc.filter_update_nodes()
+                tracking_results['graph_node_list'] = list(updated_nc.get_nodes_as_dict().values())
+                tracking_results['node_enum'] = updated_nc.get_node_enum()
+                self._dist_graph = tracking_results
+        except Exception as e:
+            raise
 
     def make_graph_dict(self):
         graph_dict = {}
