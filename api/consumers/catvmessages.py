@@ -23,7 +23,7 @@ from api.serializers import (
 
 from api.settings import api_settings
 from api.tasks import CatvHistoryTask, CatvPathHistoryTask
-from api.rpc.RPCClient import RPCClientSaveS3FileToDB
+from api.rpc.RPCClient import RPCClientSaveS3FileToDB, RPCClientUpdateUCSSCatvStatus
 
 __all__ = ('process_catv_messages',)
 
@@ -89,6 +89,7 @@ def process_catv_messages(job: CatvJobQueue):
         results = None
         message_id = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
+        requester = request_body.get("requester", "catv")
         token_type = request_body.get("token_type", CatvTokens.ETH.value)
         search_type = request_body.get("search_type", CatvSearchType.FLOW.value)
         search_params = request_body.get("search_params", {})
@@ -195,4 +196,10 @@ def process_catv_messages(job: CatvJobQueue):
                 request_instance.updated = now()
                 request_instance.save()
                 CatvResult.objects.filter(request=request_instance).update(result_file_id=file_id)
+                if requester == "ucss":
+                    rpc = RPCClientUpdateUCSSCatvStatus()
+                    res = rpc.call(str(request_instance.id)).decode('utf-8')
+                    if bool(res):
+                        print("UCSS catv request status updated successfully")
                 job.delete()
+                
