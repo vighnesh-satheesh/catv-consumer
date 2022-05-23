@@ -139,7 +139,7 @@ class RPCClientCARAReports:
         self.connection.close()
         return self.response
 
-class RPCClientUpdateUCSSCatvStatus:
+class RPCClientUpdateUCSSCatvResult:
     def __init__(self):
         if api_settings.RABBIT_MQ_ENV == "local":
             self.connection = pika.BlockingConnection(
@@ -168,17 +168,17 @@ class RPCClientUpdateUCSSCatvStatus:
         if self.corr_id == props.correlation_id:
             self.response = body
 
-    def call(self, catv_request_id):
+    def call(self, ucss_catv_result):
         self.response = None
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
             exchange='',
-            routing_key='rpc_ucss_update_catv_status',
+            routing_key='rpc_ucss_update_catv_result',
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,
             ),
-            body=str(catv_request_id))
+            body=str(ucss_catv_result))
         while self.response is None:
             self.connection.process_data_events()
         self.connection.close()
