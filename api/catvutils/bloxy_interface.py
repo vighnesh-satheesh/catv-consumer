@@ -44,7 +44,9 @@ class BloxyAPIInterface:
             'xrp': 'ripple',
             'xlm': 'stellar',
             'bnb': 'binance',
-            'ada': 'cardano'
+            'ada': 'cardano',
+            'bsc': 'bsc',
+            'klay': 'klaytn'
         }
         
         updated_chain = chain.lower()
@@ -62,6 +64,6 @@ class BloxyAPIInterface:
                 payload['token_address'] = token_address
             else:
                 payload['token'] = token_address
-        print("Payload : ", payload)
+        print("Payload: ", payload)
         r = self.call_bloxy_api(api_url, payload)
         return r
