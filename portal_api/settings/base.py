@@ -271,9 +271,9 @@ API_SETTINGS = {
     "RABBIT_MQ_USERNAME": env.str("RABBIT_MQ_USERNAME", 'guest'),
     "RABBIT_MQ_PASSWORD": env.str("RABBIT_MQ_PASSWORD", 'guest'),
     "RABBIT_MQ_REGION": env.str("RABBIT_MQ_REGION", 'ap-southeast-1'),
-    "RABBIT_MQ_BROKER_ID":env.str("RABBIT_MQ_BROKER_ID", 'b-8d90beb2-5764-4bf6-bff6-c480c228568c'),
-    "RABBIT_MQ_ENV":env.str("RABBIT_MQ_ENV", "production"),
-    "RABBIT_MQ_LOCAL_URL":env.str("RABBIT_MQ_LOCAL_URL", "rabbitmq"),
+    "RABBIT_MQ_BROKER_ID":env.str("RABBIT_MQ_BROKER_ID", ""),
+    "RABBIT_MQ_ENV":env.str("RABBIT_MQ_ENV", ""),
+    "RABBIT_MQ_LOCAL_URL":env.str("RABBIT_MQ_LOCAL_URL", "rabbitmq")
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.

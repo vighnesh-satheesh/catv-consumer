@@ -89,6 +89,7 @@ def process_catv_messages(job: CatvJobQueue):
         results = None
         message_id = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
+        requester = request_body.get("requester", "catv")
         token_type = request_body.get("token_type", CatvTokens.ETH.value)
         search_type = request_body.get("search_type", CatvSearchType.FLOW.value)
         search_params = request_body.get("search_params", {})
@@ -163,7 +164,7 @@ def process_catv_messages(job: CatvJobQueue):
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
         error_trace = str(e)
-        print(traceback.print_exc())
+        traceback.print_exc()
         generic_error = "Internal server error. Please try again later"
         safe_error_trace = error_trace if isinstance(e, FileNotFound) else generic_error
         error_dict = {
