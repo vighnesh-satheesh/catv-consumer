@@ -334,6 +334,7 @@ class ExchangeChecker:
 
     def set_graph_data(self, mode):
         # updating the final values for graph_data
+        print("Updating final values for graph_data")
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
         self.graph_data['item_list'] = self.item_list
