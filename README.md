@@ -182,9 +182,6 @@
 * API\_TOKEN\_ENCRYPT\_PRIVATE\_KEY
 	* **Required**
 	* token and password encryption private key file path.
-* API\_SENTRY\_DSN
-	* **Required** for `production`
-	* Sentry DSN. This is for `production`
 * API_S3_REGION
     * **Required**
     * specifies the S3 region
@@ -241,7 +238,6 @@
 		* expose file api. 
 	* PORTAL\_API\_VERSION
 		* portal api server version, not api version.
-		* this is for Sentry release tag. 
 
 ### portal-api
 
@@ -258,7 +254,6 @@
 		* expose general api except file api. 
 	* PORTAL\_API\_VERSION
 		* portal api server version, not api version.
-		* this is for Sentry release tag. 
 
 ### portal-admin
 
