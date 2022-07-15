@@ -9,6 +9,7 @@ from django.utils.timezone import now
 
 from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
+from api.catvutils.smc_method_finder import SmartContractMethodFinder
 from api.exceptions import FileNotFound
 from api.models import (
     CatvTokens, CatvSearchType,
@@ -131,6 +132,10 @@ def process_catv_messages(job: CatvJobQueue):
                 graph_data,
             )
             graph_data = exchange_checker_obj.stop_transfers_at_exchange()
+
+        if token_type in [CatvTokens.ETH.value, CatvTokens.KLAY.value, CatvTokens.BSC.value]:
+            smart_contract_data_obj = SmartContractMethodFinder(token_type, graph_data['node_list'], graph_data['edge_list'])
+            graph_data["edge_list"] = smart_contract_data_obj.get_updated_edges()
 
         catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
