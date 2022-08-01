@@ -112,7 +112,10 @@ class TrackingResults:
             for item in transaction_data:
                 if len(item["receiver"]) > 0:
                     temp_transaction_data.append(item)
+                if item['tx_hash'] == '3ed4c98cde604538264f6d1e712500ebd83664cebd4e2e72419e07908cc3cd47':
+                    print("tx data: ", item)
             transaction_data = temp_transaction_data
+
             return transaction_data
         except IndexError:
             self.error_messages[error_placeholder] = "Missing {} results for the wallet address within the date " \

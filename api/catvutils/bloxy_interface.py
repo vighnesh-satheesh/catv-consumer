@@ -10,7 +10,7 @@ class BloxyAPIInterface:
         self._key = key
         self._source_endpoint = settings.BLOXY_SRC_ENDPOINT
         self._distribution_endpoint = settings.BLOXY_DIST_ENDPOINT
-        self._terra_key = settings.GRAPHQL_TERRA_X_API_KEY
+        self._terra_key = settings.GRAPHQL_X_API_KEY
         self._terra_endpoint = settings.GRAPHQL_ENDPOINT
 
     def call_bloxy_api(self, api_url, data, timeout=600):
@@ -27,10 +27,8 @@ class BloxyAPIInterface:
                         from_time=datetime(2015, 1, 1, 0, 0),
                         till_time=datetime.now(),
                         token_address=None, source=True, chain='ETH'):
-        print("limit:", limit)
-        print("tx_limit:", tx_limit)
-        if chain == 'TERRA':
-            grahql_terra_interface = GraphQLInterfaceTerra(source, address, depth_limit, from_time, till_time, tx_limit)
+        if chain == 'LUNC':
+            grahql_terra_interface = GraphQLInterfaceTerra(source, address, depth_limit, from_time, till_time, limit)
             results = grahql_terra_interface.call_terra_endpoint()
             return results
 
@@ -81,16 +79,16 @@ class BloxyAPIInterface:
 
 
 class GraphQLInterfaceTerra:
-    def __init__(self, source, address, depth_limit, from_time, till_time, tx_limit):
-        self._terra_key = settings.GRAPHQL_TERRA_X_API_KEY
-        self._terra_endpoint = settings.GRAPHQL_ENDPOINT
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit):
+        self._terra_key = settings.GRAPHQL_X_API_KEY
+        self._terra_endpoint = "https://graphql.bitquery.io"
         self._headers = {'X-API-KEY': self._terra_key}
         self.source = source
         self.address = address
         self.depth = depth_limit
         self.from_time = from_time
         self.till_time = till_time
-        self.tx_limit = tx_limit
+        self.limit = int(limit)
 
     def _define_query(self):
         if self.source:
@@ -101,10 +99,10 @@ class GraphQLInterfaceTerra:
             query sentinel_terra {{
                   cosmos(network: terra) {{
                     coinpath(
-                      options: {{direction: {direction}, asc: "depth", limit: {self.tx_limit}}}
-                      initialAddress: {{is: "{self.address}"}}
-                      depth: {{lteq: {self.depth}}}
-                      date: {{between: ["{self.from_time.split("T")[0]}","{self.till_time.split("T")[0]}"]}}
+                      options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                      initialAddress: {{ is: "{self.address}" }}
+                      depth: {{ lteq: {self.depth} }}
+                      date: {{ between: ["{self.from_time.split("T")[0]}","{self.till_time.split("T")[0]}"] }}
                     ) {{
                       receiver {{
                         address
@@ -120,11 +118,14 @@ class GraphQLInterfaceTerra:
                       }}
                       block {{
                         timestamp {{
-                          iso8601
+                          time(format: "%Y-%m-%d")
                         }}
                       }}
                       depth
-                      amount(in: USD)
+                      amount
+                      currency {{
+                        symbol
+                      }}
                     }}
                   }}
                 }}   
@@ -140,21 +141,18 @@ class GraphQLInterfaceTerra:
             for item in response["data"]["cosmos"]["coinpath"]:
                 sender_annotation = item["sender"]["annotation"]
                 receiver_annotation = item["receiver"]["annotation"]
-                if item["sender"]["annotation"] == "None" or item["sender"]["annotation"] == None:
-                    sender_annotation = ""
-                if item["receiver"]["annotation"] == "None" or item["receiver"]["annotation"] == None:
-                    receiver_annotation = ""
                 flattened_response.append(
                     {
                         "depth": item["depth"],
-                        "tx_time": item["block"]["timestamp"]["iso8601"],
+                        "tx_time": item["block"]["timestamp"]["time"],
                         "sender": item["sender"]["address"],
                         "receiver": item["receiver"]["address"],
                         "tx_hash": item["transaction"]["hash"],
                         "tx_value": item["transaction"]["value"],
                         "amount": item["amount"],
-                        "sender_annotation": item["sender"]["annotation"] if item["sender"]["annotation"] not in [None, "None"] else "",
-                        "receiver_annotation": item["receiver"]["annotation"] if item["receiver"]["annotation"] not in [None, "None"] else ""
+                        "symbol": item["currency"]["symbol"],
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else ""
                     }
                 )
             return flattened_response

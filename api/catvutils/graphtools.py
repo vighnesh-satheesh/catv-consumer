@@ -242,6 +242,9 @@ def assign_edges(result, mode, node_enum):
             edge_dict[(item['sender'], item['receiver'])]['width'] = EDGE_WIDTH_MIN
         else:
             edge_dict[(item['sender'], item['receiver'])]['width'] = width
+        if item['tx_hash'] == '3ed4c98cde604538264f6d1e712500ebd83664cebd4e2e72419e07908cc3cd47':
+            print("edge_dict: ", edge_dict)
+            print("item: ", item)
     return edge_dict
 
 
