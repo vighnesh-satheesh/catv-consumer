@@ -113,6 +113,7 @@ class TrackingResults:
                 if len(item["receiver"]) > 0:
                     temp_transaction_data.append(item)
             transaction_data = temp_transaction_data
+
             return transaction_data
         except IndexError:
             self.error_messages[error_placeholder] = "Missing {} results for the wallet address within the date " \
