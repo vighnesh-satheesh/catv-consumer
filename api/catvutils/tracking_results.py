@@ -212,13 +212,16 @@ class TrackingResults:
                 traceback.print_exc()
                 raise
         if len(new_addresses) > 0:
-            for address in new_addresses:
-                add_node = nc.get_node(address)
+            for result in new_addresses:
+                add_node = nc.get_node(result[0])
                 if add_node is None:
                     continue
+                elif result[1] == 'blacklist':
+                    add_node.update(group="Blacklist", annotation="Blacklist")
+                    nc.update_node(result[0], add_node)
                 else:
                     add_node.update(group="Suspicious", annotation="Extremely High Risk")
-                    nc.update_node(address, add_node)
+                    nc.update_node(result[0], add_node)
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
