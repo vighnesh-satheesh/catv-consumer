@@ -2,7 +2,7 @@ import sys
 from time import sleep
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import transaction, connection
 from multiprocessing.pool import ThreadPool
 
 from api.constants import Constants
@@ -27,14 +27,15 @@ class Command(BaseCommand):
                 pending__csv_jobs_arr = list(pending__csv_jobs)
                 pending__csv_count = len(pending__csv_jobs_arr)
                 if pending_count > 0:
+                    query = Constants.QUERIES['UPDATE_CATV_JOBS']
+                    with connection.cursor() as cursor:
+                        cursor.execute(query)
                     for job in pending_jobs_arr:
                         print(job.message)
                         process_catv_messages(job)
-                    Constants.QUERIES['UPDATE_CATV_JOBS']
                 elif pending__csv_count > 0:
                     pool = ThreadPool(processes=4)
                     pool.map(process_catv_messages, pending__csv_jobs_arr)
-                    Constants.QUERIES['UPDATE_CSV_CATV_JOBS']
                 else:
                     print("Relaxing for some time...")
                     sleep(15)
