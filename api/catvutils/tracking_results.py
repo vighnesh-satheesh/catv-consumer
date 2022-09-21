@@ -186,6 +186,10 @@ class TrackingResults:
                             cur_node.set_group_from_annotation()
                         else:
                             cur_node.update(group="No Tag", annotation="")
+                    elif item["security_category"].lower() == "blacklist":
+                        cur_node.update(group="Blacklist", annotation="Blacklist")
+                    elif item["security_category"].lower() == "whitelist":
+                        cur_node.update(group="Whitelist", annotation="Whitelist")
                     else:
                         kwargs = {}
                         kwargs["group"] = item["security_category"].title()
@@ -208,20 +212,34 @@ class TrackingResults:
                         elif transaction['receiver'].lower() == cur_node.address.lower():
                             transaction['receiver_annotation'] = cur_node.annotation
                     seen_indicators.append(item['pattern'].lower())
+                    if len(new_addresses) > 0 and item["security_category"].lower() == "blacklist" or item["security_category"].lower() == "whitelist":
+                        for result in new_addresses:
+                            if item['pattern'].lower() == result[0] or item['pattern'] == result[0]:
+                                new_addresses.remove(result)
             except Exception as e:
                 traceback.print_exc()
                 raise
+
         if len(new_addresses) > 0:
             for result in new_addresses:
                 add_node = nc.get_node(result[0])
-                if add_node is None:
-                    continue
-                elif result[1] == 'blacklist':
-                    add_node.update(group="Blacklist", annotation="Blacklist")
-                    nc.update_node(result[0], add_node)
-                else:
-                    add_node.update(group="Suspicious", annotation="Extremely High Risk")
-                    nc.update_node(result[0], add_node)
+                for item in cara_addr_list:
+                    annotation_group = nc.get_node(item).group
+                    if add_node is None:
+                        continue
+                    elif result[1] == 'blacklist':
+                        add_node.update(group="Blacklist", annotation="Blacklist")
+                        nc.update_node(result[0], add_node)
+                        break
+                    elif result[1] == 'whitelist':
+                        add_node.update(group="Whitelist", annotation="Whitelist")
+                        nc.update_node(result[0], add_node)
+                        break
+                    elif 'Exchange/DEX/Bridge/Mixer' in annotation_group and result[1] != 'blacklist' and result[1] != 'whitelist':
+                        break
+                    else:
+                        add_node.update(group="Suspicious", annotation="Extremely High Risk")
+                        nc.update_node(result[0], add_node)
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):
