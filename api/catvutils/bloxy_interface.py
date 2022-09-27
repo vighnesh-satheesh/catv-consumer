@@ -34,18 +34,30 @@ class BloxyAPIInterface:
 
         else:
             if source:
-                api_url = settings.BLOXY_ETH_SRC_ENDPOINT if (
-                                                chain == 'ETH' or
-                                                chain == 'BSC' or
-                                                chain == 'KLAY'
-                                            ) else self._source_endpoint
+                # api_url = settings.BLOXY_ETH_SRC_ENDPOINT if (
+                #                                 chain == 'ETH' or
+                #                                 chain == 'BSC' or
+                #                                 chain == 'KLAY'
+                #                             ) else self._source_endpoint
+                if chain == 'ETH':
+                    api_url = settings.BLOXY_ETH_SRC_ENDPOINT
+                elif chain == 'BSC' or 'KLAY':
+                    api_url = settings.BLOXY_KLAY_SRC_ENDPOINT
+                else:
+                    api_url = self._source_endpoint
                 depth = depth_limit
             else:
-                api_url = settings.BLOXY_ETH_DIST_ENDPOINT if (
-                                                chain == 'ETH' or
-                                                chain == 'BSC' or
-                                                chain == 'KLAY'
-                                            ) else self._distribution_endpoint
+                # api_url = settings.BLOXY_ETH_DIST_ENDPOINT if (
+                #                                 chain == 'ETH' or
+                #                                 chain == 'BSC' or
+                #                                 chain == 'KLAY'
+                #                             ) else self._distribution_endpoint
+                if chain == 'ETH':
+                    api_url = settings.BLOXY_ETH_DIST_ENDPOINT
+                elif chain == 'BSC' or 'KLAY':
+                    api_url = settings.BLOXY_KLAY_DIST_ENDPOINT
+                else:
+                    api_url = self._distribution_endpoint
                 depth = depth_limit
 
             updated_chain_map = {

@@ -71,6 +71,9 @@ class BloxyBTCAPIInterface:
 
     def get_transactions(self, address, tx_limit, limit, depth_limit=2, from_time=datetime(2015, 1, 1, 0, 0),
                          till_time=datetime.now(), source=True, chain='BTC'):
+        if chain is not 'BTC':
+            self.__source_endpoint = settings.BLOXY_LTC_SRC_ENDPOINT
+            self.__distribution_endpoint = settings.BLOXY_LTC_DIST_ENDPOINT
         api_url = self.__source_endpoint if source else self.__distribution_endpoint
         depth = depth_limit
         updated_chain_map = {
