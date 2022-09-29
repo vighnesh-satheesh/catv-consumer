@@ -14,7 +14,7 @@ class BloxyAPIInterface:
         self._terra_endpoint = settings.GRAPHQL_ENDPOINT
 
     def call_bloxy_api(self, api_url, data, timeout=600):
-        print(api_url)
+        print('api_url:', api_url)
         print(data)
         response = requests.get(api_url, params=data, timeout=timeout)
         if response.status_code != 200:
@@ -75,6 +75,10 @@ class BloxyAPIInterface:
                 updated_chain = updated_chain_map[updated_chain]
 
             if updated_chain == 'ripple' or updated_chain == 'stellar':
+                if source:
+                    api_url = self._source_endpoint
+                else:
+                    api_url = self._distribution_endpoint
                 api_url = api_url.replace('coinpath', 'ripple:sentinel')
 
             payload = {'key': self._key, 'address': address, 'depth_limit': depth,
