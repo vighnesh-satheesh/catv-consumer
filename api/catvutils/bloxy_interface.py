@@ -30,6 +30,22 @@ class BloxyAPIInterface:
             grahql_terra_interface = GraphQLInterfaceTerra(source, address, depth_limit, from_time, till_time, limit)
             results = grahql_terra_interface.call_terra_endpoint()
             return results
+        elif chain == 'KLAY':
+            grahql_klaytn_interface = GraphQLInterfaceKlaytn(source, address, depth_limit, from_time, till_time, limit, chain, token_address)
+            results = grahql_klaytn_interface.call_klaytn_endpoint()
+            return results
+        elif chain == 'BSC':
+            grahql_bsc_interface = GraphQLInterfaceBSC(source, address, depth_limit, from_time, till_time, limit, chain, token_address, self._key)
+            results = grahql_bsc_interface.call_bsc_endpoint()
+            return results
+        elif chain == 'BNB':
+            grahql_bnb_interface = GraphQLInterfaceBNB(source, address, depth_limit, from_time, till_time, limit, chain, token_address, self._key)
+            results = grahql_bnb_interface.call_bnb_endpoint()
+            return results
+        elif chain == 'TRX':
+            grahql_trx_interface = GraphQLInterfaceTRX(source, address, depth_limit, from_time, till_time, limit, chain, token_address, self._key)
+            results = grahql_trx_interface.call_trx_endpoint()
+            return results
         else:
             if source:
                 if chain == 'ETH':
@@ -155,6 +171,489 @@ class GraphQLInterfaceTerra:
                         "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else ""
                     }
                 )
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceKlaytn:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address):
+        self._klaytn_key = settings.GRAPHQL_X_API_KEY
+        self._klaytn_endpoint = "https://graphql.bitquery.io"
+        self._headers = {'X-API-KEY': self._klaytn_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.token_address = token_address
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_KLAYTN_QUERY = f"""
+            query sentinel_klaytn {{
+                  ethereum(network: klaytn) {{
+                    coinpath(
+                      options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                      initialAddress: {{ is: "{self.address}" }}
+                      depth: {{ lteq: {self.depth} }}
+                      date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                      currency: {{ is: "{self.chain}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        smartContract {{
+                            contractType
+                        }}
+                        firstTxAt {{
+                            time
+                        }}
+                        lastTxAt {{
+                            time
+                        }}
+                        amountOut
+                        amountIn
+                        balance
+                        receiversCount
+                        sendersCount
+                        type
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        smartContract {{
+                            contractType
+                        }}
+                        type
+                      }}
+                      transaction {{
+                        hash
+                        value
+                      }}
+                      transactions {{
+                        timestamp
+                        txHash
+                        txValue
+                        amount
+                        height
+                      }}
+                      depth
+                      amount
+                      currency {{
+                        address
+                        name
+                        symbol
+                        tokenId
+                        tokenType
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_KLAYTN_QUERY
+
+    def call_klaytn_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._klaytn_endpoint, json={'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["ethereum"]["coinpath"] is None:
+                response["data"]["ethereum"]["coinpath"] = []
+            for item in response["data"]["ethereum"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                sender_type = item["sender"]["smartContract"]["contractType"]
+                receiver_type = item["receiver"]["smartContract"]["contractType"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transactions"][0]["timestamp"],
+                        "tx_hash": item["transactions"][0]["txHash"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "amount": item["amount"],
+                        "sender_type": sender_type if sender_type not in [None, "None"] else "Wallet",
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_type": receiver_type if receiver_type not in [None, "None"] else "Wallet",
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "symbol": item["currency"]["symbol"],
+                        "token": self.token_address, 
+                        "token_id": item["currency"]["tokenId"],
+                        "token_type": item["currency"]["tokenType"],
+                        "receiver_receivers_count": item["receiver"]["receiversCount"],
+                        "receiver_senders_count": item["receiver"]["sendersCount"],
+                        "receiver_first_tx_at": item["receiver"]["firstTxAt"]["time"],
+                        "receiver_last_tx_at": item["receiver"]["lastTxAt"]["time"],
+                        "receiver_amount_out": float(item["receiver"]["amountOut"]),
+                        "receiver_amount_in": float(item["receiver"]["amountIn"]),
+                        "receiver_balance": float(item["receiver"]["balance"])
+                    }
+                )
+            print('GraphQl Response', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceBSC:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address, key):
+        self._bsc_key = settings.GRAPHQL_X_API_KEY
+        self._bsc_endpoint = "https://graphql.bitquery.io"
+        self._headers = {'X-API-KEY': self._bsc_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.token_address = token_address
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_BSC_QUERY = f"""
+            query sentinel_bsc {{
+                  ethereum(network: bsc) {{
+                    coinpath(
+                      options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                      initialAddress: {{ is: "{self.address}" }}
+                      depth: {{ lteq: {self.depth} }}
+                      date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        smartContract {{
+                            contractType
+                        }}
+                        firstTxAt {{
+                            time
+                        }}
+                        lastTxAt {{
+                            time
+                        }}
+                        amountOut
+                        amountIn
+                        balance
+                        receiversCount
+                        sendersCount
+                        type
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        smartContract {{
+                            contractType
+                        }}
+                        type
+                      }}
+                      transaction {{
+                        hash
+                        value
+                      }}
+                      transactions {{
+                        timestamp
+                        txHash
+                        txValue
+                        amount
+                        height
+                      }}
+                      depth
+                      amount
+                      currency {{
+                        address
+                        name
+                        symbol
+                        tokenId
+                        tokenType
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_BSC_QUERY
+
+    def call_bsc_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._bsc_endpoint, json={'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["ethereum"]["coinpath"] is None:
+                response["data"]["ethereum"]["coinpath"] = []
+            for item in response["data"]["ethereum"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                sender_type = item["sender"]["smartContract"]["contractType"]
+                receiver_type = item["receiver"]["smartContract"]["contractType"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transactions"][0]["timestamp"],
+                        "tx_hash": item["transactions"][0]["txHash"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "amount": item["amount"],
+                        "sender_type": sender_type if sender_type not in [None, "None"] else "Wallet",
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_type": receiver_type if receiver_type not in [None, "None"] else "Wallet",
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "symbol": item["currency"]["symbol"],
+                        "token": self.token_address, 
+                        "token_id": item["currency"]["tokenId"],
+                        "token_type": item["currency"]["tokenType"],
+                        "receiver_receivers_count": item["receiver"]["receiversCount"],
+                        "receiver_senders_count": item["receiver"]["sendersCount"],
+                        "receiver_first_tx_at": item["receiver"]["firstTxAt"]["time"],
+                        "receiver_last_tx_at": item["receiver"]["lastTxAt"]["time"],
+                        "receiver_amount_out": float(item["receiver"]["amountOut"]),
+                        "receiver_amount_in": float(item["receiver"]["amountIn"]),
+                        "receiver_balance": float(item["receiver"]["balance"])
+                    }
+                )
+            print('GraphQl Response', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceBNB:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address, key):
+        self._bnb_key = settings.GRAPHQL_X_API_KEY
+        self._bnb_endpoint = "https://graphql.bitquery.io"
+        self._headers = {'X-API-KEY': self._bnb_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.token_address = token_address
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_BNB_QUERY = f"""
+            query sentinel_bnb {{
+                  binance {{
+                    coinpath(
+                      options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                      initialAddress: {{ is: "{self.address}" }}
+                      depth: {{ lteq: {self.depth} }}
+                      date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                      currency: {{ is: "{self.chain}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        firstTxAt {{
+                            time
+                        }}
+                        lastTxAt {{
+                            time
+                        }}
+                        amountOut
+                        amountIn
+                        balance
+                        receiversCount
+                        sendersCount
+                        type
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        type
+                      }}
+                      transaction {{
+                        hash
+                        value
+                        time {{
+                            time
+                        }}
+                      }}
+                      depth
+                      amount
+                      currency {{
+                        address
+                        name
+                        symbol
+                        tokenId
+                        tokenType
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_BNB_QUERY
+
+    def call_bnb_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._bnb_endpoint, json={'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["binance"]["coinpath"] is None:
+                response["data"]["binance"]["coinpath"] = []
+            for item in response["data"]["binance"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transaction"]["time"]["time"],
+                        "tx_hash": item["transaction"]["hash"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "amount": item["amount"],
+                        "sender_type": item["sender"]["type"],
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_type": item["receiver"]["type"],
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "symbol": item["currency"]["symbol"],
+                        "token": self.token_address, 
+                        "token_id": item["currency"]["tokenId"],
+                        "token_type": item["currency"]["tokenType"],
+                        "receiver_receivers_count": item["receiver"]["receiversCount"],
+                        "receiver_senders_count": item["receiver"]["sendersCount"],
+                        "receiver_first_tx_at": item["receiver"]["firstTxAt"]["time"],
+                        "receiver_last_tx_at": item["receiver"]["lastTxAt"]["time"],
+                        "receiver_amount_out": float(item["receiver"]["amountOut"]),
+                        "receiver_amount_in": float(item["receiver"]["amountIn"]),
+                        "receiver_balance": float(item["receiver"]["balance"])
+                    }
+                )
+            print('GraphQl Response', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceTRX:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address, key):
+        self._trx_key = settings.GRAPHQL_X_API_KEY
+        self._trx_endpoint = "https://graphql.bitquery.io"
+        self._headers = {'X-API-KEY': self._trx_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.token_address = token_address
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_TRX_QUERY = f"""
+            query sentinel_trx {{
+                  tron {{
+                    coinpath(
+                      options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                      initialAddress: {{ is: "{self.address}" }}
+                      depth: {{ lteq: {self.depth} }}
+                      date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                      currency: {{ is: "{self.chain}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        firstTxAt {{
+                            time
+                        }}
+                        lastTxAt {{
+                            time
+                        }}
+                        amountOut
+                        amountIn
+                        balance
+                        receiversCount
+                        sendersCount
+                        type
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        type
+                      }}
+                      transaction {{
+                        hash
+                        value
+                        time {{
+                            time
+                        }}
+                      }}
+                      depth
+                      amount
+                      currency {{
+                        address
+                        name
+                        symbol
+                        tokenId
+                        tokenType
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_TRX_QUERY
+
+    def call_trx_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._trx_endpoint, json={'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["tron"]["coinpath"] is None:
+                response["data"]["tron"]["coinpath"] = []
+            for item in response["data"]["tron"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transaction"]["time"]["time"],
+                        "tx_hash": item["transaction"]["hash"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "amount": item["amount"],
+                        "sender_type": item["sender"]["type"],
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_type": item["receiver"]["type"],
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "symbol": item["currency"]["symbol"],
+                        "token": self.token_address, 
+                        "token_id": item["currency"]["tokenId"],
+                        "token_type": item["currency"]["tokenType"],
+                        "receiver_receivers_count": item["receiver"]["receiversCount"],
+                        "receiver_senders_count": item["receiver"]["sendersCount"],
+                        "receiver_first_tx_at": item["receiver"]["firstTxAt"]["time"],
+                        "receiver_last_tx_at": item["receiver"]["lastTxAt"]["time"],
+                        "receiver_amount_out": float(item["receiver"]["amountOut"]),
+                        "receiver_amount_in": float(item["receiver"]["amountIn"]),
+                        "receiver_balance": float(item["receiver"]["balance"])
+                    }
+                )
+            print('GraphQl Response', len(flattened_response))
             return flattened_response
         except Exception as e:
             traceback.print_exc()
