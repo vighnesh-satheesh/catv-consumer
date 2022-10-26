@@ -195,6 +195,9 @@ class GraphQLInterfaceKlaytn:
             direction = "inbound"
         else:
             direction = "outbound"
+        currency_value = self.chain
+        if self.token_address is not None and self.token_address != '0x0000000000000000000000000000000000000000':
+            currency_value = self.token_address
         GRAPHQL_KLAYTN_QUERY = f"""
             query sentinel_klaytn {{
                   ethereum(network: klaytn) {{
@@ -203,7 +206,7 @@ class GraphQLInterfaceKlaytn:
                       initialAddress: {{ is: "{self.address}" }}
                       depth: {{ lteq: {self.depth} }}
                       date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
-                      currency: {{ is: "{self.chain}" }}
+                      currency: {{ is: "{currency_value}" }}
                     ) {{
                       receiver {{
                         address
@@ -322,66 +325,129 @@ class GraphQLInterfaceBSC:
             direction = "inbound"
         else:
             direction = "outbound"
-        GRAPHQL_BSC_QUERY = f"""
-            query sentinel_bsc {{
-                  ethereum(network: bsc) {{
-                    coinpath(
-                      options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
-                      initialAddress: {{ is: "{self.address}" }}
-                      depth: {{ lteq: {self.depth} }}
-                      date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
-                    ) {{
-                      receiver {{
-                        address
-                        annotation
-                        smartContract {{
-                            contractType
+        if self.token_address is not None and self.token_address != '0x0000000000000000000000000000000000000000':
+            GRAPHQL_BSC_QUERY = f"""
+                query sentinel_bsc {{
+                      ethereum(network: bsc) {{
+                        coinpath(
+                          options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                          initialAddress: {{ is: "{self.address}" }}
+                          depth: {{ lteq: {self.depth} }}
+                          date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                          currency: {{ is: "{self.token_address}" }}
+                        ) {{
+                          receiver {{
+                            address
+                            annotation
+                            smartContract {{
+                                contractType
+                            }}
+                            firstTxAt {{
+                                time
+                            }}
+                            lastTxAt {{
+                                time
+                            }}
+                            amountOut
+                            amountIn
+                            balance
+                            receiversCount
+                            sendersCount
+                            type
+                          }}
+                          sender {{
+                            address
+                            annotation
+                            smartContract {{
+                                contractType
+                            }}
+                            type
+                          }}
+                          transaction {{
+                            hash
+                            value
+                          }}
+                          transactions {{
+                            timestamp
+                            txHash
+                            txValue
+                            amount
+                            height
+                          }}
+                          depth
+                          amount
+                          currency {{
+                            address
+                            name
+                            symbol
+                            tokenId
+                            tokenType
+                          }}
                         }}
-                        firstTxAt {{
-                            time
-                        }}
-                        lastTxAt {{
-                            time
-                        }}
-                        amountOut
-                        amountIn
-                        balance
-                        receiversCount
-                        sendersCount
-                        type
                       }}
-                      sender {{
-                        address
-                        annotation
-                        smartContract {{
-                            contractType
+                    }}   
+                """
+        else:
+            GRAPHQL_BSC_QUERY = f"""
+              query sentinel_bsc {{
+                    ethereum(network: bsc) {{
+                      coinpath(
+                        options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                        initialAddress: {{ is: "{self.address}" }}
+                        depth: {{ lteq: {self.depth} }}
+                        date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                      ) {{
+                        receiver {{
+                          address
+                          annotation
+                          smartContract {{
+                              contractType
+                          }}
+                          firstTxAt {{
+                              time
+                          }}
+                          lastTxAt {{
+                              time
+                          }}
+                          amountOut
+                          amountIn
+                          balance
+                          receiversCount
+                          sendersCount
+                          type
                         }}
-                        type
-                      }}
-                      transaction {{
-                        hash
-                        value
-                      }}
-                      transactions {{
-                        timestamp
-                        txHash
-                        txValue
+                        sender {{
+                          address
+                          annotation
+                          smartContract {{
+                              contractType
+                          }}
+                          type
+                        }}
+                        transaction {{
+                          hash
+                          value
+                        }}
+                        transactions {{
+                          timestamp
+                          txHash
+                          txValue
+                          amount
+                          height
+                        }}
+                        depth
                         amount
-                        height
-                      }}
-                      depth
-                      amount
-                      currency {{
-                        address
-                        name
-                        symbol
-                        tokenId
-                        tokenType
+                        currency {{
+                          address
+                          name
+                          symbol
+                          tokenId
+                          tokenType
+                        }}
                       }}
                     }}
-                  }}
-                }}   
-            """
+                  }}   
+              """
         return GRAPHQL_BSC_QUERY
 
     def call_bsc_endpoint(self):
@@ -563,6 +629,9 @@ class GraphQLInterfaceTRX:
             direction = "inbound"
         else:
             direction = "outbound"
+        currency_value = self.chain
+        if self.token_address is not None and self.token_address != '0x0000000000000000000000000000000000000000':
+            currency_value = self.token_address
         GRAPHQL_TRX_QUERY = f"""
             query sentinel_trx {{
                   tron {{
@@ -571,7 +640,7 @@ class GraphQLInterfaceTRX:
                       initialAddress: {{ is: "{self.address}" }}
                       depth: {{ lteq: {self.depth} }}
                       date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
-                      currency: {{ is: "{self.chain}" }}
+                      currency: {{ is: "{currency_value}" }}
                     ) {{
                       receiver {{
                         address
