@@ -84,13 +84,13 @@ class CatvMetrics:
             grouped_by_receiver[item["receiver"]].append(item)
         grouped_by_sender = [{
             "address": sender,
-            "amount": sum([item["amount"] if abs(item["depth"]) > 1 else 0 for item in items])}
+            "amount": sum([item["amount"] if abs(item["depth"]) >= 1 else 0 for item in items])}
                              for sender, items in grouped_by_sender.items()]
         max_sender = max(grouped_by_sender, key=lambda sender: sender["amount"])
         # wallet with highest amount received
         grouped_by_receiver = [{
             "address": receiver,
-            "amount": sum([item["amount"] if abs(item["depth"]) > 1 else 0 for item in items])}
+            "amount": sum([item["amount"] if abs(item["depth"]) >= 1 else 0 for item in items])}
                                for receiver, items in grouped_by_receiver.items()]
         max_receiver = max(grouped_by_receiver, key=lambda receiver: receiver["amount"])
         # create dictionary and return
