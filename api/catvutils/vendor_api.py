@@ -75,6 +75,10 @@ class BloxyBTCAPIInterface:
             grahql_bch_interface = GraphQLInterfaceBCH(source, address, depth_limit, from_time, till_time, limit, chain)
             results = grahql_bch_interface.call_bch_endpoint()
             return results
+        elif chain == 'ADA':
+            grahql_cardano_interface = GraphQLInterfaceCARDANO(source, address, depth_limit, from_time, till_time, limit, chain)
+            results = grahql_cardano_interface.call_cardano_endpoint()
+            return results
         else:
             if chain is not 'BTC':
                 self.__source_endpoint = settings.BLOXY_LTC_SRC_ENDPOINT
@@ -196,6 +200,96 @@ class GraphQLInterfaceBCH:
                         "sender_type": item["sender"]["type"],
                         "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
                         "receiver_type": item["receiver"]["type"],
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "symbol": item["currency"]["symbol"],
+                        "tx_value_in": item["transaction"]["valueIn"],
+                        "tx_value_out": item["transaction"]["valueOut"],
+                    }
+                )
+            print('GraphQl Response', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceCARDANO:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
+        self._cardano_key = settings.GRAPHQL_X_API_KEY
+        self._cardano_endpoint = "https://graphql.bitquery.io"
+        self._headers = {'X-API-KEY': self._cardano_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_CARDANO_QUERY = f"""
+            query sentinel_cardano {{
+                cardano(network: cardano) {{
+                    coinpath(
+                        options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                        initialAddress: {{ is: "{self.address}" }}
+                        depth: {{ lteq: {self.depth} }}
+                        date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                      }}
+                      sender {{
+                        address
+                        annotation
+                      }}
+                      transaction {{
+                        hash
+                        valueIn
+                        valueOut
+                      }}
+                      depth
+                      amount
+                      currency {{
+                        symbol
+                      }}
+                      transactions {{
+                        timestamp
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_CARDANO_QUERY
+
+    def call_cardano_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._cardano_endpoint, json={
+                              'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["cardano"]["coinpath"] is None:
+                response["data"]["cardano"]["coinpath"] = []
+            for item in response["data"]["cardano"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transactions"][0]["timestamp"],
+                        "tx_hash": item["transaction"]["hash"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "amount": item["amount"],
+                        "sender_type": "unknown",
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_type": "unknown",
                         "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
                         "symbol": item["currency"]["symbol"],
                         "tx_value_in": item["transaction"]["valueIn"],
