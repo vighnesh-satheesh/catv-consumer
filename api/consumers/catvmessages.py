@@ -23,7 +23,7 @@ from api.serializers import (
 )
 
 from api.settings import api_settings
-from api.tasks import CatvHistoryTask, CatvPathHistoryTask
+from api.tasks import catv_history_task, catv_path_history_task
 from api.rpc.RPCClient import RPCClientSaveS3FileToDB
 
 __all__ = ('process_catv_messages',)
@@ -101,7 +101,7 @@ def process_catv_messages(job: CatvJobQueue):
         source_depth = search_params.get("source_depth", 0)
         distribution_depth = search_params.get("distribution_depth", 0)
         search_params.update({'force_lookup': True})
-        history_runner = CatvHistoryTask if search_type == CatvSearchType.FLOW.value else CatvPathHistoryTask
+        history_runner = catv_history_task if search_type == CatvSearchType.FLOW.value else catv_path_history_task
         print(search_params)
         
         serializer_obj = serializer_map[token_type][search_type](data=search_params)
@@ -166,10 +166,10 @@ def process_catv_messages(job: CatvJobQueue):
         
         search_params.update({'user_id': user_id, 'token_type': token_type})
         if graph_data.get("node_list", {}):
-            history_runner().run(history=search_params, from_history=False)
+            history_runner.delay(history=search_params, from_history=False)
             task_status = CatvTaskStatusType.RELEASED
         else:
-            history_runner().run(history=search_params, from_history=True)
+            history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
         error_trace = str(e)
