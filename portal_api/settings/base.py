@@ -12,9 +12,7 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 
 import os
 import environ
-import djcelery
 from corsheaders.defaults import default_headers
-from datetime import timedelta
 
 env = environ.Env()
 env_path = os.environ.get('CATV_CONSUMER_API_ENV_PATH')
@@ -44,12 +42,10 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'djcelery',
     'corsheaders',
     'rest_framework',
     'django_filters',
     'django_extensions',
-    'social_django',
     'api'
 ]
 
@@ -78,9 +74,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'social_django.context_processors.backends',
-                'social_django.context_processors.login_redirect',
+                'django.contrib.messages.context_processors.messages'
             ],
         },
     },
@@ -109,7 +103,7 @@ CACHES = {
     'default': env.cache(),
     'token': env.cache('REDIS_TOKEN_URL'),
     'uppward': {
-        'BACKEND': 'redis_cache.RedisCache',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': env.str('API_UPPWARD_CACHE_SERVER'),
         "OPTIONS": {
             "SOCKET_CONNECT_TIMEOUT": 3,
@@ -117,11 +111,11 @@ CACHES = {
         }
     },
     'local_cache': {
-        'BACKEND': 'redis_cache.RedisCache',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': 'redis://127.0.0.1:6379/10'
     },
     'catv_data': {
-        'BACKEND': 'redis_cache.RedisCache',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': env.str('API_CATV_CACHE_SERVER')
     }
 }
@@ -151,8 +145,8 @@ USE_TZ = True
 
 # cross origin setting
 
-CORS_ORIGIN_WHITELIST = env.str('CORS_ORIGIN_WHITELIST', default="").split(",")
-if not CORS_ORIGIN_WHITELIST:
+CORS_ALLOWED_ORIGIN_REGEXES = env.str('CORS_ORIGIN_WHITELIST_REGEX', default=["^https:\/\/\.*?.*?.\w+.sentinelprotocol.[a-zA-Z]+$","^http:\/\/localhost:[0-9]+$"])
+if not CORS_ALLOWED_ORIGIN_REGEXES:
     CORS_ORIGIN_ALLOW_ALL = True
 
 CORS_ALLOW_METHODS = (
@@ -172,6 +166,11 @@ CORS_ALLOW_HEADERS = default_headers + (
 # file stoage
 
 DEFAULT_FILE_STORAGE = "api.storages.s3.S3Storage"
+
+
+# Default auto-created primary keys
+DEFAULT_AUTO_FIELD='django.db.models.AutoField'
+
 
 # API Settings
 
@@ -282,9 +281,8 @@ API_SETTINGS = {
 ALLOWED_HOSTS += env.str("ECS_PRIVATE_IP", "").split(",") if len(env.str("ECS_PRIVATE_IP", '')) > 0 else []
 
 # celery
-djcelery.setup_loader()
-BROKER_URL = API_SETTINGS['CELERY_BROKER_URL']
-CELERY_RESULT_BACKEND = API_SETTINGS['CELERY_BROKER_URL']
+CELERY_BROKER_URL = API_SETTINGS['CELERY_BROKER_URL']
+CELERY_RESULT_BACKEND = API_SETTINGS['CELERY_RESULT_BACKEND']
 CELERYD_CONCURRENCY = 2
 CELERY_IMPORTS = ('api.tasks',)
 

@@ -14,7 +14,7 @@ jobs:
       BUILD_ENV: STG
       APM_SERVICE_NAME: uppsala-stg-portal-catv-consumer-service
       SERVICE_NAME: UPP-STG-API-CATV-CONSUMER-SERVICE
-      CLUSTER_NAME: UPP-STG-API-CLUSTER
+      CLUSTER_NAME: UPP-STG-CLUSTER
       CONTAINER_NAME: UPP-STG-API-CATV-CONSUMER
       TASK_DEF_NAME: UPP-STG-API-CATV-CONSUMER
       UPP_HOST: stgcatv-consumer-service.api.sentinelprotocol.io
