@@ -844,7 +844,7 @@ class GraphQLInterfaceEOS:
                         "receiver_balance": float(item["receiver"]["balance"])
                     }
                 )
-            print('GraphQl Response', len(flattened_response))
+            print('GraphQl Response - EOS', len(flattened_response))
             return flattened_response
         except Exception as e:
             traceback.print_exc()
