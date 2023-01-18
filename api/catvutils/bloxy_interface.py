@@ -46,6 +46,10 @@ class BloxyAPIInterface:
             grahql_trx_interface = GraphQLInterfaceTRX(source, address, depth_limit, from_time, till_time, limit, chain, token_address, self._key)
             results = grahql_trx_interface.call_trx_endpoint()
             return results
+        elif chain == 'EOS':
+            grahql_eos_interface = GraphQLInterfaceEOS(source, address, depth_limit, from_time, till_time, limit, chain)
+            results = grahql_eos_interface.call_eos_endpoint()
+            return results
         else:
             if source:
                 if chain == 'ETH':
@@ -723,6 +727,124 @@ class GraphQLInterfaceTRX:
                     }
                 )
             print('GraphQl Response', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceEOS:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
+        self._eos_key = settings.GRAPHQL_X_API_KEY
+        self._eos_endpoint = "https://graphql.bitquery.io"
+        self._headers = {'X-API-KEY': self._eos_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_EOS_QUERY = f"""
+            query sentinel_eos {{
+                eos(network: eos) {{
+                    coinpath(
+                        options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                        initialAddress: {{ is: "{self.address}" }}
+                        depth: {{ lteq: {self.depth} }}
+                        date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        balance
+                        amountOut
+                        amountIn
+                        type
+                        receiversCount
+                        sendersCount
+                        firstTxAt {{
+                            time
+                        }}
+                        lastTxAt {{
+                            time
+                        }}
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        type
+                        firstTxAt {{
+                            time
+                        }}
+                        lastTxAt {{
+                            time
+                        }}
+                      }}
+                      transaction {{
+                        hash
+                        time {{
+                            time
+                        }}
+                      }}
+                      depth
+                      amount
+                      currency {{
+                        symbol
+                        tokenType
+                        tokenId
+                        name
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_EOS_QUERY
+
+    def call_eos_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._eos_endpoint, json={
+                              'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["eos"]["coinpath"] is None:
+                response["data"]["eos"]["coinpath"] = []
+            for item in response["data"]["eos"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transaction"]["time"]["time"],
+                        "tx_hash": item["transaction"]["hash"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "amount": item["amount"],
+                        "sender_type": item["sender"]["type"],
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_type": item["receiver"]["type"],
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "symbol": item["currency"]["symbol"],
+                        "token": item["currency"]["name"],
+                        "token_id": item["currency"]["tokenId"],
+                        "token_type": item["currency"]["tokenType"],
+                        "receiver_receivers_count": item["receiver"]["receiversCount"],
+                        "receiver_senders_count": item["receiver"]["sendersCount"],
+                        "receiver_first_tx_at": item["receiver"]["firstTxAt"]["time"],
+                        "receiver_last_tx_at": item["receiver"]["lastTxAt"]["time"],
+                        "receiver_amount_out": float(item["receiver"]["amountOut"]),
+                        "receiver_amount_in": float(item["receiver"]["amountIn"]),
+                        "receiver_balance": float(item["receiver"]["balance"])
+                    }
+                )
+            print('GraphQl Response - EOS', len(flattened_response))
             return flattened_response
         except Exception as e:
             traceback.print_exc()
