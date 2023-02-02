@@ -227,15 +227,16 @@ class TrackingResults:
                     annotation_group = nc.get_node(item).group
                     if add_node is None:
                         continue
-                    elif result[1] == 'blacklist':
+                    elif result[1] == 'blacklist' or add_node.group == 'Blacklist' :
                         add_node.update(group="Blacklist", annotation="Blacklist")
                         nc.update_node(result[0], add_node)
                         break
-                    elif result[1] == 'whitelist':
+                    elif result[1] == 'whitelist' or add_node.group == 'Whitelist' :
                         add_node.update(group="Whitelist", annotation="Whitelist")
                         nc.update_node(result[0], add_node)
                         break
-                    elif 'Exchange/DEX/Bridge/Mixer' in annotation_group and result[1] != 'blacklist' and result[1] != 'whitelist':
+                    elif 'Exchange/DEX/Bridge/Mixer' in annotation_group or add_node.group == 'Exchange/DEX/Bridge/Mixer' and result[1] != 'blacklist' and result[1] != 'whitelist':
+                        nc.update_node(result[0], add_node)
                         break
                     else:
                         add_node.update(group="Suspicious", annotation="Extremely High Risk")
