@@ -273,8 +273,8 @@ API_SETTINGS = {
     "RABBIT_MQ_BROKER_ID":env.str("RABBIT_MQ_BROKER_ID", ""),
     "RABBIT_MQ_ENV":env.str("RABBIT_MQ_ENV", ""),
     "RABBIT_MQ_LOCAL_URL":env.str("RABBIT_MQ_LOCAL_URL", "rabbitmq"),
-    "GRAPHQL_ENDPOINT": env.str("GRAPHQL_ENDPOINT", "https://sentinel.graphql.bitquery.io"),
-    "GRAPHQL_X_API_KEY": env.str("GRAPHQL_X_API_KEY", "BQYKbTOiHqHvONrcGg9fZmsvrC08syOL")
+    "GRAPHQL_ENDPOINT": env.str("GRAPHQL_ENDPOINT", ""),
+    "GRAPHQL_X_API_KEY": env.str("GRAPHQL_X_API_KEY", "")
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.
