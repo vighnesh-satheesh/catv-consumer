@@ -101,7 +101,7 @@ class BloxyAPIInterface:
 class GraphQLInterfaceTerra:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit):
         self._terra_key = settings.GRAPHQL_X_API_KEY
-        self._terra_endpoint = "https://graphql.bitquery.io"
+        self._terra_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._terra_key}
         self.source = source
         self.address = address
@@ -183,7 +183,7 @@ class GraphQLInterfaceTerra:
 class GraphQLInterfaceKlaytn:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address):
         self._klaytn_key = settings.GRAPHQL_X_API_KEY
-        self._klaytn_endpoint = "https://graphql.bitquery.io"
+        self._klaytn_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._klaytn_key}
         self.source = source
         self.address = address
@@ -313,7 +313,7 @@ class GraphQLInterfaceKlaytn:
 class GraphQLInterfaceBSC:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address, key):
         self._bsc_key = settings.GRAPHQL_X_API_KEY
-        self._bsc_endpoint = "https://graphql.bitquery.io"
+        self._bsc_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._bsc_key}
         self.source = source
         self.address = address
@@ -502,7 +502,7 @@ class GraphQLInterfaceBSC:
 class GraphQLInterfaceBNB:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address, key):
         self._bnb_key = settings.GRAPHQL_X_API_KEY
-        self._bnb_endpoint = "https://graphql.bitquery.io"
+        self._bnb_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._bnb_key}
         self.source = source
         self.address = address
@@ -617,7 +617,7 @@ class GraphQLInterfaceBNB:
 class GraphQLInterfaceTRX:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain, token_address, key):
         self._trx_key = settings.GRAPHQL_X_API_KEY
-        self._trx_endpoint = "https://graphql.bitquery.io"
+        self._trx_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._trx_key}
         self.source = source
         self.address = address
@@ -735,7 +735,7 @@ class GraphQLInterfaceTRX:
 class GraphQLInterfaceEOS:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
         self._eos_key = settings.GRAPHQL_X_API_KEY
-        self._eos_endpoint = "https://graphql.bitquery.io"
+        self._eos_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._eos_key}
         self.source = source
         self.address = address

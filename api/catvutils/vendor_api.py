@@ -113,7 +113,7 @@ class BloxyBTCAPIInterface:
 class GraphQLInterfaceBCH:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
         self._bch_key = settings.GRAPHQL_X_API_KEY
-        self._bch_endpoint = "https://graphql.bitquery.io"
+        self._bch_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._bch_key}
         self.source = source
         self.address = address
@@ -219,7 +219,7 @@ class GraphQLInterfaceBCH:
 class GraphQLInterfaceCARDANO:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
         self._cardano_key = settings.GRAPHQL_X_API_KEY
-        self._cardano_endpoint = "https://graphql.bitquery.io"
+        self._cardano_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._cardano_key}
         self.source = source
         self.address = address
@@ -309,7 +309,7 @@ class GraphQLInterfaceCARDANO:
 class GraphQLInterfaceLTC:
     def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
         self._ltc_key = settings.GRAPHQL_X_API_KEY
-        self._ltc_endpoint = "https://graphql.bitquery.io"
+        self._ltc_endpoint = settings.GRAPHQL_ENDPOINT
         self._headers = {'X-API-KEY': self._ltc_key}
         self.source = source
         self.address = address
