@@ -24,7 +24,7 @@ from api.serializers import (
 
 from api.settings import api_settings
 from api.tasks import catv_history_task, catv_path_history_task
-from api.rpc.RPCClient import RPCClientSaveS3FileToDB
+from api.rpc.RPCClient import RPCClientSaveS3FileToDB, RPCClientCATVUpdateUsageError
 
 __all__ = ('process_catv_messages',)
 
@@ -169,6 +169,9 @@ def process_catv_messages(job: CatvJobQueue):
             history_runner.delay(history=search_params, from_history=False)
             task_status = CatvTaskStatusType.RELEASED
         else:
+            rpc = RPCClientCATVUpdateUsageError()
+            res = rpc.call(user_id).decode('utf-8')
+            print('Catv error, updating error usage', res)
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
@@ -182,6 +185,9 @@ def process_catv_messages(job: CatvJobQueue):
                 "source": safe_error_trace
             }
         }
+        rpc = RPCClientCATVUpdateUsageError()
+        res = rpc.call(user_id).decode('utf-8')
+        print('Catv error, updating error usage', res)
         task_status = CatvTaskStatusType.FAILED
         ConsumerErrorLogs.objects.create(
             topic="catv-requests",
