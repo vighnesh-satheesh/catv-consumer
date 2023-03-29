@@ -84,7 +84,7 @@ class BloxyBTCAPIInterface:
             results = grahql_ltc_interface.call_ltc_endpoint()
             return results
         else:
-            if chain is not 'BTC':
+            if chain != 'BTC':
                 self.__source_endpoint = settings.BLOXY_LTC_SRC_ENDPOINT
                 self.__distribution_endpoint = settings.BLOXY_LTC_DIST_ENDPOINT
             api_url = self.__source_endpoint if source else self.__distribution_endpoint
