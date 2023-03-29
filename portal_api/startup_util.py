@@ -12,7 +12,7 @@ REQUEST_URL = {
 def set_environment_variables_from_parameter_store():
     ssm_path = os.environ.get("PORTAL_API_PARAM_PATH")
     if ssm_path:
-        if ssm_path == "/UPP/PRD/portal-api":
+        if ssm_path == "/UPP/PRD/PORTAL-CATV-CONSUMER-SERVICE":
             os.environ["PORTAL_API_MODE"] = "production"
         else:
             os.environ["PORTAL_API_MODE"] = "staging"
