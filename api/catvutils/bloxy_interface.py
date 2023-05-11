@@ -50,11 +50,11 @@ class BloxyAPIInterface:
             grahql_eos_interface = GraphQLInterfaceEOS(source, address, depth_limit, from_time, till_time, limit, chain)
             results = grahql_eos_interface.call_eos_endpoint()
             return results
-        elif chain == 'ripple':
+        elif chain == 'XRP':
             grahql_ripple_interface = GraphQLInterfaceRipple(source, address, depth_limit, from_time, till_time, limit, chain)
             results = grahql_ripple_interface.call_ripple_endpoint()
             return results
-        elif chain == 'stellar':
+        elif chain == 'XLM':
             grahql_stellar_interface = GraphQLInterfaceStellar(source, address, depth_limit, from_time, till_time, limit, chain)
             results = grahql_stellar_interface.call_stellar_endpoint()
             return results
