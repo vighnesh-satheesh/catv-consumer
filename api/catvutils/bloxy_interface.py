@@ -50,6 +50,14 @@ class BloxyAPIInterface:
             grahql_eos_interface = GraphQLInterfaceEOS(source, address, depth_limit, from_time, till_time, limit, chain)
             results = grahql_eos_interface.call_eos_endpoint()
             return results
+        elif chain == 'ripple':
+            grahql_ripple_interface = GraphQLInterfaceRipple(source, address, depth_limit, from_time, till_time, limit, chain)
+            results = grahql_ripple_interface.call_ripple_endpoint()
+            return results
+        elif chain == 'stellar':
+            grahql_stellar_interface = GraphQLInterfaceStellar(source, address, depth_limit, from_time, till_time, limit, chain)
+            results = grahql_stellar_interface.call_stellar_endpoint()
+            return results
         else:
             if source:
                 if chain == 'ETH':
@@ -845,6 +853,250 @@ class GraphQLInterfaceEOS:
                     }
                 )
             print('GraphQl Response - EOS', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceStellar:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
+        self._stellar_key = settings.GRAPHQL_X_API_KEY
+        self._stellar_endpoint = settings.GRAPHQL_ENDPOINT
+        self._headers = {'X-API-KEY': self._stellar_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_STELLAR_QUERY = f"""
+            query sentinel_stellar {{
+                stellar(network: stellar) {{
+                    coinpath(
+                        options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                        initialAddress: {{ is: "{self.address}" }}
+                        depth: {{ lteq: {self.depth} }}
+                        date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        receiversCount
+                        sendersCount
+                        firstTransferAt {{
+                            time
+                        }}
+                        lastTransferAt {{
+                            time
+                        }}
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        receiversCount
+                        sendersCount
+                        firstTransferAt {{
+                            time
+                        }}
+                        lastTransferAt {{
+                            time
+                        }}
+                      }}
+                      transaction {{
+                        hash
+                        time {{
+                            time
+                        }}
+                        valueFrom
+                        valueTo
+                      }}
+                      depth
+                      amountFrom
+                      amountTo
+                      operation
+                      currencyFrom {{
+                        symbol
+                        name
+                      }}
+                      currencyTo {{
+                        symbol
+                        name
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_STELLAR_QUERY
+
+    def call_stellar_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._stellar_endpoint, json={
+                              'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["stellar"]["coinpath"] is None:
+                response["data"]["stellar"]["coinpath"] = []
+            for item in response["data"]["stellar"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transaction"]["time"]["time"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "sent_amount": item["amountFrom"],
+                        "sent_tx_value": item["transaction"]["valueFrom"],
+                        "sent_currency": item["currencyFrom"]["symbol"],
+                        "received_amount": item["amountTo"],
+                        "received_tx_value": item["transaction"]["valueTo"],
+                        "received_currency": item["currencyTo"]["symbol"],
+                        "operation_type": item["operation"],
+                        "tx_hash": item["transaction"]["hash"],
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "receiver_receive_from_count": item["receiver"]["receiversCount"],
+                        "receiver_send_to_count": item["receiver"]["sendersCount"],
+                        "receiver_first_transfer_at": item["receiver"]["firstTransferAt"]["time"],
+                        "receiver_last_transfer_at": item["receiver"]["lastTransferAt"]["time"],
+                        "sender_receive_from_count": item["sender"]["receiversCount"],
+                        "sender_send_to_count": item["sender"]["sendersCount"],
+                        "sender_first_transfer_at": item["sender"]["firstTransferAt"]["time"],
+                        "sender_last_transfer_at": item["sender"]["lastTransferAt"]["time"],
+                    }
+                )
+            print('GraphQl Response - Stellar', len(flattened_response))
+            return flattened_response
+        except Exception as e:
+            traceback.print_exc()
+            return []
+
+class GraphQLInterfaceRipple:
+    def __init__(self, source, address, depth_limit, from_time, till_time, limit, chain):
+        self._ripple_key = settings.GRAPHQL_X_API_KEY
+        self._ripple_endpoint = settings.GRAPHQL_ENDPOINT
+        self._headers = {'X-API-KEY': self._ripple_key}
+        self.source = source
+        self.address = address
+        self.depth = depth_limit
+        self.from_time = from_time
+        self.till_time = till_time
+        self.chain = chain
+        self.limit = int(limit)
+
+    def _define_query(self):
+        if self.source:
+            direction = "inbound"
+        else:
+            direction = "outbound"
+        GRAPHQL_RIPPLE_QUERY = f"""
+            query sentinel_ripple {{
+                ripple(network: ripple) {{
+                    coinpath(
+                        options: {{ direction: {direction}, asc: "depth", limit: {self.limit} }}
+                        initialAddress: {{ is: "{self.address}" }}
+                        depth: {{ lteq: {self.depth} }}
+                        date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
+                    ) {{
+                      receiver {{
+                        address
+                        annotation
+                        receiversCount
+                        sendersCount
+                        firstTransferAt {{
+                            time
+                        }}
+                        lastTransferAt {{
+                            time
+                        }}
+                      }}
+                      sender {{
+                        address
+                        annotation
+                        receiversCount
+                        sendersCount
+                        firstTransferAt {{
+                            time
+                        }}
+                        lastTransferAt {{
+                            time
+                        }}
+                      }}
+                      transaction {{
+                        hash
+                        time {{
+                            time
+                        }}
+                        valueFrom
+                        valueTo
+                      }}
+                      depth
+                      amountFrom
+                      amountTo
+                      operation
+                      currencyFrom {{
+                        symbol
+                        name
+                      }}
+                      currencyTo {{
+                        symbol
+                        name
+                      }}
+                    }}
+                  }}
+                }}   
+            """
+        return GRAPHQL_RIPPLE_QUERY
+
+    def call_ripple_endpoint(self):
+        query = self._define_query()
+        try:
+            flattened_response = []
+            r = requests.post(self._ripple_endpoint, json={
+                              'query': query}, headers=self._headers)
+            response = r.json()
+            if response["data"]["ripple"]["coinpath"] is None:
+                response["data"]["ripple"]["coinpath"] = []
+            for item in response["data"]["ripple"]["coinpath"]:
+                sender_annotation = item["sender"]["annotation"]
+                receiver_annotation = item["receiver"]["annotation"]
+                
+                flattened_response.append(
+                    {
+                        "depth": item["depth"],
+                        "tx_time": item["transaction"]["time"]["time"],
+                        "sender": item["sender"]["address"],
+                        "receiver": item["receiver"]["address"],
+                        "sent_amount": item["amountFrom"],
+                        "sent_tx_value": item["transaction"]["valueFrom"],
+                        "sent_currency": item["currencyFrom"]["symbol"],
+                        "received_amount": item["amountTo"],
+                        "received_tx_value": item["transaction"]["valueTo"],
+                        "received_currency": item["currencyTo"]["symbol"],
+                        "operation_type": item["operation"],
+                        "tx_hash": item["transaction"]["hash"],
+                        "sender_annotation": sender_annotation if sender_annotation not in [None, "None"] else "",
+                        "receiver_annotation": receiver_annotation if receiver_annotation not in [None, "None"] else "",
+                        "receiver_receive_from_count": item["receiver"]["receiversCount"],
+                        "receiver_send_to_count": item["receiver"]["sendersCount"],
+                        "receiver_first_transfer_at": item["receiver"]["firstTransferAt"]["time"],
+                        "receiver_last_transfer_at": item["receiver"]["lastTransferAt"]["time"],
+                        "sender_receive_from_count": item["sender"]["receiversCount"],
+                        "sender_send_to_count": item["sender"]["sendersCount"],
+                        "sender_first_transfer_at": item["sender"]["firstTransferAt"]["time"],
+                        "sender_last_transfer_at": item["sender"]["lastTransferAt"]["time"],
+                    }
+                )
+            print('GraphQl Response - Ripple', len(flattened_response))
             return flattened_response
         except Exception as e:
             traceback.print_exc()
