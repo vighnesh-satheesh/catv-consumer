@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import now
+from django.core.files.storage import default_storage
 
 from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
@@ -24,9 +25,12 @@ from api.serializers import (
 
 from api.settings import api_settings
 from api.tasks import catv_history_task, catv_path_history_task
-from api.rpc.RPCClient import RPCClientSaveS3FileToDB, RPCClientCATVUpdateUsageError
+from api.rpc.RPCClient import update_s3_attached_file_uid, \
+    update_catv_usage_error
 
 __all__ = ('process_catv_messages',)
+
+from api.utils import upload_content_file_to_s3, get_file_meta
 
 
 def process_catv_messages(job: CatvJobQueue):
@@ -169,8 +173,7 @@ def process_catv_messages(job: CatvJobQueue):
             history_runner.delay(history=search_params, from_history=False)
             task_status = CatvTaskStatusType.RELEASED
         else:
-            rpc = RPCClientCATVUpdateUsageError()
-            res = rpc.call(user_id).decode('utf-8')
+            res = update_catv_usage_error(user_id)
             print('Catv error, updating error usage', res)
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
@@ -185,8 +188,7 @@ def process_catv_messages(job: CatvJobQueue):
                 "source": safe_error_trace
             }
         }
-        rpc = RPCClientCATVUpdateUsageError()
-        res = rpc.call(user_id).decode('utf-8')
+        res = update_catv_usage_error(user_id)
         print('Catv error, updating error usage', res)
         task_status = CatvTaskStatusType.FAILED
         ConsumerErrorLogs.objects.create(
@@ -197,18 +199,35 @@ def process_catv_messages(job: CatvJobQueue):
     finally:
         message = results or error_dict
         with transaction.atomic():
-            file = ContentFile(bytes(json.dumps(message).encode('UTF-8')), name=f"{uuid4()}.json")
-            
-            rpc = RPCClientSaveS3FileToDB()
-            res = (rpc.call(message)).decode('utf-8')
-            file_id = int(res)
-            if file_id == 0:
-                print("File did not get saved to S3")
+            attached_file_pk = 0
+            # if task_status is failed we don't have to push the response to S3
+            # and make an RPC call to portal to update the AttachedFile uid
+            if task_status != CatvTaskStatusType.FAILED:
+                file_name = None
+                file_uid = uuid4()
+                content_file = ContentFile(bytes(json.dumps(message).encode('UTF-8')), name=str(file_uid))
+                try:
+                    # returns the file name if upload to s3 is successful
+                    file_name = upload_content_file_to_s3(content_file)
+                except Exception:
+                    print("Upload to S3 failed: ")
+                    traceback.print_exc()
+                if file_name:
+                    hash, size, mimetype = get_file_meta(content_file.file)
+                    request_dict = {'file_uid': str(file_uid), 'file_name': f'{file_name}.json', 'hash': hash,
+                                    'size': size,
+                                    'mimetype': str(mimetype)}
+                    attached_file_pk = update_s3_attached_file_uid(request_dict)
+                    if int(attached_file_pk) == 0:
+                        print("AttachedFile uid not updated with S3 file_name through RPC to portal")
+                        task_status = CatvTaskStatusType.FAILED
+                else:
+                    task_status = CatvTaskStatusType.FAILED
 
-            else:
-                request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
-                request_instance.status = task_status
-                request_instance.updated = now()
-                request_instance.save()
-                CatvResult.objects.filter(request=request_instance).update(result_file_id=file_id)
-                job.delete()
+            request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
+            request_instance.status = task_status
+            request_instance.updated = now()
+            request_instance.save()
+            if attached_file_pk != 0:
+                CatvResult.objects.filter(request=request_instance).update(result_file_id=attached_file_pk)
+            job.delete()
