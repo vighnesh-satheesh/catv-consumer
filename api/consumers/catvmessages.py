@@ -181,7 +181,7 @@ def process_catv_messages(job: CatvJobQueue):
         error_trace = str(e)
         traceback.print_exc()
         generic_error = "Internal server error. Please try again later"
-        safe_error_trace = error_trace if isinstance(e, FileNotFound) else generic_error
+        safe_error_trace = error_trace or generic_error
         error_dict = {
             "data": {},
             "messages": {
@@ -194,7 +194,7 @@ def process_catv_messages(job: CatvJobQueue):
         ConsumerErrorLogs.objects.create(
             topic="catv-requests",
             message=request_body,
-            error_trace=error_trace
+            error_trace=traceback.format_exc()
         )
     finally:
         message = results or error_dict
@@ -210,13 +210,20 @@ def process_catv_messages(job: CatvJobQueue):
                     # returns the file name if upload to s3 is successful
                     file_name = upload_content_file_to_s3(content_file)
                 except Exception:
-                    print("Upload to S3 failed: ")
-                    traceback.print_exc()
+                    print("Upload to S3 failed for message_id: ", message_id)
+                    ConsumerErrorLogs.objects.create(
+                        topic="s3-upload",
+                        message=request_body,
+                        error_trace=traceback.format_exc()
+                    )
                 if file_name:
-                    hash, size, mimetype = get_file_meta(content_file.file)
-                    request_dict = {'file_uid': str(file_uid), 'file_name': f'{file_name}.json', 'hash': hash,
+                    file_name = f'{file_name}.json'
+                    # file meta data
+                    hash, size, mimetype = get_file_meta(content_file, file_name)
+                    request_dict = {'file_uid': str(file_uid), 'file_name': file_name, 'hash': hash,
                                     'size': size,
                                     'mimetype': str(mimetype)}
+                    # rpc to portal for creating AttachedFile table entry
                     attached_file_pk = update_s3_attached_file_uid(request_dict)
                     if int(attached_file_pk) == 0:
                         print("AttachedFile uid not updated with S3 file_name through RPC to portal")

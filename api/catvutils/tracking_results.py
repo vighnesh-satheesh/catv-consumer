@@ -148,8 +148,8 @@ class TrackingResults:
     @staticmethod
     def update_annotations(nc, item_list, token_type):
         addr_list = nc.get_node_enum().keys()
-        addr_list = [addr.lower() for addr in addr_list]
-        request_dict = {'addr_list': addr_list, 'token_type': str(token_type)}
+        addr_list_for_portal = [addr.lower() for addr in addr_list]
+        request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
         indicators = fetch_indicators(request_dict)
         print("indicators length ", len(indicators))
         # Extremely High Node

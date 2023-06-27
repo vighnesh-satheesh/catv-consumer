@@ -1,11 +1,8 @@
 import hashlib
+import mimetypes
 import re
 from datetime import datetime
-from functools import partial
-import magic
-from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from uuid import uuid4
 
 from .models import (
     CatvTokens
@@ -86,20 +83,15 @@ def pattern_matches_token(address, token_type):
 
 
 def upload_content_file_to_s3(content_file):
+    # default_storage is configured as S3Storage in base.py
     return default_storage.save(content_file.name, content_file)
 
 
-def get_file_meta(file, block_size=65536):
+def get_file_meta(file, file_name):
     hasher = hashlib.md5()
-    size = 0
-    mimetype = "application/octet-stream"
-    index = 0
-    total_buf = b''
-    for buf in iter(partial(file.read, block_size), b''):
-        total_buf += buf
-        hasher.update(buf)
-        size += len(buf)
-
-        if index == 0:
-            mimetype = magic.from_buffer(buf, mime=True)
-    return hasher.hexdigest(), size, mimetype
+    size = file.size
+    mime_type, _ = mimetypes.guess_type(file_name)
+    # Read the content of the ContentFile and update the hasher
+    content = file.read()
+    hasher.update(content)
+    return hasher.hexdigest(), size, mime_type
