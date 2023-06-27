@@ -17,7 +17,7 @@ from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInter
 from ..models import (
     BloxyDistribution, BloxySource, CatvTokens
 )
-from ..rpc.RPCClient import RPCClientFetchIndicators, RPCClientCARAReports
+from ..rpc.RPCClient import fetch_indicators, fetch_cara_report
 
 
 def chunks(iterable, size):
@@ -148,19 +148,14 @@ class TrackingResults:
     @staticmethod
     def update_annotations(nc, item_list, token_type):
         addr_list = nc.get_node_enum().keys()
-        addr_list = [addr.lower() for addr in addr_list]
-        request_dict = {'addr_list': addr_list, 'token_type': str(token_type)}
-        rpc = RPCClientFetchIndicators()
-        res = rpc.call(request_dict).decode("utf-8")
-        indicators = ast.literal_eval(res)
+        addr_list_for_portal = [addr.lower() for addr in addr_list]
+        request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
+        indicators = fetch_indicators(request_dict)
         print("indicators length ", len(indicators))
         # Extremely High Node
-        cara_addr_list = nc.get_node_enum().keys()
-        cara_addr_list = [addr for addr in cara_addr_list]
+        cara_addr_list = [addr for addr in addr_list]
         request_dict_cara = {'addr_list': cara_addr_list}
-        rpc_cara = RPCClientCARAReports()
-        res_cara = rpc_cara.call(request_dict_cara).decode("utf-8")
-        new_addresses = ast.literal_eval(res_cara)
+        new_addresses = fetch_cara_report(request_dict_cara)
         seen_indicators = []
         if len(indicators) > 0:
             try:

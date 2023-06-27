@@ -1,5 +1,8 @@
+import hashlib
+import mimetypes
 import re
 from datetime import datetime
+from django.core.files.storage import default_storage
 
 from .models import (
     CatvTokens
@@ -22,6 +25,7 @@ def create_tracking_cache_pattern(data):
     return 'w{0}s{1}d{2}tx{3}fd{4}td{5}tk{6}'.format(wallet_address, source_depth, distribution_depth,
                                                      transaction_limit, from_date, to_date, token_address)
 
+
 def create_path_cache_pattern(data):
     address_from = data.get("address_from", "")
     address_to = data.get("address_to", '')
@@ -31,6 +35,7 @@ def create_path_cache_pattern(data):
     to_date = data.get("to_date", "")
 
     return f"af{address_from}at{address_to}d{depth}fd{from_date}td{to_date}tk{token_address}"
+
 
 def determine_wallet_type(token_type):
     address_mapping = {
@@ -51,7 +56,7 @@ def determine_wallet_type(token_type):
 
     if address_mapping.__contains__(token_type.value):
         return address_mapping[token_type.value]
-        
+
     return "Ethereum/ERC20"
 
 
@@ -75,3 +80,18 @@ def pattern_matches_token(address, token_type):
     if not pattern:
         return False
     return re.compile(pattern).match(address)
+
+
+def upload_content_file_to_s3(content_file):
+    # default_storage is configured as S3Storage in base.py
+    return default_storage.save(content_file.name, content_file)
+
+
+def get_file_meta(file, file_name):
+    hasher = hashlib.md5()
+    size = file.size
+    mime_type, _ = mimetypes.guess_type(file_name)
+    # Read the content of the ContentFile and update the hasher
+    content = file.read()
+    hasher.update(content)
+    return hasher.hexdigest(), size, mime_type
