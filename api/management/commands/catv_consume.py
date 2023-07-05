@@ -34,6 +34,9 @@ class Command(BaseCommand):
                         print(job.message)
                         process_catv_messages(job)
                 elif pending__csv_count > 0:
+                    query_csv = Constants.QUERIES['UPDATE_CSV_CATV_JOBS']
+                    with connection.cursor() as cursor:
+                        cursor.execute(query_csv)
                     pool = ThreadPool(processes=4)
                     pool.map(process_catv_messages, pending__csv_jobs_arr)
                 else:
