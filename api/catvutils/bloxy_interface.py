@@ -968,10 +968,6 @@ class GraphQLInterfaceStellar:
                         "receiver_send_to_count": item["receiver"]["sendersCount"],
                         "receiver_first_transfer_at": item["receiver"]["firstTransferAt"]["time"],
                         "receiver_last_transfer_at": item["receiver"]["lastTransferAt"]["time"],
-                        "sender_receive_from_count": item["sender"]["receiversCount"],
-                        "sender_send_to_count": item["sender"]["sendersCount"],
-                        "sender_first_transfer_at": item["sender"]["firstTransferAt"]["time"],
-                        "sender_last_transfer_at": item["sender"]["lastTransferAt"]["time"],
                     }
                 )
             print('GraphQl Response - Stellar', len(flattened_response))
@@ -1090,10 +1086,6 @@ class GraphQLInterfaceRipple:
                         "receiver_send_to_count": item["receiver"]["sendersCount"],
                         "receiver_first_transfer_at": item["receiver"]["firstTransferAt"]["time"],
                         "receiver_last_transfer_at": item["receiver"]["lastTransferAt"]["time"],
-                        "sender_receive_from_count": item["sender"]["receiversCount"],
-                        "sender_send_to_count": item["sender"]["sendersCount"],
-                        "sender_first_transfer_at": item["sender"]["firstTransferAt"]["time"],
-                        "sender_last_transfer_at": item["sender"]["lastTransferAt"]["time"],
                     }
                 )
             print('GraphQl Response - Ripple', len(flattened_response))
