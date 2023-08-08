@@ -16,3 +16,7 @@ class Constants:
         "UPDATE_CSV_CATV_JOBS": "UPDATE api_csv_catv_job_queue j1 SET retries_remaining = retries_remaining - 1 "
                                 "WHERE j1.retries_remaining > 0 ",
     }
+
+    ERROR_MESSAGES = {
+        "MISSING_RESULTS": "Missing {} results for the wallet address within the date range specified"
+    }
