@@ -289,8 +289,8 @@ class GraphQLInterfaceUnified:
                     "tx_hash": item["transaction"]["hash"],
                     "sender": item["sender"]["address"],
                     "receiver": item["receiver"]["address"],
-                    "sender_annotation": sender_annotation if item["sender"]["annotation"] not in [None, "None"] else "",
-                    "receiver_annotation": receiver_annotation if item["receiver"]["annotation"] not in [None, "None"] else ""
+                    "sender_annotation": item["sender"]["annotation"] if item["sender"]["annotation"] not in [None, "None"] else "",
+                    "receiver_annotation": item["receiver"]["annotation"] if item["receiver"]["annotation"] not in [None, "None"] else ""
                 }
                 if self.chain in ["XRP", "XLM"]:
                     current_iter_dict["tx_time"] = item["transaction"]["time"]["time"]
@@ -370,4 +370,4 @@ class GraphQLInterfaceUnified:
             return flattened_response                                      
         except Exception as e:
             traceback.print_exc()
-            return []                
+            return []
