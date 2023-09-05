@@ -103,12 +103,3 @@ def validate_password(user, password, model=False):
         else:
             message = str(err.messages)
         raise exc_class({"password": message})
-
-
-def get_validated_checksum_addr(pattern, node_url, model=False):
-    exc_class = ValidationError if model else exceptions.ValidationError
-    try:
-        web3_client = Web3(HTTPProvider(node_url))
-        return web3_client.to_checksum_address(pattern)
-    except ValueError:
-        raise exc_class({"pattern": "Incorrect Ethereum address provided"})
