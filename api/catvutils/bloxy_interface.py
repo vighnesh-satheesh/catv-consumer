@@ -168,7 +168,9 @@ class GraphQLInterfaceUnified:
         if self.token_address is not None and self.token_address != "" and self.token_address != '0x0000000000000000000000000000000000000000':
             currency_value = self.token_address     
         network = self.network_chain_mapping_response[self.chain] + \
-                    " (network: " + self.network_chain_mapping_query[self.chain] + " ) "                  
+                    " (network: " + self.network_chain_mapping_query[self.chain] + " ) "
+        source_tag = ""
+        destination_tag = ""            
 
         # starting the flow with Terra since it has the shortest request body
         try:
@@ -207,6 +209,9 @@ class GraphQLInterfaceUnified:
                                         " valueFrom valueTo  }"  
                         extra_params = initial_extra_params.replace("amount", " amountFrom amountTo operation")
                         extra_params = extra_params + " currencyFrom { name symbol } currencyTo { name symbol } "
+                        if self.chain == "XRP":
+                            source_tag = "sourceTag"
+                            destination_tag = "destinationTag"
                     else: 
                         receiver =  receiver + time.replace("var", "firstTxAt") + \
                                     " " + time.replace("var", "lastTxAt")  + " type "
@@ -259,6 +264,8 @@ class GraphQLInterfaceUnified:
                         date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
                         {currency}
                         ) {{
+                        {destination_tag}    
+                        {source_tag}
                         {receiver}
                         {sender}
                         {transaction}
@@ -282,7 +289,7 @@ class GraphQLInterfaceUnified:
             flattened_response = []
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers)
-            response = r.json()          
+            response = r.json() 
             for item in response["data"][self.network_chain_mapping_response[self.chain]]["coinpath"]:
                 current_iter_dict = {
                     "depth": item["depth"],
@@ -305,6 +312,17 @@ class GraphQLInterfaceUnified:
                     current_iter_dict["receiver_send_to_count"] = item["receiver"]["sendersCount"]
                     current_iter_dict["receiver_first_transfer_at"] = item["receiver"]["firstTransferAt"]["time"]
                     current_iter_dict["receiver_last_transfer_at"] = item["receiver"]["lastTransferAt"]["time"]
+                    if self.chain == "XRP":
+                         if item["destinationTag"]: 
+                             current_iter_dict["destination_tag"] = int(item["destinationTag"])
+                         else:
+                            current_iter_dict["destination_tag"] = 0
+                        
+                         if item["sourceTag"]: 
+                             current_iter_dict["source_tag"] = int(item["sourceTag"])
+                         else:
+                            current_iter_dict["source_tag"] = 0
+                        
                     flattened_response.append(current_iter_dict)
                     continue 
                 else:     
