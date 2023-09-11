@@ -62,6 +62,7 @@ class BloxyBTCAPIInterface:
         self.__distribution_endpoint = settings.BLOXY_BTC_DIST_ENDPOINT
 
     def fetch_api_response(self, api_url, data, timeout=600):
+        # The verify flag is set to false because of an issue with sending requests to this endpoint
         response = requests.get(api_url, params=data, timeout=timeout, verify=False)
         if response.status_code != 200:
             print(response)
