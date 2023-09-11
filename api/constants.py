@@ -20,3 +20,39 @@ class Constants:
     ERROR_MESSAGES = {
         "MISSING_RESULTS": "Missing {} results for the wallet address within the date range specified"
     }
+
+    # BITQUERY MAPPINGS
+    NETWORK_CHAIN_MAPPING_FOR_QUERY = {
+            "LUNC": "terra",
+            "KLAY": "klaytn",
+            "BSC": "bsc",
+            "BNB": "binance",
+            "TRX": "tron",
+            "EOS": "eos",
+            "XLM": "stellar",
+            "XRP": "ripple",
+            "LTC": "litecoin",
+            "BCH": "bitcash",
+            "ADA": "cardano"        
+    }
+
+    NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
+            "LUNC": "cosmos",
+            "KLAY": "ethereum",
+            "BSC": "ethereum",
+            "BNB": "binance",
+            "TRX": "tron",
+            "EOS": "eos",
+            "XLM": "stellar",
+            "XRP": "ripple",
+            "LTC": "bitcoin",
+            "BCH": "bitcoin",
+            "ADA": "cardano"          
+    }
+
+    GRAPHQL_CURRENCY_MAPPING = {
+        "TRX": "TRX",
+        "BNB": "BNB",
+        "KLAY": "KLAY",
+        "BSC": "BNB"
+    }

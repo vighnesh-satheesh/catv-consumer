@@ -1,10 +1,11 @@
 import requests
+import os
 import traceback
 from datetime import datetime
 
 from django.conf import settings
 from api.models import CatvTokens
-
+from api.constants import Constants
 
 class BloxyAPIInterface:
     def __init__(self, key):
@@ -18,6 +19,7 @@ class BloxyAPIInterface:
 
     def call_bloxy_api(self, api_url, data, timeout=600):
         print('api_url:', api_url)
+        # The verify flag is set to false because of an issue with sending requests to this endpoint
         res = requests.get(api_url, params=data, timeout=timeout, verify=False)
         if res.status_code != 200:
             print(res)
@@ -126,127 +128,78 @@ class GraphQLInterfaceUnified:
         self.from_time = str(from_time).replace(" ","T")
         self.till_time = str(till_time).replace(" ","T")
         self.limit = int(limit)
-        self.network_chain_mapping_query = {
-            "LUNC": "cosmos",
-            "KLAY": "klaytn",
-            "BSC": "bsc",
-            "BNB": "binance",
-            "TRX": "tron",
-            "EOS": "eos",
-            "XLM": "stellar",
-            "XRP": "ripple",
-            "LTC": "litecoin",
-            "BCH": "bitcash",
-            "ADA": "cardano"
-        } 
-        self.network_chain_mapping_response = {
-            "LUNC": "cosmos",
-            "KLAY": "ethereum",
-            "BSC": "ethereum",
-            "BNB": "binance",
-            "TRX": "tron",
-            "EOS": "eos",
-            "XLM": "stellar",
-            "XRP": "ripple",
-            "LTC": "bitcoin",
-            "BCH": "bitcoin",
-            "ADA": "cardano"            
-        }
 
     def _graphql_query_builder(self):
         # define the direction of transaction flow:
         direction = "inbound" if self.source else "outbound"
         # define starter query parameter modules (these will be modified based on the chain)
-        initial_receiver_query = " receiver { address annotation "
-        initial_sender_query = " sender { address annotation "
-        initial_transaction_query = " transaction { hash value "
-        initial_extra_params = " depth amount "
         amount_details = " amountOut amountIn balance "
         smart_contract = " smartContract { contractType } "
+        common_receiver_query = " receiver { address annotation receiversCount sendersCount "
+        # Adding the params common to most blockchains first, these are modified later
+        currency = " "
+        receiver = "receiver { address annotation } "
+        sender = receiver.replace("receiver", "sender")  
+        extra_params = " depth amount currency { symbol } "        
         time = " var { time } "
-        currency_value = "BNB" if self.chain == "BSC" else self.chain
         if self.token_address is not None and self.token_address != "" and self.token_address != '0x0000000000000000000000000000000000000000':
-            currency_value = self.token_address     
-        network = self.network_chain_mapping_response[self.chain] + \
-                    " (network: " + self.network_chain_mapping_query[self.chain] + " ) "                  
+            currency_value = self.token_address 
+        else:
+            currency_value = Constants.GRAPHQL_CURRENCY_MAPPING.get(self.chain, None) 
+        network = Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain] + \
+                    " (network: " + Constants.NETWORK_CHAIN_MAPPING_FOR_QUERY[self.chain] + " ) "                  
 
-        # starting the flow with Terra since it has the shortest request body
         try:
-            # Cardano (ADA)
+            # Cardano or ADA          
             if self.chain == "ADA":
-                currency = " "
-                receiver = initial_receiver_query + " } "
-                sender = initial_sender_query + " } "
-                transaction = initial_transaction_query.replace("value", " valueIn valueOut }") + \
-                                " transactions { timestamp } "
-                extra_params = initial_extra_params + " currency { symbol } "
-            else:
-                #  TERRA OR LUNC
-                if self.chain == "LUNC":
-                    currency = " "
-                    receiver = initial_receiver_query + " } "
-                    sender = initial_sender_query + " } "
-                    transaction = initial_transaction_query + " } "
-                    block = """ block { timestamp { time ( format: "%Y-%m-%d" ) } } """
-                    transaction = transaction + block
-                    extra_params = initial_extra_params + " currency { symbol }"
-                else:                    
-                    receiver = initial_receiver_query + " receiversCount sendersCount "
-                    # Ripple and Stellar or XRP and XLM
-                    if self.chain in ["XRP", "XLM"]:               
-                        currency = " "
-                        receiver = receiver + \
-                                        time.replace("var", "firstTransferAt") + " " + \
-                                        time.replace("var", "lastTransferAt") + " } "
-                        sender = initial_sender_query + \
-                                        time.replace("var", "firstTransferAt") + " " + \
-                                        time.replace("var", "lastTransferAt") + " } "
-                        transaction = initial_transaction_query.replace("value", " ")
-                        transaction = transaction + \
-                                        time.replace("var", "time") + " " + \
-                                        " valueFrom valueTo  }"  
-                        extra_params = initial_extra_params.replace("amount", " amountFrom amountTo operation")
-                        extra_params = extra_params + " currencyFrom { name symbol } currencyTo { name symbol } "
-                    else: 
-                        receiver =  receiver + time.replace("var", "firstTxAt") + \
-                                    " " + time.replace("var", "lastTxAt")  + " type "
-                        sender = initial_sender_query + " type "     
-                        # Bitcoin Cash and Litecoin or BCH and LTC
-                        if self.chain in ["BCH", "LTC"]:    
-                            currency = " "
-                            receiver = receiver + " } "
-                            sender = sender + \
-                                    time.replace("var", "firstTxAt") + \
-                                    " " + time.replace("var", "lastTxAt") + " } "
-                            transaction = initial_transaction_query.replace("value", " valueIn valueOut }") + \
-                                            " transactions { timestamp } "
-                            extra_params = initial_extra_params + " currency { symbol } "
-                        else:
-                            extra_params = initial_extra_params + " currency { name symbol tokenId tokenType "
-                            receiver =  receiver + amount_details
-                            if self.chain in ["KLAY", "BSC"]:                                              
-                                currency = f""" currency: {{ is: "{currency_value}" }} """
-                                receiver =  receiver + smart_contract + " } " 
-                                sender =  sender + smart_contract + " }" 
-                                transaction = initial_transaction_query + " } " + \
-                                                " transactions { timestamp txHash txValue amount height } "
-                                extra_params = extra_params + "address } "
-                            else:
-                                # after every else, similar fields are modified and grouped
-                                receiver = receiver + " } "
-                                sender = sender + " } "
-                                transaction = initial_transaction_query + time.replace("var", "time") + " } " 
-                                if self.chain in ["BNB", "TRX"]:         
-                                    network = network if self.chain == "TRX" else self.network_chain_mapping_response[self.chain]            
-                                    currency = f""" currency: {{ is: "{currency_value}" }} """                             
-                                    extra_params = extra_params + " address } "  
-                                else:
-                                    if self.chain == "EOS":  
-                                        currency = " "
-                                        extra_params = extra_params + " } "  
-                                    else:
-                                        print("Error while forming query inside query builder module")
-                                        return None       
+                transaction = " transaction { hash valueIn valueOut } transactions { timestamp } "
+            #  TERRA or LUNC
+            elif self.chain == "LUNC":
+                transaction = """ transaction { hash value } block { timestamp { time ( format: "%Y-%m-%d" ) } } """
+            # Ripple/Stellar or XRP/XLM
+            elif self.chain in ["XRP", "XLM"]:               
+                receiver = common_receiver_query + time.replace("var", "firstTransferAt") + " " + \
+                                time.replace("var", "lastTransferAt") + " } "
+                sender = " sender { address annotation " + time.replace("var", "firstTransferAt") + " " + \
+                                time.replace("var", "lastTransferAt") + " } "
+                transaction = " transaction { hash " + time.replace("var", "time") + " valueFrom valueTo  }"
+                extra_params = " depth  amountFrom amountTo operation currencyFrom { name symbol } currencyTo { name symbol } "
+            # Bitcoin Cash/Litecoin or BCH/LTC
+            elif self.chain in ["BCH", "LTC"]:    
+                receiver = common_receiver_query  + time.replace("var", "firstTxAt") + \
+                                    " " + time.replace("var", "lastTxAt")  + " type } "
+                sender = " sender { address annotation type " + \
+                                time.replace("var", "firstTxAt") + \
+                                " " + time.replace("var", "lastTxAt") + " } "
+                transaction = " transaction { hash  valueIn valueOut } transactions { timestamp } "
+            # EOS
+            elif self.chain == "EOS":  
+                receiver = common_receiver_query + time.replace("var", "firstTxAt") + \
+                                " " + time.replace("var", "lastTxAt")  + " type " + amount_details + " } "
+                sender = " sender { address annotation type } "
+                transaction = " transaction { hash value " + time.replace("var", "time") + " } "                
+                extra_params = " depth amount  currency { name symbol tokenId tokenType } " 
+            # Klaytn/Binance Smart Chain or KLAY/BSC   
+            elif self.chain in ["KLAY", "BSC"]:                                              
+                currency = f""" currency: {{ is: "{currency_value}" }} """
+                receiver =  common_receiver_query + amount_details + \
+                                time.replace("var", "firstTxAt") + " " + \
+                                time.replace("var", "lastTxAt")  + \
+                                " type " + smart_contract + " } " 
+                sender =  " sender { address annotation type " + amount_details + smart_contract + " }" 
+                transaction = " transaction { hash value } " + \
+                                " transactions { timestamp txHash txValue amount height } "
+                extra_params = " depth amount  currency { name symbol tokenId tokenType address } " 
+
+            # Binance Coin/Tron or BNB/TRX
+            elif self.chain in ["BNB", "TRX"]: 
+                currency = f""" currency: {{ is: "{currency_value}" }} """
+                receiver = common_receiver_query + time.replace("var", "firstTxAt") + \
+                                " " + time.replace("var", "lastTxAt")  + " type " + amount_details + " } "
+                sender = " sender { address annotation type } "                        
+                network = network if self.chain == "TRX" else Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]
+                transaction = " transaction { hash value " + time.replace("var", "time") + " } "  
+                extra_params = " depth amount  currency { name symbol tokenId tokenType } "
                         
             # building final GraphQL query
             GRAPHQL_QUERY = f"""
@@ -259,10 +212,10 @@ class GraphQLInterfaceUnified:
                         date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
                         {currency}
                         ) {{
-                        {receiver}
-                        {sender}
-                        {transaction}
-                        {extra_params}
+                            {receiver}
+                            {sender}
+                            {transaction}
+                            {extra_params}
                         }}
                     }}
                 }}   
@@ -283,7 +236,13 @@ class GraphQLInterfaceUnified:
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers)
             response = r.json()          
-            for item in response["data"][self.network_chain_mapping_response[self.chain]]["coinpath"]:
+            print(request_body)
+            for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
+                # These dict items are common to all response bodies
+                # After this, the code enters the nested if-else block and the other parameters are assigned
+
+                # Once all parameters have been assinged to current_iter_dict, it is appended to the
+                # flattened response array, and the loop continues
                 current_iter_dict = {
                     "depth": item["depth"],
                     "tx_hash": item["transaction"]["hash"],
@@ -292,6 +251,7 @@ class GraphQLInterfaceUnified:
                     "sender_annotation": item["sender"]["annotation"] if item["sender"]["annotation"] not in [None, "None"] else "",
                     "receiver_annotation": item["receiver"]["annotation"] if item["receiver"]["annotation"] not in [None, "None"] else ""
                 }
+                # XRP and XLM have the same parameters so they are grouped together
                 if self.chain in ["XRP", "XLM"]:
                     current_iter_dict["tx_time"] = item["transaction"]["time"]["time"]
                     current_iter_dict["sent_amount"] = item["amountFrom"]
@@ -306,8 +266,9 @@ class GraphQLInterfaceUnified:
                     current_iter_dict["receiver_first_transfer_at"] = item["receiver"]["firstTransferAt"]["time"]
                     current_iter_dict["receiver_last_transfer_at"] = item["receiver"]["lastTransferAt"]["time"]
                     flattened_response.append(current_iter_dict)
-                    continue 
+                    continue                            
                 else:     
+                    # The symbol and amount parameters are common to all except XRP and XLM so they are assigned here itself
                     current_iter_dict["symbol"] = item["currency"]["symbol"]    
                     current_iter_dict["amount"] = item["amount"]      
                     if self.chain == "LUNC":
@@ -316,6 +277,7 @@ class GraphQLInterfaceUnified:
                         flattened_response.append(current_iter_dict)
                         continue
                     else:
+                        # BCH, LTC, ADA have almost all parameters in common except sender_type and receiver_type
                         if self.chain in ["BCH", "LTC", "ADA"]:
                             current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                             current_iter_dict["tx_value_in"] = item["transaction"]["valueIn"]
@@ -325,16 +287,13 @@ class GraphQLInterfaceUnified:
                                 current_iter_dict["receiver_type"] = item["receiver"]["type"]
                                 flattened_response.append(current_iter_dict)
                                 continue                                
-                            else:
-                                if self.chain == "ADA":
+                            elif self.chain == "ADA":
                                     current_iter_dict["sender_type"] = "unknown"
                                     current_iter_dict["receiver_type"] = "unknown"   
                                     flattened_response.append(current_iter_dict)
-                                    continue   
-                                else:
-                                    print("Unable to identify the chain")
-                                    return []                                                                
+                                    continue                                                                  
                         else:
+                            # the parameters below are common to all the following blockchains
                             current_iter_dict["token_id"] = item["currency"]["tokenId"]
                             current_iter_dict["token_type"] = item["currency"]["tokenType"]
                             current_iter_dict["receiver_receivers_count"] = item["receiver"]["receiversCount"]
@@ -359,15 +318,15 @@ class GraphQLInterfaceUnified:
                                     current_iter_dict["token"] = self.token_address
                                     flattened_response.append(current_iter_dict)
                                     continue  
-                                else:
-                                    if self.chain == "EOS":
-                                        current_iter_dict["token"] = item["currency"]["name"]
-                                        flattened_response.append(current_iter_dict)
-                                        continue   
-                                    else:
-                                        print("Unable to identify the chain")
-                                        return []
+                                if self.chain == "EOS":
+                                    current_iter_dict["token"] = item["currency"]["name"]
+                                    flattened_response.append(current_iter_dict)
+                                    continue   
+            # Once the loop has run its course, the flattened response array is returned
             return flattened_response                                      
         except Exception as e:
             traceback.print_exc()
             return []
+
+
+
