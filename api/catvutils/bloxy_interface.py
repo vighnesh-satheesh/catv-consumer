@@ -312,16 +312,15 @@ class GraphQLInterfaceUnified:
                     current_iter_dict["receiver_send_to_count"] = item["receiver"]["sendersCount"]
                     current_iter_dict["receiver_first_transfer_at"] = item["receiver"]["firstTransferAt"]["time"]
                     current_iter_dict["receiver_last_transfer_at"] = item["receiver"]["lastTransferAt"]["time"]
-                    if self.chain == "XRP":
-                         if item["destinationTag"]: 
-                             current_iter_dict["destination_tag"] = int(item["destinationTag"])
-                         else:
-                            current_iter_dict["destination_tag"] = 0
+                    if self.chain == "XRP" and item["destinationTag"]:
+                        current_iter_dict["destination_tag"] = int(item["destinationTag"])
+                    else:
+                        current_iter_dict["destination_tag"] = 0
                         
-                         if item["sourceTag"]: 
-                             current_iter_dict["source_tag"] = int(item["sourceTag"])
-                         else:
-                            current_iter_dict["source_tag"] = 0
+                    if self.chain == "XRP" and item["sourceTag"]: 
+                        current_iter_dict["source_tag"] = int(item["sourceTag"])
+                    else:
+                        current_iter_dict["source_tag"] = 0
                         
                     flattened_response.append(current_iter_dict)
                     continue 
