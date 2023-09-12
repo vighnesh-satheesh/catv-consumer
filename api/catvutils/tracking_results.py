@@ -58,8 +58,17 @@ class TrackingResults:
             self.error = args[0]['error']
 
     def get_results_from_bloxy(self, bloxy_interface, depth, till_date, tx_limit, limit, for_source=False):
-        bloxy_response = bloxy_interface.get_transactions(self.wallet_address, tx_limit, limit, depth,
-                                                          self.from_date, till_date, self.token_address, for_source, self.chain)
+        bloxy_response = bloxy_interface.get_transactions(
+                                            self.wallet_address, 
+                                            tx_limit, 
+                                            limit, 
+                                            depth,
+                                            self.from_date, 
+                                            till_date, 
+                                            self.token_address, 
+                                            for_source, 
+                                            self.chain
+                                        )
         if not bloxy_response:
             error_key = "source" if for_source else "distribution"
             self.error_messages[error_key] = "Missing {} results for the wallet address within the date range " \
@@ -348,13 +357,21 @@ class BTCTrackingResults(TrackingResults):
 
 class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        external_api_client = BloxyBTCAPIInterface(settings.BLOXY_API_KEY)
+        external_api_client = BloxyAPIInterface(settings.BLOXY_API_KEY)
         depth_limit = self.source_depth if for_source else self.distribution_depth
         from_time = self.from_date
         till_date_extend = self.to_date + "T23:59:59"
-        transaction_data = external_api_client.get_transactions(self.wallet_address, tx_limit, limit,
-                                                                depth_limit, till_time=till_date_extend,
-                                                                source=for_source, from_time=from_time, chain=self.chain)
+        transaction_data = external_api_client.get_transactions(
+                                                        self.wallet_address, 
+                                                        tx_limit, 
+                                                        limit,
+                                                        depth_limit, 
+                                                        from_time=from_time,
+                                                        till_time=till_date_extend,
+                                                        token_address = None,
+                                                        source=for_source,
+                                                        chain=self.chain
+                                                    )
         self.ext_api_calls += 1
         if not transaction_data:
             error_key = "source" if for_source else "distribution"
