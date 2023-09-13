@@ -148,7 +148,8 @@ class GraphQLInterfaceUnified:
             currency_value = Constants.GRAPHQL_CURRENCY_MAPPING.get(self.chain, None) 
         network = Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain] + \
                     " (network: " + Constants.NETWORK_CHAIN_MAPPING_FOR_QUERY[self.chain] + " ) "                  
-
+        destination_tag = " "
+        source_tag = " "
         try:
             # Cardano or ADA          
             if self.chain == "ADA":
@@ -164,6 +165,9 @@ class GraphQLInterfaceUnified:
                                 time.replace("var", "lastTransferAt") + " } "
                 transaction = " transaction { hash " + time.replace("var", "time") + " valueFrom valueTo  }"
                 extra_params = " depth  amountFrom amountTo operation currencyFrom { name symbol } currencyTo { name symbol } "
+                if(self.chain == "XRP"):
+                    destination_tag = " destinationTag"
+                    source_tag = " sourceTag"
             # Bitcoin Cash/Litecoin or BCH/LTC
             elif self.chain in ["BCH", "LTC"]:    
                 receiver = common_receiver_query  + time.replace("var", "firstTxAt") + \
@@ -212,6 +216,8 @@ class GraphQLInterfaceUnified:
                         date: {{ since: "{self.from_time}", till: "{self.till_time}" }}
                         {currency}
                         ) {{
+                            {destination_tag}
+                            {source_tag}
                             {receiver}
                             {sender}
                             {transaction}
@@ -265,6 +271,11 @@ class GraphQLInterfaceUnified:
                     current_iter_dict["receiver_send_to_count"] = item["receiver"]["sendersCount"]
                     current_iter_dict["receiver_first_transfer_at"] = item["receiver"]["firstTransferAt"]["time"]
                     current_iter_dict["receiver_last_transfer_at"] = item["receiver"]["lastTransferAt"]["time"]
+                    if self.chain == "XRP" and item.get("destinationTag"):
+                        current_iter_dict["destination_tag"] = item["destinationTag"]
+                    if self.chain == "XRP" and item.get("sourceTag"): 
+                        current_iter_dict["source_tag"] = item["sourceTag"]
+                        
                     flattened_response.append(current_iter_dict)
                     continue                            
                 else:     
