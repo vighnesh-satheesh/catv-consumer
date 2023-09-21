@@ -184,7 +184,7 @@ class GraphQLInterfaceUnified:
                 transaction = " transaction { hash value " + time.replace("var", "time") + " } "                
                 extra_params = " depth amount  currency { name symbol tokenId tokenType } " 
             # Klaytn/Binance Smart Chain or KLAY/BSC   
-            elif self.chain in ["KLAY", "BSC"]:                                              
+            elif self.chain in ["KLAY", "BSC", "FTM"]:                                              
                 currency = f""" currency: {{ is: "{currency_value}" }} """
                 receiver =  common_receiver_query + amount_details + \
                                 time.replace("var", "firstTxAt") + " " + \
@@ -243,6 +243,7 @@ class GraphQLInterfaceUnified:
                               'query': request_body}, headers=self._headers)
             response = r.json()          
             print(request_body)
+            print(response)
             for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
                 # These dict items are common to all response bodies
                 # After this, the code enters the nested if-else block and the other parameters are assigned
@@ -314,7 +315,7 @@ class GraphQLInterfaceUnified:
                             current_iter_dict["receiver_amount_out"] = float(item["receiver"]["amountOut"])
                             current_iter_dict["receiver_amount_in"] = float(item["receiver"]["amountIn"])
                             current_iter_dict["receiver_balance"] = float(item["receiver"]["balance"])
-                            if self.chain in ["KLAY", "BSC"]:
+                            if self.chain in ["KLAY", "BSC", "FTM"]:
                                 current_iter_dict["token"] = self.token_address
                                 current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                                 current_iter_dict["sender_type"] = item["sender"]["smartContract"]["contractType"] if item["sender"]["smartContract"]["contractType"] not in [None, "None"] else "Wallet"

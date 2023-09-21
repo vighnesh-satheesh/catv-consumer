@@ -33,7 +33,8 @@ class Constants:
             "XRP": "ripple",
             "LTC": "litecoin",
             "BCH": "bitcash",
-            "ADA": "cardano"        
+            "ADA": "cardano",
+            "FTM": "fantom"        
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -47,12 +48,14 @@ class Constants:
             "XRP": "ripple",
             "LTC": "bitcoin",
             "BCH": "bitcoin",
-            "ADA": "cardano"          
+            "ADA": "cardano",
+            "FTM": "ethereum"          
     }
 
     GRAPHQL_CURRENCY_MAPPING = {
         "TRX": "TRX",
         "BNB": "BNB",
         "KLAY": "KLAY",
-        "BSC": "BNB"
+        "BSC": "BNB",
+        "FTM": "FTM"
     }

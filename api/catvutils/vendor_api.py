@@ -3,7 +3,7 @@ import requests
 import traceback
 from django.conf import settings
 
-__all__ = ('LyzeAPIInterface', 'BloxyBTCAPIInterface', 'BloxyEthAPIInterface', )
+__all__ = ('LyzeAPIInterface', 'BloxyBTCAPIInterface', 'BloxyEthAPIInterface', 'GraphQLGeneralInterface')
 
 
 class LyzeAPIInterface:
@@ -411,6 +411,72 @@ class GraphQLInterfaceLTC:
             traceback.print_exc()
             return []
 
+
+class GraphQLInterfaceGeneral:
+    def __init__(self, key,):
+        self._graphql_key = settings.GRAPHQL_X_API_KEY
+        self._graphql_endpoint = settings.GRAPHQL_ENDPOINT
+        self._headers = {'X-API-KEY': self._graphql_key}
+
+    def format_results(self, res):
+        data = res['data']["ethereum"]["coinpath"]
+        final_res = {
+            'symbol': data['currency']['symbol'],
+            'token_id': data['currency']['tokenId'],
+            'token_type': data['currency']['tokenType'],
+            'token': data['currency']['address'],
+            'direction': 'outbound',
+
+        }
+        return final_res
+    def fetch_api_response(self, query):
+        res = requests.post(self._graphql_endpoint,
+                            json={'query': query},
+                            headers=self._headers)
+        if res.status_code != 200:
+            print(res)
+            return []
+        response = self.format_results(res.json())
+        return response
+
+    def get_path_transactions(self, path_tracker):
+        updated_chain_map = {
+            'trx': 'tron',
+            'xrp': 'ripple',
+            'xlm': 'stellar',
+            'bnb': 'binance',
+            'ada': 'cardano',
+            'bsc': 'binance smart chain',
+            'klay': 'klaytn',
+            'ftm': 'fantom'
+        }
+
+        chain = path_tracker.chain.lower()
+        if chain in updated_chain_map:
+            chain = updated_chain_map[chain]
+
+        query = f"""query sentinel_query {{
+              ethereum(network: {{ {chain} }}) {{
+                coinpath(
+                  options: {{direction: outbound, minimumTxAmount: 0.0, limit: {{ {path_tracker.limit_address_tx} }}
+                  sender: {{is: "{{ {path_tracker.address_from} }}"}}
+                  receiver: {{is: "{{ {path_tracker.address_to} }}"}}
+                  depth: {{lteq: 10}}
+                  date: {{since: "{{ {path_tracker.from_date} }}", till: "{{ {path_tracker.to_date} }}"}}
+                ) {{
+                  depth
+                  transactions {{ timestamp amount txValue txHash height }}
+                  sender {{ address }}
+                  receiver {{ address }}
+                  currency {{ tokenType tokenId address symbol }}
+                }}
+              }}
+            }}"""
+
+        result = self.fetch_api_response(query)
+        return query
+
+
 class BloxyEthAPIInterface:
     def __init__(self, key, api_url=settings.BLOXY_ETHCOINPATH_ENDPOINT):
         self.__key = key
@@ -422,6 +488,7 @@ class BloxyEthAPIInterface:
             print(response)
             return []
         response_list = response.json()
+        print(response_list)
         return response_list
 
     def get_path_transactions(self, path_tracker):
@@ -449,12 +516,16 @@ class BloxyEthAPIInterface:
             'bnb': 'binance',
             'ada': 'cardano',
             'bsc': 'binance smart chain',
-            'klay': 'klaytn'
+            'klay': 'klaytn',
+            'ftm': 'fantom'
         }
         updated_chain = path_tracker.chain.lower()
         if updated_chain in updated_chain_map.keys():
             updated_chain = updated_chain_map[updated_chain]
         payload.update({'chain': updated_chain})
+        print(payload)
         r = self.fetch_api_response(api_url, payload)
+        print("API Response")
+        print(r)
         return r
 
