@@ -1,4 +1,4 @@
-FROM python:latest
+FROM 821988754834.dkr.ecr.ap-southeast-1.amazonaws.com/python:latest
 
 MAINTAINER uppsala <developer@sentinelprotocol.io>
 
@@ -33,19 +33,19 @@ WORKDIR /app
 # Install nodejs and pm2
 RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
 RUN apt-get update && \
-  apt-get install -y \
-  nodejs \
-  redis-server \
-  gettext && \
-  npm install pm2@latest -g
+    apt-get install -y \
+    nodejs \
+    redis-server \
+    gettext && \
+    npm install pm2@latest -g
 
 # Install requirements
 COPY ./requirements/${CATV_CONSUMER_API_ENV}.txt ./requirements.txt
 COPY ./library ./library
 RUN pip install --upgrade pip setuptools && \
-  pip install -r /app/requirements.txt && \
-  pip install uwsgi && \
-  pip install -e /app/library/indicator-lib/src/py
+    pip install -r /app/requirements.txt && \
+    pip install uwsgi && \
+    pip install -e /app/library/indicator-lib/src/py
 
 # Bundle APP files
 COPY . .
@@ -57,9 +57,9 @@ RUN django-admin compilemessages
 # Add uppsala user.
 
 RUN groupadd -g 999 uppsala && \
-  useradd -r -u 999 -g uppsala uppsala && \
-  chown uppsala:uppsala /app && \
-  usermod -d /app uppsala
+    useradd -r -u 999 -g uppsala uppsala && \
+    chown uppsala:uppsala /app && \
+    usermod -d /app uppsala
 USER uppsala
 
 # RUN

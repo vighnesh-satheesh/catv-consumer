@@ -3,7 +3,7 @@ import requests
 import traceback
 from django.conf import settings
 
-__all__ = ('LyzeAPIInterface', 'BloxyBTCAPIInterface', 'BloxyEthAPIInterface', 'GraphQLGeneralInterface')
+__all__ = ('LyzeAPIInterface', 'BloxyBTCAPIInterface', 'BloxyEthAPIInterface')
 
 
 class LyzeAPIInterface:
@@ -596,15 +596,14 @@ class BloxyEthAPIInterface:
             'ada': 'cardano',
             'bsc': 'binance smart chain',
             'klay': 'klaytn',
-            'ftm': 'fantom'
+            'ftm': 'fantom',
+            'matic': 'matic',
+            'avax': 'avax'
         }
         updated_chain = path_tracker.chain.lower()
         if updated_chain in updated_chain_map.keys():
             updated_chain = updated_chain_map[updated_chain]
         payload.update({'chain': updated_chain})
-        print(payload)
         r = self.fetch_api_response(api_url, payload)
-        print("API Response")
-        print(r)
         return r
 
