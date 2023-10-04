@@ -28,6 +28,8 @@ class CatvTokens(Enum):
     KLAY = 'KLAY'
     LUNC = 'LUNC'
     FTM = 'FTM'
+    MATIC = 'MATIC'
+    AVAX = 'AVAX'
 
 class CatvSearchType(Enum):
     PATH = 'path'

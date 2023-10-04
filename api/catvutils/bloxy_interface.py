@@ -184,7 +184,7 @@ class GraphQLInterfaceUnified:
                 transaction = " transaction { hash value " + time.replace("var", "time") + " } "                
                 extra_params = " depth amount  currency { name symbol tokenId tokenType } " 
             # Klaytn/Binance Smart Chain or KLAY/BSC   
-            elif self.chain in ["KLAY", "BSC", "FTM"]:                                              
+            elif self.chain in ["KLAY", "BSC", "FTM", "MATIC", "AVAX"]:
                 currency = f""" currency: {{ is: "{currency_value}" }} """
                 receiver =  common_receiver_query + amount_details + \
                                 time.replace("var", "firstTxAt") + " " + \
@@ -226,6 +226,8 @@ class GraphQLInterfaceUnified:
                     }}
                 }}   
                 """
+            print("GQL query")
+            print(GRAPHQL_QUERY)
             return GRAPHQL_QUERY
         except Exception as e:
             traceback.print_exc()
@@ -315,7 +317,7 @@ class GraphQLInterfaceUnified:
                             current_iter_dict["receiver_amount_out"] = float(item["receiver"]["amountOut"])
                             current_iter_dict["receiver_amount_in"] = float(item["receiver"]["amountIn"])
                             current_iter_dict["receiver_balance"] = float(item["receiver"]["balance"])
-                            if self.chain in ["KLAY", "BSC", "FTM"]:
+                            if self.chain in ["KLAY", "BSC", "FTM", "MATIC", "AVAX"]:
                                 current_iter_dict["token"] = self.token_address
                                 current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                                 current_iter_dict["sender_type"] = item["sender"]["smartContract"]["contractType"] if item["sender"]["smartContract"]["contractType"] not in [None, "None"] else "Wallet"

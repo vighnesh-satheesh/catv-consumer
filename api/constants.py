@@ -34,7 +34,9 @@ class Constants:
             "LTC": "litecoin",
             "BCH": "bitcash",
             "ADA": "cardano",
-            "FTM": "fantom"        
+            "FTM": "fantom",
+            "MATIC": "matic",
+            "AVAX": "avalanche"
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -49,7 +51,9 @@ class Constants:
             "LTC": "bitcoin",
             "BCH": "bitcoin",
             "ADA": "cardano",
-            "FTM": "ethereum"          
+            "FTM": "ethereum",
+            "MATIC": "ethereum",
+            "AVAX": "ethereum",
     }
 
     GRAPHQL_CURRENCY_MAPPING = {
@@ -57,5 +61,7 @@ class Constants:
         "BNB": "BNB",
         "KLAY": "KLAY",
         "BSC": "BNB",
-        "FTM": "FTM"
+        "FTM": "FTM",
+        "MATIC": "MATIC",
+        "AVAX": "AVAX"
     }
