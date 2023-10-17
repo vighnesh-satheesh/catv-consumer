@@ -33,7 +33,8 @@ class Constants:
             "XRP": "ripple",
             "LTC": "litecoin",
             "BCH": "bitcash",
-            "ADA": "cardano"        
+            "ADA": "cardano",
+            "DOGE": "dogecoin"       
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -47,6 +48,7 @@ class Constants:
             "XRP": "ripple",
             "LTC": "bitcoin",
             "BCH": "bitcoin",
+            "DOGE": "bitcoin",
             "ADA": "cardano"          
     }
 
