@@ -1,4 +1,4 @@
-import uuid
+Simport uuid
 import warnings
 from enum import Enum
 
@@ -30,6 +30,7 @@ class CatvTokens(Enum):
     FTM = 'FTM'
     MATIC = 'MATIC'
     AVAX = 'AVAX'
+    DOGE = 'DOGE'
 
 class CatvSearchType(Enum):
     PATH = 'path'
