@@ -51,15 +51,12 @@ class Constants:
             "XRP": "ripple",
             "LTC": "bitcoin",
             "BCH": "bitcoin",
-<<<<<<< HEAD
             "ADA": "cardano",
             "FTM": "ethereum",
             "MATIC": "ethereum",
             "AVAX": "ethereum",
-=======
             "DOGE": "bitcoin",
             "ADA": "cardano"          
->>>>>>> 068789a872fe661af42d7c7da9365afe05f57a4a
     }
 
     GRAPHQL_CURRENCY_MAPPING = {
