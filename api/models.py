@@ -27,7 +27,8 @@ class CatvTokens(Enum):
     BSC = 'BSC'
     KLAY = 'KLAY'
     LUNC = 'LUNC'
-    DOGE = 'DOGE'
+    DOGE = 'DOGE',
+    ZEC = 'ZEC'
 
 class CatvSearchType(Enum):
     PATH = 'path'

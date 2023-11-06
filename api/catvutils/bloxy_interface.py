@@ -169,7 +169,7 @@ class GraphQLInterfaceUnified:
                     destination_tag = " destinationTag"
                     source_tag = " sourceTag"
             # Bitcoin Cash/Litecoin or BCH/LTC
-            elif self.chain in ["BCH", "LTC", "DOGE"]:    
+            elif self.chain in ["BCH", "LTC", "DOGE", "ZEC"]:    
                 receiver = common_receiver_query  + time.replace("var", "firstTxAt") + \
                                     " " + time.replace("var", "lastTxAt")  + " type } "
                 sender = " sender { address annotation type " + \
@@ -242,6 +242,7 @@ class GraphQLInterfaceUnified:
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers)
             response = r.json()  
+            print(request_body, response)
             for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
                 # These dict items are common to all response bodies
                 # After this, the code enters the nested if-else block and the other parameters are assigned
@@ -288,13 +289,13 @@ class GraphQLInterfaceUnified:
                         flattened_response.append(current_iter_dict)
                         continue
                     else:
-                        # BCH, LTC, DOGE and ADA have almost all parameters in common 
+                        # BCH, LTC, DOGE, ZEC and ADA have almost all parameters in common 
                         # except sender_type and receiver_type
-                        if self.chain in ["BCH", "LTC", "DOGE", "ADA"]:
+                        if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "ADA"]:
                             current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                             current_iter_dict["tx_value_in"] = item["transaction"]["valueIn"]
                             current_iter_dict["tx_value_out"] = item["transaction"]["valueOut"]
-                            if self.chain in ["BCH", "LTC", "DOGE"]:
+                            if self.chain in ["BCH", "LTC", "DOGE", "ZEC"]:
                                 current_iter_dict["sender_type"] = item["sender"]["type"]
                                 current_iter_dict["receiver_type"] = item["receiver"]["type"]
                                 flattened_response.append(current_iter_dict)
