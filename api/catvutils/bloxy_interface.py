@@ -242,7 +242,7 @@ class GraphQLInterfaceUnified:
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers)
             response = r.json()  
-            print(request_body, response)
+            print(request_body)
             for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
                 # These dict items are common to all response bodies
                 # After this, the code enters the nested if-else block and the other parameters are assigned
