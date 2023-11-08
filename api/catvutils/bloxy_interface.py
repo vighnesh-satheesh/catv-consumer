@@ -169,7 +169,7 @@ class GraphQLInterfaceUnified:
                     destination_tag = " destinationTag"
                     source_tag = " sourceTag"
             # Bitcoin Cash/Litecoin or BCH/LTC
-            elif self.chain in ["BCH", "LTC", "DOGE", "ZEC"]:    
+            elif self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH"]:    
                 receiver = common_receiver_query  + time.replace("var", "firstTxAt") + \
                                     " " + time.replace("var", "lastTxAt")  + " type } "
                 sender = " sender { address annotation type " + \
@@ -289,13 +289,13 @@ class GraphQLInterfaceUnified:
                         flattened_response.append(current_iter_dict)
                         continue
                     else:
-                        # BCH, LTC, DOGE, ZEC and ADA have almost all parameters in common 
+                        # BCH, LTC, DOGE, ZEC, DASH and ADA have almost all parameters in common 
                         # except sender_type and receiver_type
-                        if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "ADA"]:
+                        if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH", "ADA"]:
                             current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                             current_iter_dict["tx_value_in"] = item["transaction"]["valueIn"]
                             current_iter_dict["tx_value_out"] = item["transaction"]["valueOut"]
-                            if self.chain in ["BCH", "LTC", "DOGE", "ZEC"]:
+                            if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH"]:
                                 current_iter_dict["sender_type"] = item["sender"]["type"]
                                 current_iter_dict["receiver_type"] = item["receiver"]["type"]
                                 flattened_response.append(current_iter_dict)
