@@ -34,7 +34,8 @@ class Constants:
             "LTC": "litecoin",
             "BCH": "bitcash",
             "ADA": "cardano",
-            "DOGE": "dogecoin"       
+            "DOGE": "dogecoin",
+            "ZEC": "zcash"      
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -49,7 +50,8 @@ class Constants:
             "LTC": "bitcoin",
             "BCH": "bitcoin",
             "DOGE": "bitcoin",
-            "ADA": "cardano"          
+            "ZEC": "bitcoin",
+            "ADA": "cardano",        
     }
 
     GRAPHQL_CURRENCY_MAPPING = {
