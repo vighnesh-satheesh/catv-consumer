@@ -91,7 +91,15 @@ def process_catv_messages(job: CatvJobQueue):
         CatvTokens.LUNC.value: {
             CatvSearchType.FLOW.value: CATVSerializer,
             CatvSearchType.PATH.value: CATVEthPathSerializer
-        }
+        },
+        CatvTokens.DOGE.value: {
+            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
+            CatvSearchType.PATH.value: CatvBtcPathSerializer
+        },
+        CatvTokens.ZEC.value: {
+            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
+            CatvSearchType.PATH.value: CatvBtcPathSerializer
+        }          
     }
 
     try:
@@ -130,7 +138,6 @@ def process_catv_messages(job: CatvJobQueue):
             graph_data["edge_list"] = graph_data["graph_edge_list"] if graph_data["graph_edge_list"] else graph_data["edge_list"]
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
-
         if "exchange" not in graph_data["node_list"][0]["group"].lower():
             print("Origin node is not an exchange")
             exchange_checker_obj = ExchangeChecker(

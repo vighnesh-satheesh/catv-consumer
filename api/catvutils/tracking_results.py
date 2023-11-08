@@ -304,7 +304,6 @@ class TrackingResults:
             track_source_result = self._source_graph
             graph_dict.update(track_source_result)
             graph_dict['receive_count'] = graph_dict.pop('volume_count_-1')
-        
         return graph_dict
 
 
