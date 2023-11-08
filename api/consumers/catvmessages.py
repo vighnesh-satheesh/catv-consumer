@@ -99,6 +99,10 @@ def process_catv_messages(job: CatvJobQueue):
         CatvTokens.ZEC.value: {
             CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
             CatvSearchType.PATH.value: CatvBtcPathSerializer
+        },
+        CatvTokens.DASH.value: {
+            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
+            CatvSearchType.PATH.value: CatvBtcPathSerializer
         }          
     }
 

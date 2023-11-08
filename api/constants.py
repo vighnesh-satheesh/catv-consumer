@@ -35,7 +35,8 @@ class Constants:
             "BCH": "bitcash",
             "ADA": "cardano",
             "DOGE": "dogecoin",
-            "ZEC": "zcash"      
+            "ZEC": "zcash",
+            "DASH": "dash"  
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -51,6 +52,7 @@ class Constants:
             "BCH": "bitcoin",
             "DOGE": "bitcoin",
             "ZEC": "bitcoin",
+            "DASH": "bitcoin",
             "ADA": "cardano",        
     }
 
