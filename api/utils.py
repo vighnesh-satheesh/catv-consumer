@@ -51,9 +51,7 @@ def determine_wallet_type(token_type):
         "ADA": "Cardano",
         "BSC": "Binance Smart Chain",
         "KLAY": "Klaytn",
-        "LUNC": "LUNC",
-        "DOGE": "Doge Coin",
-        "ZEC": "Zcash"
+        "LUNC": "LUNC"
     }
 
     if address_mapping.__contains__(token_type.value):
@@ -77,8 +75,6 @@ def pattern_matches_token(address, token_type):
         CatvTokens.BSC.value: "^0x[a-fA-F0-9]{40}$",
         CatvTokens.KLAY.value: "^0x[a-fA-F0-9]{40}$",
         CatvTokens.LUNC.value: "^(terra1)[0-9a-z]{38}$",
-        CatvTokens.DOGE.value: "^(D|A|9)[a-km-zA-HJ-NP-Z1-9]{33,34}$",
-        CatvTokens.ZEC.value: "^(t)[A-Za-z0-9]{34}$"
     }
     pattern = token_regex_map.get(token_type, None)
     if not pattern:
