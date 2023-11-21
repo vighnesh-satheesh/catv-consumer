@@ -31,6 +31,8 @@ class CatvTokens(Enum):
     MATIC = 'MATIC'
     AVAX = 'AVAX'
     DOGE = 'DOGE'
+    ZEC = 'ZEC'
+    DASH = 'DASH'
 
 class CatvSearchType(Enum):
     PATH = 'path'

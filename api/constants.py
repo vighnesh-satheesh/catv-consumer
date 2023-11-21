@@ -37,7 +37,9 @@ class Constants:
             "FTM": "fantom",
             "MATIC": "matic",
             "AVAX": "avalanche",
-            "DOGE": "dogecoin"       
+            "DOGE": "dogecoin",
+            "ZEC": "zcash",
+            "DASH": "dash"         
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -56,7 +58,9 @@ class Constants:
             "MATIC": "ethereum",
             "AVAX": "ethereum",
             "DOGE": "bitcoin",
-            "ADA": "cardano"          
+            "ZEC": "bitcoin",
+            "DASH": "bitcoin",
+            "ADA": "cardano",        
     }
 
     GRAPHQL_CURRENCY_MAPPING = {
