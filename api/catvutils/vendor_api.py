@@ -3,7 +3,7 @@ import requests
 import traceback
 from django.conf import settings
 
-__all__ = ('LyzeAPIInterface', 'BloxyBTCAPIInterface', 'BloxyEthAPIInterface')
+__all__ = ('LyzeAPIInterface', 'BloxyBTCAPIInterface', 'BloxyEthAPIInterface', )
 
 
 class LyzeAPIInterface:
