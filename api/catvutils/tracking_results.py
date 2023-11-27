@@ -414,10 +414,6 @@ class EthPathResults(TrackingResults):
         self.min_tx_amount = kwargs['min_tx_amount']
         self.limit_address_tx = kwargs['limit_address_tx']
         self.chain = kwargs.get('chain', CatvTokens.ETH.value)
-        # test for FTM first
-        # if self.chain in [CatvTokens.FTM.value]:
-        #     self._external_api_client = GraphQLInterfaceGeneral()
-        # else:
         self._external_api_client = BloxyEthAPIInterface(settings.BLOXY_API_KEY,
                                                          settings.BLOXY_ETHCOINPATH_ENDPOINT)
         self._graph_func = generate_nodes_edges_ethcoinpath

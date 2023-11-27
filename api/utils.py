@@ -52,9 +52,9 @@ def determine_wallet_type(token_type):
         "BSC": "Binance Smart Chain",
         "KLAY": "Klaytn",
         "LUNC": "LUNC",
-        "FTM": "FTM",
-        "MATIC": "MATIC",
-        "AVAX": "AVAX",
+        "FTM": "Fantom",
+        "MATIC": "Matic",
+        "AVAX": "Avalanche",
         "DOGE": "Doge Coin",
         "ZEC": "Zcash",
         "DASH": "DASH"
