@@ -449,7 +449,10 @@ class BloxyEthAPIInterface:
             'bnb': 'binance',
             'ada': 'cardano',
             'bsc': 'binance smart chain',
-            'klay': 'klaytn'
+            'klay': 'klaytn',
+            'ftm': 'fantom',
+            'matic': 'matic',
+            'avax': 'avax'
         }
         updated_chain = path_tracker.chain.lower()
         if updated_chain in updated_chain_map.keys():

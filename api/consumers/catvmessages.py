@@ -92,6 +92,18 @@ def process_catv_messages(job: CatvJobQueue):
             CatvSearchType.FLOW.value: CATVSerializer,
             CatvSearchType.PATH.value: CATVEthPathSerializer
         },
+        CatvTokens.FTM.value: {
+            CatvSearchType.FLOW.value: CATVSerializer,
+            CatvSearchType.PATH.value: CATVEthPathSerializer
+        },
+        CatvTokens.MATIC.value: {
+            CatvSearchType.FLOW.value: CATVSerializer,
+            CatvSearchType.PATH.value: CATVEthPathSerializer
+        },
+        CatvTokens.AVAX.value: {
+            CatvSearchType.FLOW.value: CATVSerializer,
+            CatvSearchType.PATH.value: CATVEthPathSerializer
+        },
         CatvTokens.DOGE.value: {
             CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
             CatvSearchType.PATH.value: CatvBtcPathSerializer
