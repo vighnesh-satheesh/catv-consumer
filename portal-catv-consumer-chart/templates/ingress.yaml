@@ -15,7 +15,7 @@ apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ $fullName }}-ingress
   labels:
     {{- include "portal-catv-consumer-chart.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}

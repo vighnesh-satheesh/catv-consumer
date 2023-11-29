@@ -18,7 +18,7 @@ main:
   envVars: []
 
 # To pass Container Environment variables from a ConfigMap add Config Map name
-  envVarsCM: "portal-catv-consumer"
+  envVarsCM: "portal-catv-consumer-configmap"
 
 # To pass Container Environment variables from a Secret add Secret name
   envVarsSecret: "" 

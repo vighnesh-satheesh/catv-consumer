@@ -2,7 +2,7 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "portal-catv-consumer-chart.fullname" . }}
+  name: {{ include "portal-catv-consumer-chart.fullname" . }}-hpa
   labels:
     {{- include "portal-catv-consumer-chart.labels" . | nindent 4 }}
 spec:

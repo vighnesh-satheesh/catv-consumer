@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "portal-catv-consumer-chart.fullname" . }}
+  name: {{ include "portal-catv-consumer-chart.fullname" . }}-deployment
   labels:
     {{- include "portal-catv-consumer-chart.labels" . | nindent 4 }}
 spec:

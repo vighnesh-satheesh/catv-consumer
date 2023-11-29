@@ -12,11 +12,12 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-      
+
     env: ###--> Change all values here <--###
       SLACK_URL: 'https://hooks.slack.com/services/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'
       AR_REPO_NAME: asia-docker.pkg.dev/uppsala-devops/uppsala-stage-repository
       BUILD_ENV: stage
+      DOCKERFILE_PATH: docker/Dockerfile
       GKE_CLUSTER_NAME: upp-stg-gke-cluster
       NAMESPACE: backend
       DEPLOYMENT_NAME: portal-catv-consumer
