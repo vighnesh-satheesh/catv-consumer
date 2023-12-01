@@ -5,7 +5,7 @@ on:
       - stage
       - gcp_searce
   workflow_dispatch:
-    
+
 jobs:
   build:
     name: Build & Deploy
@@ -27,7 +27,7 @@ jobs:
       SCANTISTTOKEN: ${{ secrets.UPPHUBSCANTISTTOKEN }}
       DEPLOYMENT_NAME: portal-catv-consumer
       CHART_PATH: portal-catv-consumer-chart
-      DOCKERFILE_PATH: Dockerfile
+      DOCKERFILE_PATH: docker/Dockerfile
 
     steps:
       - uses: actions/checkout@v4
