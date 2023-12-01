@@ -117,7 +117,7 @@ kubernetesClusterDomain: cluster.local
 # ConfigMap Spec
 configMap:
   gcpProjectId: uppsala-staging
-  gcpSecretName: portal-catv-consumer-stage
+  gcpSecretName: upp-stg-api-catv-consumer-service
 
 # Service Spec
 # If the Service Type is NodePort update as nodePort: any numbe between 30000-32767
