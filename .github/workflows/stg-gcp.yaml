@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - stage
-      - gcp_searce
   workflow_dispatch:
 
 jobs:
@@ -25,6 +24,7 @@ jobs:
       REGION: ${{secrets.GCP_REGION}}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
       SCANTISTTOKEN: ${{ secrets.UPPHUBSCANTISTTOKEN }}
+      NAMESPACE: backend
       DEPLOYMENT_NAME: portal-catv-consumer
       CHART_PATH: portal-catv-consumer-chart
       DOCKERFILE_PATH: docker/Dockerfile
