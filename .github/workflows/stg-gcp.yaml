@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - stage
+      - gcp_searce
   workflow_dispatch:
 jobs:
   build:
@@ -27,7 +28,7 @@ jobs:
       CHART_PATH: portal-catv-consumer-chart
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: 'Authenticate to Google Cloud'
         id: 'gcloud-auth'
