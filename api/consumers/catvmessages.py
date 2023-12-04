@@ -30,7 +30,7 @@ from api.rpc.RPCClient import update_s3_attached_file_uid, \
 
 __all__ = ('process_catv_messages',)
 
-from api.utils import upload_content_file_to_s3, get_file_meta
+from api.utils import  upload_content_file_to_gcs,get_file_meta
 
 
 def process_catv_messages(job: CatvJobQueue):
@@ -230,10 +230,10 @@ def process_catv_messages(job: CatvJobQueue):
                 file_uid = uuid4()
                 content_file = ContentFile(bytes(json.dumps(message).encode('UTF-8')), name=str(file_uid))
                 try:
-                    # returns the file name if upload to s3 is successful
-                    file_name = upload_content_file_to_s3(content_file)
+                    # returns the file name if upload to GCS is successful
+                    file_name = upload_content_file_to_gcs(content_file)
                 except Exception:
-                    print("Upload to S3 failed for message_id: ", message_id)
+                    print("Upload to GCS failed for message_id: ", message_id)
                     ConsumerErrorLogs.objects.create(
                         topic="s3-upload",
                         message=request_body,
@@ -247,6 +247,7 @@ def process_catv_messages(job: CatvJobQueue):
                                     'size': size,
                                     'mimetype': str(mimetype)}
                     # rpc to portal for creating AttachedFile table entry
+                    #Need to refactor this to be referring to GCS.
                     attached_file_pk = update_s3_attached_file_uid(request_dict)
                     if int(attached_file_pk) == 0:
                         print("AttachedFile uid not updated with S3 file_name through RPC to portal")
