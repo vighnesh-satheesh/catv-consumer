@@ -165,7 +165,9 @@ CORS_ALLOW_HEADERS = default_headers + (
 
 # file stoage
 
-DEFAULT_FILE_STORAGE = "api.storages.s3.S3Storage"
+#DEFAULT_FILE_STORAGE = "api.storages.s3.S3Storage"
+DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+
 
 
 # Default auto-created primary keys
@@ -194,6 +196,13 @@ API_SETTINGS = {
     "S3_ICO_IMAGE_DEFAULT": env.str('API_S3_ICO_IMAGE_DEFAULT', 'https://portal.sentinelprotocol.io/img/ic_project_defult.png'),
     "S3_USER_IMAGE_KEY_PREFIX": env.str('API_S3_USER_IMAGE_KEY_PREFIX', "user_img/"),
     "S3_USER_IMAGE_DEFAULT": env.str('API_S3_USER_IMAGE_DEFAULT', 'https://portal.sentinelprotocol.io/img/anonymous.png'),
+        
+    "GCS_BUCKET_NAME": env.str('API_GCS_BUCKET_NAME', None),
+    "GCS_IMAGE_MEDIA_URL": env.str('API_GCS_IMAGE_MEDIA_URL', None),
+    "GCS_ICO_IMAGE_KEY_PREFIX": env.str('API_GCS_ICO_IMAGE_KEY_PREFIX', "ico_img/"),
+    "GCS_ICO_IMAGE_DEFAULT": env.str('API_GCS_ICO_IMAGE_DEFAULT', 'https://portal.sentinelprotocol.io/img/ic_project_defult.png'),
+    "GCS_USER_IMAGE_KEY_PREFIX": env.str('API_GCS_USER_IMAGE_KEY_PREFIX', "user_img/"),
+    "GCS_USER_IMAGE_DEFAULT": env.str('API_GCS_USER_IMAGE_DEFAULT', 'https://portal.sentinelprotocol.io/img/anonymous.png'),
 
     "ATTACHED_FILE_S3_REGION": env.str('API_ATTACHED_FILE_S3_REGION', os.environ.get("AWS_REGION", "ap-northeast-2")),
     "ATTACHED_FILE_S3_BUCKET_NAME": env.str('API_ATTACHED_FILE_S3_BUCKET_NAME', None),
@@ -204,6 +213,9 @@ API_SETTINGS = {
     'ATTACHED_FILE_UPLOAD_NUM_LIMIT': env.int('API_ATTACHED_FILE_UPLOAD_NUM_LIMIT', 1),
     'ATTACHED_FILE_ALLOWED_TYPES': env.str('API_ATTACHED_FILE_ALLOWED_TYPES',
                                            'txt|pdf|mp4|png|jpg|jpeg|bmp|gif|csv'),
+    #"ATTACHED_FILE_GCS_REGION": env.str('API_ATTACHED_FILE_GCS_REGION', os.environ.get("AWS_REGION", "ap-northeast-2")),
+    "ATTACHED_FILE_GCS_BUCKET_NAME": env.str('API_ATTACHED_FILE_GCS_BUCKET_NAME', None),
+    "ATTACHED_FILE_GCS_KEY_PREFIX": env.str('API_ATTACHED_FILE_GCS_KEY_PREFIX', 'files/'),
 
     "ICO_LIST_DETAIL_LEN": env.int('API_ICO_LIST_DETAIL_LEN', 300),
     "CASE_LIST_DETAIL_LEN": env.int('API_CASE_LIST_DETAIL_LEN', 300),
@@ -274,7 +286,8 @@ API_SETTINGS = {
     "RABBIT_MQ_ENV":env.str("RABBIT_MQ_ENV", ""),
     "RABBIT_MQ_LOCAL_URL":env.str("RABBIT_MQ_LOCAL_URL", "rabbitmq"),
     "GRAPHQL_ENDPOINT": env.str("GRAPHQL_ENDPOINT", ""),
-    "GRAPHQL_X_API_KEY": env.str("GRAPHQL_X_API_KEY", "")
+    "GRAPHQL_X_API_KEY": env.str("GRAPHQL_X_API_KEY", ""),
+    "GOOGLE_PROJECT_ID": env.str('GCP_PROJECT_ID', None),
 }
 
 # Add AWS Private IP to ALLOWED_HOSTS.
