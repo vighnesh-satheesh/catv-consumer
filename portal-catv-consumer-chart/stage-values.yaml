@@ -67,6 +67,8 @@ sidecar:
     repository: gcr.io/alloydb-connectors/alloydb-auth-proxy
     tag: latest
   args:
+    - --auto-iam-authn
+    - --structured-logs
     - -p=5432
     - projects/uppsala-staging/locations/asia-southeast1/clusters/upp-stg-micro-portal-cluster/instances/upp-stg-micro-portal
   pullPolicy: IfNotPresent
