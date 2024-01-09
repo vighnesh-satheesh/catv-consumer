@@ -16,7 +16,9 @@ class RPCClient:
                 api_settings.RABBIT_MQ_BROKER_ID,
                 api_settings.RABBIT_MQ_USERNAME,
                 api_settings.RABBIT_MQ_PASSWORD,
-                api_settings.RABBIT_MQ_REGION
+                api_settings.RABBIT_MQ_REGION,
+                api_settings.RABBIT_MQ_HOST,
+                api_settings.RABBIT_MQ_PORT
             )
             self.connection = basic_pika_publisher._get_connection()
 
@@ -52,7 +54,7 @@ class RPCClient:
         except Exception:
             traceback.format_exc()
 
-
+# Need to refactor this to GCS.
 def update_s3_attached_file_uid(request):
     rpc = RPCClient()
     return rpc.call(json.dumps(request), 'rpc_catv_consumer_update_file')
