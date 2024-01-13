@@ -36,8 +36,11 @@ class BloxyAPIInterface:
             print("Bitquery API call timed out for: ", data)
             raise BitqueryFetchTimedOut
         except RequestException:
-            print("Bitquery API call request exceptionr: ", data)
+            print("Bitquery API call request exception: ", data)
             raise BitqueryFetchTimedOut
+        except Exception as e:
+            traceback.print_exc()
+            return []
 
     def get_transactions(self, address, tx_limit, limit, depth_limit=2,
                         from_time=datetime(2015, 1, 1, 0, 0),
@@ -351,15 +354,11 @@ class GraphQLInterfaceUnified:
             # Once the loop has run its course, the flattened response array is returned
             return flattened_response
         except Timeout:
-            print(f"Bitquery Graphql API call timed out for: {self.address} {self.chain}")
+            print(f"Bitquery Graphql call timed out for: {self.address} {self.chain}")
             raise BitqueryFetchTimedOut
         except RequestException:
-            print(f"Bitquery API call request exception: {self.address} {self.chain}")
+            print(f"Bitquery Graphql call request exception: {self.address} {self.chain}")
             raise BitqueryFetchTimedOut
         except Exception as e:
             traceback.print_exc()
             return []
-
-
-
-
