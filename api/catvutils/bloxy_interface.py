@@ -19,7 +19,7 @@ class BloxyAPIInterface:
         self._graphql_key = settings.GRAPHQL_X_API_KEY
         self._graphql_endpoint = settings.GRAPHQL_ENDPOINT
         self.connect_timeout = 60
-        self.read_timeout = 30
+        self.read_timeout = 300
 
     def call_bloxy_api(self, api_url, data):
         print('api_url:', api_url)
@@ -140,7 +140,7 @@ class GraphQLInterfaceUnified:
         self.till_time = str(till_time).replace(" ","T")
         self.limit = int(limit)
         self.connect_timeout = 60
-        self.read_timeout = 30
+        self.read_timeout = 300
 
     def _graphql_query_builder(self):
         # define the direction of transaction flow:
