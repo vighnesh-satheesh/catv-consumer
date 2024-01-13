@@ -32,3 +32,7 @@ class FileNotFound(exceptions.NotFound):
 class DataIntegrityError(exceptions.APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = _('data conflict')
+
+class BitqueryFetchTimedOut(exceptions.APIException):
+    status_code = status.HTTP_200_OK
+    default_detail = _('Fetching data from bitquery timed out')

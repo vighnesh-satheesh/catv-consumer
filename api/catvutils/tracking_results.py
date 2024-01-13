@@ -14,6 +14,7 @@ from .graphtools import (
     generate_nodes_edges_btccoinpath
 )
 from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInterface
+from ..exceptions import BitqueryFetchTimedOut
 from ..models import (
     BloxyDistribution, BloxySource, CatvTokens
 )
@@ -127,6 +128,8 @@ class TrackingResults:
         except IndexError:
             self.error_messages[error_placeholder] = "Missing {} results for the wallet address within the date " \
                                                      "range specified".format(error_placeholder)
+        except BitqueryFetchTimedOut:
+            raise
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
