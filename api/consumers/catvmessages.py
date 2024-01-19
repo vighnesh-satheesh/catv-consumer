@@ -234,6 +234,7 @@ def process_catv_messages(job: CatvJobQueue):
                     file_name = upload_content_file_to_gcs(content_file)
                 except Exception:
                     print("Upload to GCS failed for message_id: ", message_id)
+                    traceback()
                     ConsumerErrorLogs.objects.create(
                         topic="s3-upload",
                         message=request_body,
