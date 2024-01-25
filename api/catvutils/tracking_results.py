@@ -1,4 +1,3 @@
-import ast
 import traceback
 from datetime import datetime
 from multiprocessing import Pool
@@ -13,7 +12,7 @@ from .graphtools import (
     generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
     generate_nodes_edges_btccoinpath
 )
-from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInterface
+from .vendor_api import LyzeAPIInterface, BloxyEthAPIInterface
 from ..exceptions import BitqueryFetchTimedOut
 from ..models import (
     BloxyDistribution, BloxySource, CatvTokens

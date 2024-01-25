@@ -1,31 +1,25 @@
-import time
 import re
+import time
+import traceback
 from collections import OrderedDict
 
 from dateutil import parser
-from dateutil.relativedelta import relativedelta
-from django.db import transaction
-from django.db.models import BooleanField
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
-
+from requests.exceptions import ReadTimeout
 from rest_framework import serializers
 
-from requests.exceptions import ReadTimeout
-import traceback
-
 from . import exceptions
-from . import models
 from . import fields
+from . import models
 from . import utils
-from .exceptions import BitqueryFetchTimedOut
-from .settings import api_settings
 from .catvutils.tracking_results import (
     TrackingResults, BTCTrackingResults,
     BTCCoinpathTrackingResults, EthPathResults,
     BtcPathResults
 )
 from .catvutils.vendor_api import LyzeAPIInterface
+from .exceptions import BitqueryFetchTimedOut
+from .settings import api_settings
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):

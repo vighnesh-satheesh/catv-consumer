@@ -80,55 +80,6 @@ class BloxyAPIInterface:
             results = graphql_interface.call_graphql_endpoint()
             return results
 
-        # else:
-        #     if source:
-        #         if chain == 'ETH':
-        #             api_url = settings.BLOXY_ETH_SRC_ENDPOINT
-        #         elif chain in ['BSC', 'KLAY']:
-        #             api_url = settings.BLOXY_KLAY_SRC_ENDPOINT
-        #         else:
-        #             api_url = self._source_endpoint_eth
-        #         depth = depth_limit
-        #     else:
-        #         if chain == 'ETH':
-        #             api_url = settings.BLOXY_ETH_DIST_ENDPOINT
-        #         elif chain in ['BSC', 'KLAY']:
-        #             api_url = settings.BLOXY_KLAY_DIST_ENDPOINT
-        #         else:
-        #             api_url = self._distribution_endpoint_eth
-        #         depth = depth_limit
-
-        #     updated_chain_map = {
-        #         'trx': 'tron',
-        #         'xrp': 'ripple',
-        #         'xlm': 'stellar',
-        #         'bnb': 'binance',
-        #         'ada': 'cardano',
-        #         'bsc': 'bsc',
-        #         'klay': 'klaytn'
-        #     }
-
-        #     updated_chain = chain.lower()
-        #     if updated_chain in updated_chain_map.keys():
-        #         updated_chain = updated_chain_map[updated_chain]
-
-        #     if updated_chain == 'ripple' or updated_chain == 'stellar':
-        #         api_url = api_url.replace('coinpath', 'ripple:sentinel')
-
-            # payload = {'key': self._key, 'address': address, 'depth_limit': depth,
-            #            'from_date': from_time, 'till_date': till_time, 'snapshot_time': from_time if source else till_time,
-            #            'limit_address_tx_count': tx_limit, 'limit': limit, 'chain': updated_chain}
-        #     if token_address:
-        #         if chain == 'ETH' or chain == 'BSC' or chain == 'KLAY':
-        #             payload['token_address'] = token_address
-        #         else:
-        #             payload['token'] = token_address
-            # print("Payload: ", payload)
-            # r = self.call_bloxy_api(api_url, payload)
-        #     return r
-
-
-
 class GraphQLInterfaceUnified:
     def __init__(self, chain, source, address, token_address, depth_limit, from_time, till_time, limit):
         self._graphql_key = settings.GRAPHQL_X_API_KEY
@@ -181,7 +132,7 @@ class GraphQLInterfaceUnified:
                                 time.replace("var", "lastTransferAt") + " } "
                 transaction = " transaction { hash " + time.replace("var", "time") + " valueFrom valueTo  }"
                 extra_params = " depth  amountFrom amountTo operation currencyFrom { name symbol } currencyTo { name symbol } "
-                if(self.chain == "XRP"):
+                if self.chain == "XRP":
                     destination_tag = " destinationTag"
                     source_tag = " sourceTag"
             # Bitcoin Cash/Litecoin or BCH/LTC
