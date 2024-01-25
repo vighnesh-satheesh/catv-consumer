@@ -18,6 +18,7 @@ from . import exceptions
 from . import models
 from . import fields
 from . import utils
+from .exceptions import BitqueryFetchTimedOut
 from .settings import api_settings
 from .catvutils.tracking_results import (
     TrackingResults, BTCTrackingResults,
@@ -89,6 +90,8 @@ class CATVSerializer(serializers.Serializer):
                 "api_calls": tracking_results.ext_api_calls,
                 "messages": tracking_results.error_messages
             }
+        except BitqueryFetchTimedOut:
+            raise
         except ReadTimeout:
             raise exceptions.FileNotFound("Timeout exceeded while fetching/processing data.")
         except Exception as e:
@@ -99,7 +102,6 @@ class CATVSerializer(serializers.Serializer):
                 err_msg = tracking_results.error
             elif e:
                 err_msg = "Oops! Something went wrong while getting results for this address. Please try again later."
-                print(e)
                 traceback.print_exc()
             raise exceptions.FileNotFound(err_msg)
 

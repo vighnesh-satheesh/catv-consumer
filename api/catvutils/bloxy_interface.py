@@ -1,11 +1,13 @@
-import requests
-import os
 import traceback
 from datetime import datetime
 
+import requests
 from django.conf import settings
-from api.models import CatvTokens
+from requests.exceptions import Timeout, RequestException
+
 from api.constants import Constants
+from api.exceptions import BitqueryFetchTimedOut
+
 
 class BloxyAPIInterface:
     def __init__(self, key):
@@ -16,16 +18,29 @@ class BloxyAPIInterface:
         self._distribution_endpoint_btc = settings.BLOXY_BTC_DIST_ENDPOINT        
         self._graphql_key = settings.GRAPHQL_X_API_KEY
         self._graphql_endpoint = settings.GRAPHQL_ENDPOINT
+        self.connect_timeout = 60
+        self.read_timeout = 300
 
-    def call_bloxy_api(self, api_url, data, timeout=600):
+    def call_bloxy_api(self, api_url, data):
         print('api_url:', api_url)
-        # The verify flag is set to false because of an issue with sending requests to this endpoint
-        res = requests.get(api_url, params=data, timeout=timeout, verify=False)
-        if res.status_code != 200:
-            print(res)
+        print("Payload: ", data)
+        try:
+            # The verify flag is set to false because of an issue with sending requests to this endpoint
+            res = requests.get(api_url, params=data, timeout=(self.connect_timeout, self.read_timeout), verify=False)
+            if res.status_code != 200:
+                print(res)
+                return []
+            response = res.json()
+            return response
+        except Timeout:
+            print("Bitquery API call timed out for: ", data)
+            raise BitqueryFetchTimedOut
+        except RequestException:
+            print("Bitquery API call request exception: ", data)
+            raise BitqueryFetchTimedOut
+        except Exception as e:
+            traceback.print_exc()
             return []
-        response = res.json()
-        return response    
 
     def get_transactions(self, address, tx_limit, limit, depth_limit=2,
                         from_time=datetime(2015, 1, 1, 0, 0),
@@ -45,11 +60,10 @@ class BloxyAPIInterface:
             }              
             if chain == 'ETH':
                 api_url = self._source_endpoint_eth if source else self._distribution_endpoint_eth
-                if token_address and token_address != '0x0000000000000000000000000000000000000000':
+                if token_address:
                     payload['token'] = token_address
             elif chain == 'BTC':
                 api_url = self._source_endpoint_btc if source else self._distribution_endpoint_btc              
-            print("Payload: ", payload)
             r = self.call_bloxy_api(api_url, payload)
             return r                    
         else:
@@ -128,6 +142,8 @@ class GraphQLInterfaceUnified:
         self.from_time = str(from_time).replace(" ","T")
         self.till_time = str(till_time).replace(" ","T")
         self.limit = int(limit)
+        self.connect_timeout = 60
+        self.read_timeout = 300
 
     def _graphql_query_builder(self):
         # define the direction of transaction flow:
@@ -240,8 +256,8 @@ class GraphQLInterfaceUnified:
             # flattened response is used to convert the GraphQL response format to REST API response format
             flattened_response = []
             r = requests.post(self._graphql_endpoint, json={
-                              'query': request_body}, headers=self._headers)
-            response = r.json()  
+                              'query': request_body}, headers=self._headers, timeout=(self.connect_timeout, self.read_timeout))
+            response = r.json()          
             print(request_body)
             for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
                 # These dict items are common to all response bodies
@@ -336,10 +352,13 @@ class GraphQLInterfaceUnified:
                                     flattened_response.append(current_iter_dict)
                                     continue   
             # Once the loop has run its course, the flattened response array is returned
-            return flattened_response                                      
+            return flattened_response
+        except Timeout:
+            print(f"Bitquery Graphql call timed out for: {self.address} {self.chain}")
+            raise BitqueryFetchTimedOut
+        except RequestException:
+            print(f"Bitquery Graphql call request exception: {self.address} {self.chain}")
+            raise BitqueryFetchTimedOut
         except Exception as e:
             traceback.print_exc()
             return []
-
-
-

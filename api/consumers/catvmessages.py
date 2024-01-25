@@ -165,8 +165,13 @@ def process_catv_messages(job: CatvJobQueue):
             graph_data = exchange_checker_obj.stop_transfers_at_exchange()
 
         if token_type in [CatvTokens.ETH.value, CatvTokens.KLAY.value, CatvTokens.BSC.value]:
+            print("Entering SmartContractMethodFinder:")
+            start_time = time.time()
             smart_contract_data_obj = SmartContractMethodFinder(token_type, graph_data['node_list'], graph_data['edge_list'])
             graph_data["edge_list"] = smart_contract_data_obj.get_updated_edges()
+            elapsed_time = time.time() - start_time
+            print("Total time taken for SmartContractMethodFinder: ", elapsed_time)
+
 
         catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
@@ -180,7 +185,7 @@ def process_catv_messages(job: CatvJobQueue):
             if search_params.get("depth", 0) > 0:
                 dist_analysis = catv_metrics.generate_metrics(gt)
         catv_metrics.save_annotations()
-        print(len(graph_data["node_list"]))
+        print("total number of nodes: ", len(graph_data["node_list"]))
 
         results = {
             "data": {
@@ -197,7 +202,7 @@ def process_catv_messages(job: CatvJobQueue):
             task_status = CatvTaskStatusType.RELEASED
         else:
             res = update_catv_usage_error(user_id)
-            print('Catv error, updating error usage', res)
+            print('Node list is empty setting status as FAILED')
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
