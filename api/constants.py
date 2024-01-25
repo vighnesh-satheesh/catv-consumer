@@ -39,7 +39,8 @@ class Constants:
             "AVAX": "avalanche",
             "DOGE": "dogecoin",
             "ZEC": "zcash",
-            "DASH": "dash"         
+            "DASH": "dash",         
+            "ADA": "cardano"
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -60,7 +61,7 @@ class Constants:
             "DOGE": "bitcoin",
             "ZEC": "bitcoin",
             "DASH": "bitcoin",
-            "ADA": "cardano",        
+            "ADA": "cardano"       
     }
 
     GRAPHQL_CURRENCY_MAPPING = {

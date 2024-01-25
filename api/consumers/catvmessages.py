@@ -155,6 +155,7 @@ def process_catv_messages(job: CatvJobQueue):
             graph_data["edge_list"] = graph_data["graph_edge_list"] if graph_data["graph_edge_list"] else graph_data["edge_list"]
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
+
         if "exchange" not in graph_data["node_list"][0]["group"].lower():
             print("Origin node is not an exchange")
             exchange_checker_obj = ExchangeChecker(

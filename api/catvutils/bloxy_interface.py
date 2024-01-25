@@ -246,8 +246,7 @@ class GraphQLInterfaceUnified:
                     flattened_response.append(current_iter_dict)
                     continue                            
                 else:     
-                    # The symbol and amount parameters are common to all 
-                    # except XRP and XLM so they are assigned here itself
+                    # The symbol and amount parameters are common to all except XRP and XLM so they are assigned here itself
                     current_iter_dict["symbol"] = item["currency"]["symbol"]    
                     current_iter_dict["amount"] = item["amount"]      
                     if self.chain == "LUNC":
