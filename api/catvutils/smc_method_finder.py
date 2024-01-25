@@ -1,9 +1,10 @@
-import requests
 import traceback
-import json
 
-from datetime import datetime as dt
+import requests
 from django.conf import settings
+from requests.exceptions import Timeout, RequestException
+
+from api.exceptions import BitqueryFetchTimedOut
 from api.models import CatvTokens
 
 
@@ -143,7 +144,7 @@ class GraphQLInterface:
     def get_graphql_response(self, timeout=3):
         try:
             query = GraphQLSmartContractQuery(self.data).get_formatted_query()
-            r = requests.post(self._endpoint, json={'query': query}, headers=self._headers)
+            r = requests.post(self._endpoint, json={'query': query}, headers=self._headers, timeout=timeout)
             bitquery_response = r.json()
             bitquery_response = bitquery_response["data"]["ethereum"]["smartContractCalls"][:1]
             if len(bitquery_response) == 0:
