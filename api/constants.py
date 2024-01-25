@@ -33,7 +33,14 @@ class Constants:
             "XRP": "ripple",
             "LTC": "litecoin",
             "BCH": "bitcash",
-            "ADA": "cardano"        
+            "ADA": "cardano",
+            "FTM": "fantom",
+            "MATIC": "matic",
+            "AVAX": "avalanche",
+            "DOGE": "dogecoin",
+            "ZEC": "zcash",
+            "DASH": "dash",         
+            "ADA": "cardano"
     }
 
     NETWORK_CHAIN_MAPPING_FOR_RESPONSE = {
@@ -47,12 +54,22 @@ class Constants:
             "XRP": "ripple",
             "LTC": "bitcoin",
             "BCH": "bitcoin",
-            "ADA": "cardano"          
+            "ADA": "cardano",
+            "FTM": "ethereum",
+            "MATIC": "ethereum",
+            "AVAX": "ethereum",
+            "DOGE": "bitcoin",
+            "ZEC": "bitcoin",
+            "DASH": "bitcoin",
+            "ADA": "cardano"       
     }
 
     GRAPHQL_CURRENCY_MAPPING = {
         "TRX": "TRX",
         "BNB": "BNB",
         "KLAY": "KLAY",
-        "BSC": "BNB"
+        "BSC": "BNB",
+        "FTM": "FTM",
+        "MATIC": "MATIC",
+        "AVAX": "AVAX"
     }
