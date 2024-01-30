@@ -1,9 +1,10 @@
-import requests
 import traceback
-import json
 
-from datetime import datetime as dt
+import requests
 from django.conf import settings
+from requests.exceptions import Timeout, RequestException
+
+from api.exceptions import BitqueryFetchTimedOut
 from api.models import CatvTokens
 
 
@@ -48,7 +49,7 @@ class GraphQLSmartContractQuery:
                           }}
                         }}
                     """
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
             return []
         return GRAPHQL_SMARTCONTRACT_QUERY
@@ -60,27 +61,35 @@ class SmartContractMethodFinder:
         self.node_list = node_list
         self.edge_list = edge_list
         self.smart_contract_nodes = [node for node in self.node_list if node["group"] == "Smart Contract"]
-        self.smart_contract_node_ids = [node["id"] for node in self.smart_contract_nodes]
+        self.smart_contract_node_ids = set(node["id"] for node in self.smart_contract_nodes)
+        self.smart_contract_edges_dict = {}
         self.smart_contract_method_data = []
+
+
+    def _get_smart_contract_edges_dict(self):
+        for smart_contract_node in self.smart_contract_nodes:
+            smart_contract_node_addr = smart_contract_node["address"]
+            edges = [
+                edge for edge in self.edge_list
+                if edge["to"] == smart_contract_node["id"] and edge["from"] not in self.smart_contract_node_ids
+            ]
+            self.smart_contract_edges_dict[smart_contract_node_addr] = edges
+
 
     def _find_latest_tx(self):
         try:
-            # print(f"Smart contract nodes: {self.smart_contract_nodes}")
-            for smart_contract_node in self.smart_contract_nodes:
-                edges = [edge for edge in self.edge_list
-                         if edge["to"] == smart_contract_node["id"] and edge["from"] not in self.smart_contract_node_ids
-                         ]
+            for smart_contract_node_addr, edges in self.smart_contract_edges_dict.items():
                 for edge in edges:
                     tx_data_list = edge["data"]
                     tx_data_latest = tx_data_list[-1]
                     tx_hash = tx_data_latest["tx_hash"]
                     tx_date = str(tx_data_latest["tx_time"]).split(" ")[0]
                     tx_from_address = self._get_tx_from_address(edge["from"])
-                    method_data = self._get_bitquery_response(tx_hash, tx_date, smart_contract_node["address"], tx_from_address)
+                    method_data = self._get_bitquery_response(tx_hash, tx_date, smart_contract_node_addr, tx_from_address)
                     if len(method_data) > 0 and method_data["smart_contract"]["name"] is not None:
                         self.smart_contract_method_data.append({
                             "edge_id": edge["id"],
-                            "smc_address": smart_contract_node["address"],
+                            "smc_address": smart_contract_node_addr,
                             "method_data": method_data
                         })
                     else:
@@ -96,23 +105,27 @@ class SmartContractMethodFinder:
     def _get_bitquery_response(self, tx_hash, tx_date, smart_contract_address, tx_from_address):
         try:
             data = [self.network, tx_hash, tx_date, smart_contract_address, tx_from_address]
-            # print(f"Bitquery request parameters: {data}")
             query_obj = GraphQLInterface(data)
             response = query_obj.get_graphql_response()
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
             response = []
         return response
 
     def _update_edges(self):
         try:
-            self._find_latest_tx()
-            for item in self.smart_contract_method_data:
-                self.edge_list[
-                    next((index for (index, edge) in enumerate(self.edge_list)
-                          if edge["id"] == item["edge_id"]), None)
-                ]["smart_contract_data"] = item
-        except Exception as e:
+            self._get_smart_contract_edges_dict()
+            total_sm_edges = sum(len(edges) for edges in self.smart_contract_edges_dict.values())
+            print(f"Smart contract nodes length: {len(self.smart_contract_nodes)}")
+            print("total_sm_edges: ", total_sm_edges)
+            if total_sm_edges and total_sm_edges <= 50:
+                self._find_latest_tx()
+                for item in self.smart_contract_method_data:
+                    self.edge_list[
+                        next((index for (index, edge) in enumerate(self.edge_list)
+                              if edge["id"] == item["edge_id"]), None)
+                    ]["smart_contract_data"] = item
+        except Exception:
             traceback.print_exc()
             return
 
@@ -125,13 +138,13 @@ class GraphQLInterface:
     def __init__(self, data):
         self._x_api_key = settings.GRAPHQL_X_API_KEY
         self._endpoint = settings.GRAPHQL_ENDPOINT
-        self._headers = headers = {'X-API-KEY': self._x_api_key}
+        self._headers = {'X-API-KEY': self._x_api_key}
         self.data = data
 
-    def get_graphql_response(self, timeout=600):
+    def get_graphql_response(self, timeout=3):
         try:
             query = GraphQLSmartContractQuery(self.data).get_formatted_query()
-            r = requests.post(self._endpoint, json={'query': query}, headers=self._headers)
+            r = requests.post(self._endpoint, json={'query': query}, headers=self._headers, timeout=timeout)
             bitquery_response = r.json()
             bitquery_response = bitquery_response["data"]["ethereum"]["smartContractCalls"][:1]
             if len(bitquery_response) == 0:
@@ -141,6 +154,10 @@ class GraphQLInterface:
                 "smart_contract": bitquery_response[0]["smartContractMethod"]
             }
             return response
-        except Exception as e:
+        except Timeout:
+            raise BitqueryFetchTimedOut
+        except RequestException:
+            raise BitqueryFetchTimedOut
+        except Exception:
             traceback.print_exc()
             return []

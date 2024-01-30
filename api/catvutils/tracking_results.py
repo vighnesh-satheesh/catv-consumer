@@ -1,4 +1,3 @@
-import ast
 import traceback
 from datetime import datetime
 from multiprocessing import Pool
@@ -13,7 +12,8 @@ from .graphtools import (
     generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
     generate_nodes_edges_btccoinpath
 )
-from .vendor_api import LyzeAPIInterface, BloxyBTCAPIInterface, BloxyEthAPIInterface
+from .vendor_api import LyzeAPIInterface, BloxyEthAPIInterface
+from ..exceptions import BitqueryFetchTimedOut
 from ..models import (
     BloxyDistribution, BloxySource, CatvTokens
 )
@@ -127,6 +127,8 @@ class TrackingResults:
         except IndexError:
             self.error_messages[error_placeholder] = "Missing {} results for the wallet address within the date " \
                                                      "range specified".format(error_placeholder)
+        except BitqueryFetchTimedOut:
+            raise
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
@@ -304,6 +306,7 @@ class TrackingResults:
             track_source_result = self._source_graph
             graph_dict.update(track_source_result)
             graph_dict['receive_count'] = graph_dict.pop('volume_count_-1')
+        
         return graph_dict
 
 
