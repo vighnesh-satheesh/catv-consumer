@@ -133,7 +133,7 @@ service:
 
   # Annotations to add to the service
   annotations:
-    cloud.google.com/backend-config: '{"default":"portal-cara-backendconfig"}'
+    cloud.google.com/backend-config: '{"default":"portal-catv-consumer-backendconfig"}'
 
 # BackendConfig Spec
 backendConfig:
