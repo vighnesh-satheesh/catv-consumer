@@ -264,6 +264,11 @@ class GraphQLInterfaceUnified:
                             if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH"]:
                                 current_iter_dict["sender_type"] = item["sender"]["type"]
                                 current_iter_dict["receiver_type"] = item["receiver"]["type"]
+                                if self.chain == "ZEC":
+                                    if current_iter_dict["sender"] == "" and current_iter_dict["sender_type"]:
+                                        current_iter_dict["sender"] = current_iter_dict["sender_type"]
+                                    if current_iter_dict["receiver"] == "" and current_iter_dict["receiver_type"]:
+                                        current_iter_dict["receiver"] = current_iter_dict["receiver_type"]                                      
                                 flattened_response.append(current_iter_dict)
                                 continue                                
                             elif self.chain == "ADA":
