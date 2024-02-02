@@ -267,8 +267,12 @@ class GraphQLInterfaceUnified:
                                 if self.chain == "ZEC":
                                     if current_iter_dict["sender"] == "" and current_iter_dict["sender_type"]:
                                         current_iter_dict["sender"] = current_iter_dict["sender_type"]
+                                    if current_iter_dict["sender"] == "<shielded>" and current_iter_dict["sender_type"] == "shielded":
+                                        current_iter_dict["sender"] = "shielded"
                                     if current_iter_dict["receiver"] == "" and current_iter_dict["receiver_type"]:
-                                        current_iter_dict["receiver"] = current_iter_dict["receiver_type"]                                      
+                                        current_iter_dict["receiver"] = current_iter_dict["receiver_type"]  
+                                    if current_iter_dict["receiver"] == "<shielded>" and current_iter_dict["receiver_type"] == "shielded":
+                                        current_iter_dict["receiver"] = "shielded"                                                                       
                                 flattened_response.append(current_iter_dict)
                                 continue                                
                             elif self.chain == "ADA":
