@@ -94,10 +94,13 @@ def pattern_matches_token(address, token_type):
     return re.compile(pattern).match(address)
 
 
-def upload_content_file_to_s3(content_file):
-    # default_storage is configured as S3Storage in base.py
-    return default_storage.save(content_file.name, content_file)
+# def upload_content_file_to_s3(content_file):
+#     # default_storage is configured as S3Storage in base.py
+#     return default_storage.save(content_file.name, content_file)
 
+def upload_content_file_to_gcs(content_file):
+    # default_storage is configured as GCS Storage in base.py
+    return default_storage.save(content_file.name, content_file)
 
 def get_file_meta(file, file_name):
     hasher = hashlib.md5()

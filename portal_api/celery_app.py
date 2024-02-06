@@ -1,5 +1,5 @@
 import os
-from .startup_util import set_environment_variables_from_parameter_store
+from .startup_util import set_environment_variables_from_secret_manager
 from celery import Celery
 
 env = os.environ.get("CATV_CONSUMER_API_ENV")
@@ -10,7 +10,7 @@ app = Celery("tasks")
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-set_environment_variables_from_parameter_store()
+set_environment_variables_from_secret_manager()
 
 # discover and load tasks.py in django apps
 app.autodiscover_tasks()

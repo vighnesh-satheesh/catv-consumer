@@ -1,4 +1,4 @@
-FROM 821988754834.dkr.ecr.ap-southeast-1.amazonaws.com/python:latest
+FROM asia-docker.pkg.dev/uppsala-devops/application-base-image-repository/python:latest
 
 MAINTAINER uppsala <developer@sentinelprotocol.io>
 
@@ -46,7 +46,9 @@ RUN pip install --upgrade pip setuptools && \
     pip install -r /app/requirements.txt && \
     pip install uwsgi && \
     pip install -e /app/library/indicator-lib/src/py
-
+# Install google cloud CLI
+RUN curl -sSL https://sdk.cloud.google.com | bash
+ENV PATH $PATH:/root/google-cloud-sdk/bin    
 # Bundle APP files
 COPY . .
 COPY ./deploy ./deploy
