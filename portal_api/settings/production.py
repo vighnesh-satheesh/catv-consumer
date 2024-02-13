@@ -5,7 +5,15 @@ env = environ.Env()
 
 DEBUG = False
 
-ALLOWED_HOSTS += env.list('ALLOWED_HOSTS', default=['*', ])
+ALLOWED_HOSTS += ['10.70.{}.{}'.format(i, j)
+                  for i in range(256) for j in range(256)]
+ALLOWED_HOSTS += ['172.16.144.{}'.format(i)
+                  for i in range(256)]
+ALLOWED_HOSTS += ['172.16.6.{}'.format(i)
+                  for i in range(256)]
+ALLOWED_HOSTS += [
+    "localhost", "test.sentinelportal.com", "https://gcp-catv-consumer-service.api.sentinelprotocol.io"
+]
 
 # TODO: version file or tag?
 version = env.str('PORTAL_API_VERSION', None)
