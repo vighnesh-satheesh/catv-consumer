@@ -451,7 +451,7 @@ class BloxyEthAPIInterface:
             'bsc': 'binance smart chain',
             'klay': 'klaytn',
             'ftm': 'fantom',
-            'matic': 'matic',
+            'pol': 'matic',
             'avax': 'avax'
         }
         updated_chain = path_tracker.chain.lower()

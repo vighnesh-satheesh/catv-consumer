@@ -35,7 +35,7 @@ class Constants:
             "BCH": "bitcash",
             "ADA": "cardano",
             "FTM": "fantom",
-            "MATIC": "matic",
+            "POL": "matic",
             "AVAX": "avalanche",
             "DOGE": "dogecoin",
             "ZEC": "zcash",
@@ -56,7 +56,7 @@ class Constants:
             "BCH": "bitcoin",
             "ADA": "cardano",
             "FTM": "ethereum",
-            "MATIC": "ethereum",
+            "POL": "ethereum",
             "AVAX": "ethereum",
             "DOGE": "bitcoin",
             "ZEC": "bitcoin",
@@ -70,6 +70,6 @@ class Constants:
         "KLAY": "KLAY",
         "BSC": "BNB",
         "FTM": "FTM",
-        "MATIC": "MATIC",
+        "POL": "MATIC",
         "AVAX": "AVAX"
     }
