@@ -28,7 +28,7 @@ class CatvTokens(Enum):
     KLAY = 'KLAY'
     LUNC = 'LUNC'
     FTM = 'FTM'
-    MATIC = 'MATIC'
+    POL = 'POL'
     AVAX = 'AVAX'
     DOGE = 'DOGE'
     ZEC = 'ZEC'
