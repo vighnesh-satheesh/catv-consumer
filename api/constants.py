@@ -35,7 +35,7 @@ class Constants:
             "BCH": "bitcash",
             "ADA": "cardano",
             "FTM": "fantom",
-            "MATIC": "matic",
+            "POL": "matic",
             "AVAX": "avalanche",
             "DOGE": "dogecoin",
             "ZEC": "zcash",
@@ -56,7 +56,7 @@ class Constants:
             "BCH": "bitcoin",
             "ADA": "cardano",
             "FTM": "ethereum",
-            "MATIC": "ethereum",
+            "POL": "ethereum",
             "AVAX": "ethereum",
             "DOGE": "bitcoin",
             "ZEC": "bitcoin",
@@ -68,8 +68,9 @@ class Constants:
         "TRX": "TRX",
         "BNB": "BNB",
         "KLAY": "KLAY",
-        "BSC": "BNB",
-        "FTM": "FTM",
-        "MATIC": "MATIC",
-        "AVAX": "AVAX"
+        "BSC": "BNB"
     }
+    # no currency mapping required for ftm, pol and avax
+    # "FTM": "FTM",
+    # "POL": "MATIC",
+    # "AVAX": "AVAX"

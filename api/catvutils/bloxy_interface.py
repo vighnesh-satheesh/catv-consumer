@@ -151,8 +151,8 @@ class GraphQLInterfaceUnified:
                 transaction = " transaction { hash value " + time.replace("var", "time") + " } "                
                 extra_params = " depth amount  currency { name symbol tokenId tokenType } " 
             # Klaytn/Binance Smart Chain or KLAY/BSC   
-            elif self.chain in ["KLAY", "BSC", "FTM", "MATIC", "AVAX"]:
-                currency = f""" currency: {{ is: "{currency_value}" }} """
+            elif self.chain in ["KLAY", "BSC", "FTM", "POL", "AVAX"]:
+                currency = f""" currency: {{ is: "{currency_value}" }} """ if currency_value else " "
                 receiver =  common_receiver_query + amount_details + \
                                 time.replace("var", "firstTxAt") + " " + \
                                 time.replace("var", "lastTxAt")  + \
@@ -264,6 +264,15 @@ class GraphQLInterfaceUnified:
                             if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH"]:
                                 current_iter_dict["sender_type"] = item["sender"]["type"]
                                 current_iter_dict["receiver_type"] = item["receiver"]["type"]
+                                if self.chain == "ZEC":
+                                    if current_iter_dict["sender"] == "" and current_iter_dict["sender_type"]:
+                                        current_iter_dict["sender"] = current_iter_dict["sender_type"]
+                                    if current_iter_dict["sender"] == "<shielded>" and current_iter_dict["sender_type"] == "shielded":
+                                        current_iter_dict["sender"] = "shielded"
+                                    if current_iter_dict["receiver"] == "" and current_iter_dict["receiver_type"]:
+                                        current_iter_dict["receiver"] = current_iter_dict["receiver_type"]  
+                                    if current_iter_dict["receiver"] == "<shielded>" and current_iter_dict["receiver_type"] == "shielded":
+                                        current_iter_dict["receiver"] = "shielded"                                                                       
                                 flattened_response.append(current_iter_dict)
                                 continue                                
                             elif self.chain == "ADA":
@@ -282,7 +291,7 @@ class GraphQLInterfaceUnified:
                             current_iter_dict["receiver_amount_out"] = float(item["receiver"]["amountOut"])
                             current_iter_dict["receiver_amount_in"] = float(item["receiver"]["amountIn"])
                             current_iter_dict["receiver_balance"] = float(item["receiver"]["balance"])
-                            if self.chain in ["KLAY", "BSC", "FTM", "MATIC", "AVAX"]:
+                            if self.chain in ["KLAY", "BSC", "FTM", "POL", "AVAX"]:
                                 current_iter_dict["token"] = self.token_address
                                 current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                                 current_iter_dict["sender_type"] = item["sender"]["smartContract"]["contractType"] if item["sender"]["smartContract"]["contractType"] not in [None, "None"] else "Wallet"
