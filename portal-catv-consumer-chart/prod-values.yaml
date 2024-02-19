@@ -118,7 +118,7 @@ kubernetesClusterDomain: cluster.local
 # ConfigMap Spec
 configMap:
   GCP_PROJECT_ID: uppsala-prod
-  GCP_SECRET_NAME: upp-prd-api-catv-consumer-service
+  GCP_SECRET_NAME: upp-prd-api-catv-consumer
 
 # Service Spec
 # If the Service Type is NodePort update as nodePort: any numbe between 30000-32767
