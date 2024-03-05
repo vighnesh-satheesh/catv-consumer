@@ -46,39 +46,39 @@ class BloxyAPIInterface:
                         from_time=datetime(2015, 1, 1, 0, 0),
                         till_time=datetime.now(),
                         token_address=None, source=True, chain='ETH'):
-        if chain == 'ETH' or chain == 'BTC':
-            payload = {
-                'key': self._key, 
-                'address': address, 
-                'depth_limit': depth_limit,
-                'from_date': from_time, 
-                'till_date': till_time, 
-                'snapshot_time': from_time if source else till_time,
-                'limit_address_tx_count': tx_limit, 
-                'limit': limit, 
-                'chain': chain
-            }              
-            if chain == 'ETH':
-                api_url = self._source_endpoint_eth if source else self._distribution_endpoint_eth
-                if token_address:
-                    payload['token'] = token_address
-            elif chain == 'BTC':
-                api_url = self._source_endpoint_btc if source else self._distribution_endpoint_btc              
-            r = self.call_bloxy_api(api_url, payload)
-            return r                    
-        else:
-            graphql_interface = GraphQLInterfaceUnified(
-                                    chain, 
-                                    source, 
-                                    address, 
-                                    token_address, 
-                                    depth_limit, 
-                                    from_time, 
-                                    till_time, 
-                                    limit
-                                )
-            results = graphql_interface.call_graphql_endpoint()
-            return results
+        # if chain == 'ETH' or chain == 'BTC':
+        #     payload = {
+        #         'key': self._key,
+        #         'address': address,
+        #         'depth_limit': depth_limit,
+        #         'from_date': from_time,
+        #         'till_date': till_time,
+        #         'snapshot_time': from_time if source else till_time,
+        #         'limit_address_tx_count': tx_limit,
+        #         'limit': limit,
+        #         'chain': chain
+        #     }
+        #     if chain == 'ETH':
+        #         api_url = self._source_endpoint_eth if source else self._distribution_endpoint_eth
+        #         if token_address:
+        #             payload['token'] = token_address
+        #     elif chain == 'BTC':
+        #         api_url = self._source_endpoint_btc if source else self._distribution_endpoint_btc
+        #     r = self.call_bloxy_api(api_url, payload)
+        #     return r
+        # else:
+        graphql_interface = GraphQLInterfaceUnified(
+            chain,
+            source,
+            address,
+            token_address,
+            depth_limit,
+            from_time,
+            till_time,
+            limit
+        )
+        results = graphql_interface.call_graphql_endpoint()
+        return results
 
 class GraphQLInterfaceUnified:
     def __init__(self, chain, source, address, token_address, depth_limit, from_time, till_time, limit):
@@ -136,7 +136,7 @@ class GraphQLInterfaceUnified:
                     destination_tag = " destinationTag"
                     source_tag = " sourceTag"
             # Bitcoin Cash/Litecoin or BCH/LTC
-            elif self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH"]:    
+            elif self.chain in ["BTC", "BCH", "LTC", "DOGE", "ZEC", "DASH"]:
                 receiver = common_receiver_query  + time.replace("var", "firstTxAt") + \
                                     " " + time.replace("var", "lastTxAt")  + " type } "
                 sender = " sender { address annotation type " + \
@@ -151,7 +151,7 @@ class GraphQLInterfaceUnified:
                 transaction = " transaction { hash value " + time.replace("var", "time") + " } "                
                 extra_params = " depth amount  currency { name symbol tokenId tokenType } " 
             # Klaytn/Binance Smart Chain or KLAY/BSC   
-            elif self.chain in ["KLAY", "BSC", "FTM", "POL", "AVAX"]:
+            elif self.chain in ["ETH", "KLAY", "BSC", "FTM", "POL", "AVAX"]:
                 currency = f""" currency: {{ is: "{currency_value}" }} """ if currency_value else " "
                 receiver =  common_receiver_query + amount_details + \
                                 time.replace("var", "firstTxAt") + " " + \
@@ -255,13 +255,13 @@ class GraphQLInterfaceUnified:
                         flattened_response.append(current_iter_dict)
                         continue
                     else:
-                        # BCH, LTC, DOGE, ZEC, DASH and ADA have almost all parameters in common 
+                        # BTC, BCH, LTC, DOGE, ZEC, DASH and ADA have almost all parameters in common
                         # except sender_type and receiver_type
-                        if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH", "ADA"]:
+                        if self.chain in ["BTC", "BCH", "LTC", "DOGE", "ZEC", "DASH", "ADA"]:
                             current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                             current_iter_dict["tx_value_in"] = item["transaction"]["valueIn"]
                             current_iter_dict["tx_value_out"] = item["transaction"]["valueOut"]
-                            if self.chain in ["BCH", "LTC", "DOGE", "ZEC", "DASH"]:
+                            if self.chain in ["BTC", "BCH", "LTC", "DOGE", "ZEC", "DASH"]:
                                 current_iter_dict["sender_type"] = item["sender"]["type"]
                                 current_iter_dict["receiver_type"] = item["receiver"]["type"]
                                 if self.chain == "ZEC":
@@ -291,7 +291,7 @@ class GraphQLInterfaceUnified:
                             current_iter_dict["receiver_amount_out"] = float(item["receiver"]["amountOut"])
                             current_iter_dict["receiver_amount_in"] = float(item["receiver"]["amountIn"])
                             current_iter_dict["receiver_balance"] = float(item["receiver"]["balance"])
-                            if self.chain in ["KLAY", "BSC", "FTM", "POL", "AVAX"]:
+                            if self.chain in ["ETH", "KLAY", "BSC", "FTM", "POL", "AVAX"]:
                                 current_iter_dict["token"] = self.token_address
                                 current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                                 current_iter_dict["sender_type"] = item["sender"]["smartContract"]["contractType"] if item["sender"]["smartContract"]["contractType"] not in [None, "None"] else "Wallet"
