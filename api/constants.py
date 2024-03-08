@@ -70,7 +70,8 @@ class Constants:
         "TRX": "TRX",
         "BNB": "BNB",
         "KLAY": "KLAY",
-        "BSC": "BNB"
+        "BSC": "BNB",
+        "ETH": "ETH"
     }
     # no currency mapping required for ftm, pol and avax
     # "FTM": "FTM",
