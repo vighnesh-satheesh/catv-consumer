@@ -10,7 +10,7 @@ main:
   image:
     repository: asia-docker.pkg.dev/uppsala-devops/uppsala-prod-repository/portal-catv-consumer-service
     tag: "latest"
-  containerPort: 8000
+  containerPort: &containerPort 8000
   pullPolicy: Always
   securityContext: {}
 
@@ -24,10 +24,10 @@ main:
   envVarsSecret: "" 
 
 # Container Resource Limits
-  resources:
-     limits:
-      cpu: 500m
-      memory: 800Mi
+  resources: {}
+    #  limits:
+    #   cpu: 500m
+    #   memory: 800Mi
 
 # Container Liveness Probe to check health status
   livenessProbe: {}
@@ -62,16 +62,17 @@ main:
 
 # Sidecar Container Spec
 sidecar:
-  containerName: alloydb-auth-proxy
-  image:
-    repository: gcr.io/alloydb-connectors/alloydb-auth-proxy
-    tag: latest
-  args:
-    - -p=5432
-    - projects/uppsala-prod/locations/asia-southeast1/clusters/upp-prd-micro-portal-cluster/instances/upp-prd-micro-portal
-  pullPolicy: IfNotPresent
-  securityContext:
-    runAsNonRoot: true 
+  enabled: false
+  # containerName: alloydb-auth-proxy
+  # image:
+  #   repository: gcr.io/alloydb-connectors/alloydb-auth-proxy
+  #   tag: latest
+  # args:
+  #   - -p=5432
+  #   - projects/uppsala-prod/locations/asia-southeast1/clusters/upp-prd-micro-portal-cluster/instances/upp-prd-micro-portal
+  # pullPolicy: IfNotPresent
+  # securityContext:
+  #   runAsNonRoot: true 
 
 # Volumes which are needs to attached to deployment
 volumes: []
@@ -116,17 +117,30 @@ kubernetesClusterDomain: cluster.local
 
 # ConfigMap Spec
 configMap:
-  gcpProjectId: uppsala-prod
-  gcpSecretName: portal-catv-consumer-prod
+  GCP_PROJECT_ID: uppsala-prod
+  GCP_SECRET_NAME: upp-prd-api-catv-consumer
 
 # Service Spec
 # If the Service Type is NodePort update as nodePort: any numbe between 30000-32767
 # If the Service Type is ClusterIP update the port
 service:
-  type: LoadBalancer
-  port: 80
-  targetPort: 8000
+  type: ClusterIP
+  port: 8000
+  targetPort: *containerPort
   # nodePort: 
+
+  # Annotations to add to the service
+  annotations:
+    cloud.google.com/backend-config: '{"default":"portal-catv-consumer-backendconfig"}'
+
+# BackendConfig Spec
+backendConfig:
+# CDN if enabled is set true it will enable the CDN 
+  cdn:
+    enabled: true
+# Cloud Armor Security Policy
+  # securityPolicy:
+  #   name: "office-ip"
 
 # Ingress spec
 ingress:
