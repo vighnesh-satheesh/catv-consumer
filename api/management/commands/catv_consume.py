@@ -36,14 +36,16 @@ class Command(BaseCommand):
                     pending_csv_count = len(pending_csv_jobs_arr)
 
                 if pending_count > 0:
-                    query = Constants.QUERIES['UPDATE_CATV_JOBS'].format(tuple(pending_job_ids))
+                    pending_job_ids = "({0})".format(pending_job_ids[0]) if pending_count == 1 else tuple(pending_job_ids)
+                    query = Constants.QUERIES['UPDATE_CATV_JOBS'].format(pending_job_ids)
                     with connection.cursor() as cursor:
                         cursor.execute(query)
                     for job in pending_jobs_arr:
                         print(job.message)
                         process_catv_messages(job)
                 elif pending_csv_count > 0:
-                    query_csv = Constants.QUERIES['UPDATE_CSV_CATV_JOBS'].format(tuple(pending_csv_job_ids))
+                    pending_csv_job_ids = "({0})".format(pending_csv_job_ids[0]) if pending_csv_count == 1 else tuple(pending_csv_job_ids)
+                    query_csv = Constants.QUERIES['UPDATE_CSV_CATV_JOBS'].format(pending_csv_job_ids)
                     with connection.cursor() as cursor:
                         cursor.execute(query_csv)
                     pool = ThreadPool(processes=4)
