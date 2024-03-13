@@ -21,24 +21,33 @@ class Command(BaseCommand):
             while(True):
                 with transaction.atomic():
                     pending_jobs = CatvJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
-                    pending__csv_jobs = CatvCSVJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CSV_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
-                pending_jobs_arr = list(pending_jobs)
-                pending_count = len(pending_jobs_arr)
-                pending__csv_jobs_arr = list(pending__csv_jobs)
-                pending__csv_count = len(pending__csv_jobs_arr)
+                    pending_csv_jobs = CatvCSVJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CSV_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
+
+                pending_count = 0
+                pending_csv_count = 0
+
+                if pending_jobs:
+                    pending_jobs_arr = list(pending_jobs)
+                    pending_job_ids = [job.id for job in pending_jobs_arr]
+                    pending_count = len(pending_jobs_arr)
+                if pending_csv_jobs:
+                    pending_csv_jobs_arr = list(pending_csv_jobs)
+                    pending_csv_job_ids = [job.id for job in pending_csv_jobs_arr]
+                    pending_csv_count = len(pending_csv_jobs_arr)
+
                 if pending_count > 0:
-                    query = Constants.QUERIES['UPDATE_CATV_JOBS']
+                    query = Constants.QUERIES['UPDATE_CATV_JOBS'].format(tuple(pending_job_ids))
                     with connection.cursor() as cursor:
                         cursor.execute(query)
                     for job in pending_jobs_arr:
                         print(job.message)
                         process_catv_messages(job)
-                elif pending__csv_count > 0:
-                    query_csv = Constants.QUERIES['UPDATE_CSV_CATV_JOBS']
+                elif pending_csv_count > 0:
+                    query_csv = Constants.QUERIES['UPDATE_CSV_CATV_JOBS'].format(tuple(pending_csv_job_ids))
                     with connection.cursor() as cursor:
                         cursor.execute(query_csv)
                     pool = ThreadPool(processes=4)
-                    pool.map(process_catv_messages, pending__csv_jobs_arr)
+                    pool.map(process_catv_messages, pending_csv_jobs_arr)
                 else:
                     print("Relaxing for some time...")
                     sleep(15)
