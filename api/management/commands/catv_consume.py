@@ -21,7 +21,7 @@ class Command(BaseCommand):
             while(True):
                 with transaction.atomic():
                     pending_jobs = CatvJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
-                    pending__csv_jobs = CatvCSVJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CSV_CATV_JOBS"])
+                    pending__csv_jobs = CatvCSVJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CSV_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
                 pending_jobs_arr = list(pending_jobs)
                 pending_count = len(pending_jobs_arr)
                 pending__csv_jobs_arr = list(pending__csv_jobs)
