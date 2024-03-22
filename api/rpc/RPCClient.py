@@ -50,6 +50,8 @@ class RPCClient:
             while self.response is None:
                 self.connection.process_data_events()
             self.connection.close()
+            if queue in ['rpc_catv_update_usage_error']:
+                return self.response.decode("utf-8")
             return json.loads(self.response.decode("utf-8"))
         except Exception:
             traceback.format_exc()
