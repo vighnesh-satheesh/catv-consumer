@@ -38,9 +38,9 @@ class Node:
             elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
                 self.group = 'Exchange/DEX/Bridge/Mixer'
                 break
-            # elif self.type != 'Wallet':
-            #     self.group = 'Smart Contract'
-            #     break
+            elif self.type != 'Wallet' and len(annotation_list)!=0:
+                self.group = 'Smart Contract'
+                break
             elif self.annotation:
                 self.group = 'Annotated'
             else:
