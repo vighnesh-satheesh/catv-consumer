@@ -41,6 +41,9 @@ class Node:
             elif self.type != 'Wallet' and self.group == "":
                 self.group = 'Smart Contract'
                 break
+            elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
+                self.group = "Smart Contract"
+                break
             elif self.annotation and self.group == "":
                 self.group = 'Annotated'
             else:
