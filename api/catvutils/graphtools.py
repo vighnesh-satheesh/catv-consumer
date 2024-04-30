@@ -64,6 +64,9 @@ class BTCNode(Node):
             elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
                 self.group = 'Exchange/DEX/Bridge/Mixer'
                 break
+            elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
+                self.group = "Smart Contract"
+                break
             elif self.annotation:
                 self.group = 'Annotated'
             else:
