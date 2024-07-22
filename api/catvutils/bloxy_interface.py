@@ -258,6 +258,9 @@ class GraphQLInterfaceUnified:
                         # BTC, BCH, LTC, DOGE, ZEC, DASH and ADA have almost all parameters in common
                         # except sender_type and receiver_type
                         if self.chain in ["BTC", "BCH", "LTC", "DOGE", "ZEC", "DASH", "ADA"]:
+                            if self.chain in ["BTC", "DOGE", "DASH"]:
+                                if item["receiver"]["type"] == "coinbase" and item["receiver"]["address"] == "":
+                                    continue
                             current_iter_dict["tx_time"] = item["transactions"][0]["timestamp"]
                             current_iter_dict["tx_value_in"] = item["transaction"]["valueIn"]
                             current_iter_dict["tx_value_out"] = item["transaction"]["valueOut"]
@@ -272,7 +275,7 @@ class GraphQLInterfaceUnified:
                                     if current_iter_dict["receiver"] == "" and current_iter_dict["receiver_type"]:
                                         current_iter_dict["receiver"] = current_iter_dict["receiver_type"]  
                                     if current_iter_dict["receiver"] == "<shielded>" and current_iter_dict["receiver_type"] == "shielded":
-                                        current_iter_dict["receiver"] = "shielded"                                                                       
+                                        current_iter_dict["receiver"] = "shielded"                                                                        
                                 flattened_response.append(current_iter_dict)
                                 continue                                
                             elif self.chain == "ADA":
