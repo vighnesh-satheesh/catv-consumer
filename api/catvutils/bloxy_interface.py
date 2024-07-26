@@ -210,13 +210,14 @@ class GraphQLInterfaceUnified:
                               'query': request_body}, headers=self._headers, timeout=(self.connect_timeout, self.read_timeout))
             response = r.json()          
             print(request_body)
+            response_data = response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]
             
             # Saving logs where the query and the response depths differ
-            response_max_depth = response[-1]["depth"]
+            response_max_depth = response_data[len(response_data)-1]["depth"]
             if self.depth != response_max_depth:
                 print("The max response depth is " + response_max_depth + " and the query depth is " + self.depth + " with X-Graphql-Query-Id: " + r.headers["x-graphql-query-id"])
 
-            for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
+            for item in response_data:
                 # These dict items are common to all response bodies
                 # After this, the code enters the nested if-else block and the other parameters are assigned
 
