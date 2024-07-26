@@ -216,8 +216,7 @@ class GraphQLInterfaceUnified:
             # if self.depth != response_max_depth:
             #     print("The max response depth is " + response_max_depth + " and the query depth is " + self.depth + " with X-Graphql-Query-Id: " + )
 
-            print(r.headers)
-            print(response.headers)
+            print("Printing X-Graphql-Query-Id " + r.headers["x-graphql-query-id"])
 
             for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
                 # These dict items are common to all response bodies
