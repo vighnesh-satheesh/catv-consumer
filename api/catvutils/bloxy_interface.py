@@ -212,9 +212,12 @@ class GraphQLInterfaceUnified:
             print(request_body)
             
             # Saving logs where the query and the response depths differ
-            response_max_depth = response[-1]["depth"]
-            if self.depth != response_max_depth:
-                print("The max response depth is " + response_max_depth + " and the query depth is " + self.depth)
+            # response_max_depth = response[-1]["depth"]
+            # if self.depth != response_max_depth:
+            #     print("The max response depth is " + response_max_depth + " and the query depth is " + self.depth + " with X-Graphql-Query-Id: " + )
+
+            print(r.headers)
+            print(response.headers)
 
             for item in response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]:
                 # These dict items are common to all response bodies
