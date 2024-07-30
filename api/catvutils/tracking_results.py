@@ -205,8 +205,6 @@ class TrackingResults:
                                 kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
                             elif "Smart" in item["annotation"] or "Contract" in item["annotation"] or "smart" in item["annotation"] or "contract" in item["annotation"]:
                                 kwargs["group"] = "Smart Contract"
-                            else:
-                                kwargs["group"] = "Annotated"
                         else:
                             kwargs["annotation"] = ""
                         cur_node.update(**kwargs)
