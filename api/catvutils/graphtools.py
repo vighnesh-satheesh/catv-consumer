@@ -34,6 +34,7 @@ class Node:
         for annotation in annotation_list:
             if annotation and self.group == "":
                 self.group = 'Annotated'
+                break
             if 'Scamming' in annotation or 'Phishing' in annotation:
                 self.group = 'Suspicious'
                 break
