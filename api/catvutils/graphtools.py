@@ -44,7 +44,7 @@ class Node:
             elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
                 self.group = "Smart Contract"
                 break
-            elif self.annotation and self.group == "":
+            elif annotation and self.group == "":
                 self.group = 'Annotated'
                 break
             else:
