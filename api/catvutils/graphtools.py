@@ -32,9 +32,6 @@ class Node:
     def set_group_from_annotation(self):
         annotation_list = self.annotation.split(", ")
         for annotation in annotation_list:
-            if annotation and self.group == "":
-                self.group = 'Annotated'
-                break
             if 'Scamming' in annotation or 'Phishing' in annotation:
                 self.group = 'Suspicious'
                 break
@@ -47,9 +44,9 @@ class Node:
             elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
                 self.group = "Smart Contract"
                 break
-            # elif annotation and self.group == "":
-            #     self.group = 'Annotated'
-            #     break
+            elif annotation and self.group == "":
+                self.group = 'Annotated'
+                break
             else:
                 self.group = "No Tag"
 
