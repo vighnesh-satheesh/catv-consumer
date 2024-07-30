@@ -46,6 +46,7 @@ class Node:
                 break
             elif self.annotation and self.group == "":
                 self.group = 'Annotated'
+                break
             else:
                 self.group = "No Tag"
 
