@@ -44,15 +44,12 @@ class Node:
             elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
                 self.group = "Smart Contract"
                 break
+            if annotation and self.group == "":
+                self.group = 'Annotated'
+            if annotation and self.group == 'No Tag':
+                self.group = 'Annotated'
             else:
-                if annotation and self.group == "":
-                    self.group = 'Annotated'
-                    break
-                elif annotation and self.group == 'No Tag':
-                    self.group = 'Annotated'
-                    break
-                else:
-                    self.group = 'No Tag'
+                self.group = 'No Tag'
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
