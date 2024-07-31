@@ -31,25 +31,23 @@ class Node:
 
     def set_group_from_annotation(self):
         annotation_list = self.annotation.split(", ")
-        for annotation in annotation_list:
-            if annotation == "":
-                self.group = 'No Tag'
-            if 'Scamming' in annotation or 'Phishing' in annotation:
-                self.group = 'Suspicious'
-                break
-            elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
-                self.group = 'Exchange/DEX/Bridge/Mixer'
-                break
-            elif self.type != 'Wallet' and self.group == "":
-                self.group = 'Smart Contract'
-                break
-            elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
-                self.group = "Smart Contract"
-                break
-            else:
-                if annotation and self.group == "":
-                    self.group = 'Annotated'
-                if annotation and self.group == 'No Tag':
+        if len(annotation_list) == 0:
+            self.group = 'No Tag'
+        else:
+            for annotation in annotation_list:
+                if 'Scamming' in annotation or 'Phishing' in annotation:
+                    self.group = 'Suspicious'
+                    break
+                elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
+                    self.group = 'Exchange/DEX/Bridge/Mixer'
+                    break
+                elif self.type != 'Wallet' and self.group == "":
+                    self.group = 'Smart Contract'
+                    break
+                elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
+                    self.group = "Smart Contract"
+                    break
+                else:
                     self.group = 'Annotated'
 
     def update(self, **kwargs):
