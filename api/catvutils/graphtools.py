@@ -32,6 +32,8 @@ class Node:
     def set_group_from_annotation(self):
         annotation_list = self.annotation.split(", ")
         for annotation in annotation_list:
+            if annotation == "":
+                self.group = 'No Tag'
             if 'Scamming' in annotation or 'Phishing' in annotation:
                 self.group = 'Suspicious'
                 break
@@ -44,12 +46,11 @@ class Node:
             elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
                 self.group = "Smart Contract"
                 break
-            if annotation and self.group == "":
-                self.group = 'Annotated'
-            if annotation and self.group == 'No Tag':
-                self.group = 'Annotated'
             else:
-                self.group = 'No Tag'
+                if annotation and self.group == "":
+                    self.group = 'Annotated'
+                if annotation and self.group == 'No Tag':
+                    self.group = 'Annotated'
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
