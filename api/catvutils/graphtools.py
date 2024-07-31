@@ -48,7 +48,10 @@ class Node:
                     self.group = "Smart Contract"
                     break
                 else:
-                    self.group = 'Annotated'
+                    if annotation:
+                        self.group = 'Annotated'
+                    else:
+                        self.group = 'No Tag'
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
