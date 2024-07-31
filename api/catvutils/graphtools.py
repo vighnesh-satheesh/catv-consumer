@@ -34,23 +34,37 @@ class Node:
         for annotation in annotation_list:
             if 'Scamming' in annotation or 'Phishing' in annotation:
                 self.group = 'Suspicious'
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print(self.group)
                 break
             elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
                 self.group = 'Exchange/DEX/Bridge/Mixer'
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print(self.group)
                 break
             elif self.type != 'Wallet' and self.group == "":
                 self.group = 'Smart Contract'
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print(self.group)
                 break
             elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
                 self.group = "Smart Contract"
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print(self.group)
                 break
             else:
                 if annotation and self.group == "":
                     self.group = 'Annotated'
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print("Annotated 1")
                 elif annotation and self.group == 'No Tag':
                     self.group = 'Annotated'
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print("Annotated 2")
                 else:
                     self.group = 'No Tag'
+                if self.address == "0xfbabb5caa66b88f2f83b6b34681c36831d09e9c9":
+                    print("No Tag")
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
