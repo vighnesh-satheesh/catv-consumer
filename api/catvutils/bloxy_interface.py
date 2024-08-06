@@ -92,6 +92,7 @@ class GraphQLInterfaceUnified:
         self.address = address
         self.depth = depth_limit
         print(" The start time is, ",from_time)
+        print("The endtime is ",till_time)
         from_time = utils.validate_dateformat_and_randomize_seconds(from_time,'%Y-%m-%d')
         print(" The start time post update is, ",from_time)
         self.from_time = str(from_time).replace(" ","T")
