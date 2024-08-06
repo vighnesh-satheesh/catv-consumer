@@ -7,6 +7,7 @@ from requests.exceptions import Timeout, RequestException
 
 from api.constants import Constants
 from api.exceptions import BitqueryFetchTimedOut
+from .. import utils
 
 
 class BloxyAPIInterface:
@@ -90,6 +91,7 @@ class GraphQLInterfaceUnified:
         self.source = source
         self.address = address
         self.depth = depth_limit
+        from_time = utils.validate_dateformat_and_randomize_seconds(from_time,'%Y-%m-%d',"%Y-%m-%dT%H:%M:%S")
         self.from_time = str(from_time).replace(" ","T")
         self.till_time = str(till_time).replace(" ","T")
         self.limit = int(limit)

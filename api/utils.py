@@ -1,8 +1,9 @@
 import hashlib
 import mimetypes
 import re
-from datetime import datetime
+from datetime import datetime,timedelta
 from django.core.files.storage import default_storage
+import random
 
 from .models import (
     CatvTokens
@@ -11,6 +12,13 @@ from .models import (
 
 def validate_dateformat(value, date_format):
     datetime.strptime(value, date_format)
+  
+def validate_dateformat_and_randomize_seconds(value, input_format,output_format):  
+    random_seconds = random.randint(1, 59)  
+    date_obj = datetime.strptime(value, input_format)  
+    date_obj += timedelta(seconds=random_seconds)  
+    return date_obj.strftime(output_format)
+    
 
 
 def create_tracking_cache_pattern(data):
