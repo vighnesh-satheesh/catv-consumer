@@ -63,28 +63,21 @@ class BTCNode(Node):
         super(BTCNode, self).__init__(**kwargs)
 
     def set_group_from_annotation(self):
-        annotation_list = self.annotation.casefold().split(", ")
-        if len(annotation_list) == 0:
-            self.group = 'No Tag'
-        else:
-            for annotation in annotation_list:
-                if 'scamming' in annotation or 'phishing' in annotation:
-                    self.group = 'Suspicious'
-                    break
-                elif 'dex' in annotation or 'exchange' in annotation or 'bridge' in annotation or 'mixer' in annotation:
-                    self.group = 'Exchange/DEX/Bridge/Mixer'
-                    break
-                elif self.type != 'Wallet' and self.group == "":
-                    self.group = 'Smart Contract'
-                    break
-                elif "smart" in annotation or "contract" in annotation:
-                    self.group = "Smart Contract"
-                    break
-                else:
-                    if annotation:
-                        self.group = 'Annotated'
-                    else:
-                        self.group = 'No Tag'
+        annotation_list = self.annotation.split(", ")
+        for annotation in annotation_list:
+            if 'Scamming' in annotation or 'Phishing' in annotation:
+                self.group = 'Suspicious'
+                break
+            elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
+                self.group = 'Exchange/DEX/Bridge/Mixer'
+                break
+            elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
+                self.group = "Smart Contract"
+                break
+            elif self.annotation:
+                self.group = 'Annotated'
+            else:
+                self.group = "No Tag"
 
 
 class NodesCollection:
