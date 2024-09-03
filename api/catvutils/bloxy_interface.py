@@ -217,7 +217,9 @@ class GraphQLInterfaceUnified:
             # Saving logs where the query and the response depths differ
             response_max_depth = response_data[len(response_data)-1]["depth"]
             if self.depth != response_max_depth:
-                print(f'The max response depth is {response_max_depth} and the query depth is {self.depth} with X-Graphql-Query-Id: {r.headers["x-graphql-query-id"]}')
+                print(f"The max response depth is {response_max_depth} and the query depth is {self.depth} with X-Graphql-Query-Id: {r.headers['x-graphql-query-id']}")
+            else:
+                print(f"Max response depth and query depth are same for X-Graphql-Query-Id: {r.headers['x-graphql-query-id']}")
 
             for item in response_data:
                 # These dict items are common to all response bodies
