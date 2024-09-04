@@ -76,7 +76,7 @@ class BloxyAPIInterface:
             depth_limit,
             from_time,
             till_time,
-            limit
+            tx_limit
         )
         results = graphql_interface.call_graphql_endpoint()
         return results
