@@ -109,7 +109,7 @@ class GraphQLInterfaceUnified:
         currency = " "
         receiver = "receiver { address annotation } "
         sender = receiver.replace("receiver", "sender")  
-        extra_params = " depth amount currency { symbol } "        
+        extra_params = " depth amount amount_usd: amount(in: USD) currency { symbol } "        
         time = " var { time } "
         if self.token_address is not None and self.token_address != "" and self.token_address != '0x0000000000000000000000000000000000000000':
             currency_value = self.token_address 
@@ -151,7 +151,7 @@ class GraphQLInterfaceUnified:
                                 " " + time.replace("var", "lastTxAt")  + " type " + amount_details + " } "
                 sender = " sender { address annotation type } "
                 transaction = " transaction { hash value " + time.replace("var", "time") + " } "                
-                extra_params = " depth amount  currency { name symbol tokenId tokenType } " 
+                extra_params = " depth amount amount_usd: amount(in: USD) currency { name symbol tokenId tokenType } " 
             # Klaytn/Binance Smart Chain or KLAY/BSC   
             elif self.chain in ["ETH", "KLAY", "BSC", "FTM", "POL", "AVAX"]:
                 currency = f""" currency: {{ is: "{currency_value}" }} """ if currency_value else " "
@@ -162,7 +162,7 @@ class GraphQLInterfaceUnified:
                 sender =  " sender { address annotation type " + amount_details + smart_contract + " }" 
                 transaction = " transaction { hash value } " + \
                                 " transactions { timestamp txHash txValue amount height } "
-                extra_params = " depth amount  currency { name symbol tokenId tokenType address } " 
+                extra_params = " depth amount amount_usd: amount(in: USD) currency { name symbol tokenId tokenType address } " 
 
             # Binance Coin/Tron or BNB/TRX
             elif self.chain in ["BNB", "TRX"]: 
@@ -172,7 +172,7 @@ class GraphQLInterfaceUnified:
                 sender = " sender { address annotation type } "                        
                 network = network if self.chain == "TRX" else Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]
                 transaction = " transaction { hash value " + time.replace("var", "time") + " } "  
-                extra_params = " depth amount  currency { name symbol tokenId tokenType } "
+                extra_params = " depth amount amount_usd: amount(in: USD) currency { name symbol tokenId tokenType } "
                         
             # building final GraphQL query
             GRAPHQL_QUERY = f"""
@@ -208,6 +208,8 @@ class GraphQLInterfaceUnified:
         try:
             # flattened response is used to convert the GraphQL response format to REST API response format
             flattened_response = []
+            total_amount = 0
+            total_amount_usd = 0
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers, timeout=(self.connect_timeout, self.read_timeout))
             response = r.json()          
@@ -257,9 +259,15 @@ class GraphQLInterfaceUnified:
                     flattened_response.append(current_iter_dict)
                     continue                            
                 else:     
-                    # The symbol and amount parameters are common to all except XRP and XLM so they are assigned here itself
+                    # The symbol and amount/amount_usd parameters are common to all except XRP and XLM so they are assigned here itself
                     current_iter_dict["symbol"] = item["currency"]["symbol"]    
                     current_iter_dict["amount"] = item["amount"]      
+                    current_iter_dict["amount_usd"] = item["amount_usd"]
+                    if item["amount"] and item["amount"] >0:
+                        total_amount+=total_amount
+                    if item["amount_usd"] and item["amount_usd"] >0:
+                        total_amount_usd+=total_amount_usd
+                
                     if self.chain == "LUNC":
                         current_iter_dict["tx_time"] = item["block"]["timestamp"]["time"]
                         current_iter_dict["tx_value"] = item["transaction"]["value"]
