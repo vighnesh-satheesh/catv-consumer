@@ -208,8 +208,6 @@ class GraphQLInterfaceUnified:
         try:
             # flattened response is used to convert the GraphQL response format to REST API response format
             flattened_response = []
-            total_amount = 0
-            total_amount_usd = 0
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers, timeout=(self.connect_timeout, self.read_timeout))
             response = r.json()          
@@ -263,10 +261,6 @@ class GraphQLInterfaceUnified:
                     current_iter_dict["symbol"] = item["currency"]["symbol"]    
                     current_iter_dict["amount"] = item["amount"]      
                     current_iter_dict["amount_usd"] = item["amount_usd"]
-                    if item["amount"] and item["amount"] >0:
-                        total_amount+=total_amount
-                    if item["amount_usd"] and item["amount_usd"] >0:
-                        total_amount_usd+=total_amount_usd
                 
                     if self.chain == "LUNC":
                         current_iter_dict["tx_time"] = item["block"]["timestamp"]["time"]
@@ -332,7 +326,6 @@ class GraphQLInterfaceUnified:
                                     current_iter_dict["token"] = item["currency"]["name"]
                                     flattened_response.append(current_iter_dict)
                                     continue   
-            # Once the loop has run its course, the flattened response array is returned
             return flattened_response
         except Timeout:
             print(f"Bitquery Graphql call timed out for: {self.address} {self.chain}")
