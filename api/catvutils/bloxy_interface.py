@@ -208,10 +208,10 @@ class GraphQLInterfaceUnified:
         try:
             # flattened response is used to convert the GraphQL response format to REST API response format
             flattened_response = []
+            print(request_body)
             r = requests.post(self._graphql_endpoint, json={
                               'query': request_body}, headers=self._headers, timeout=(self.connect_timeout, self.read_timeout))
             response = r.json()          
-            print(request_body)
             response_data = response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]
             
             # Saving logs where the query and the response depths differ
