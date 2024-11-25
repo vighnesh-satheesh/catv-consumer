@@ -327,10 +327,12 @@ class GraphQLInterfaceUnified:
             # Once the loop has run its course, the flattened response array is returned
             return flattened_response
         except Timeout:
-            print(f"Bitquery Graphql call timed out for: {self.address} {self.chain}")
+            traceback.print_exc()
             raise BitqueryFetchTimedOut
         except RequestException:
-            print(f"Bitquery Graphql call request exception: {self.address} {self.chain}")
+            traceback.print_exc()
+            if r and response and "errors" in response and response["errors"]:
+                print("Bitquery error response: ", response["errors"])
             raise BitqueryFetchTimedOut
         except Exception as e:
             traceback.print_exc()
