@@ -60,7 +60,15 @@ def set_environment_variables_from_parameter_store():
 def set_environment_variables_from_secret_manager():
     project_id = os.environ.get("GCP_PROJECT_ID")
     secret_name = os.environ.get("GCP_SECRET_NAME")
-    if project_id and secret_name:
+    env_file = os.environ.get("CATV_CONSUMER_ENV_PATH")
+    if env_file is not None and os.path.isfile(env_file) is True:
+        os.environ["PORTAL_API_MODE"] = "development"
+        print("Reading local env file")
+        with open(env_file, 'r') as f:
+            config = json.load(f)
+        for key, value in config.items():
+            os.environ[key] = str(value)
+    elif project_id and secret_name:
         retrieve_secret(project_id, secret_name,"latest")
         
     else:

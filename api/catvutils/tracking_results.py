@@ -6,7 +6,7 @@ from multiprocessing.pool import ThreadPool
 from django.conf import settings
 from django.utils.timezone import make_aware
 
-from .bloxy_interface import BloxyAPIInterface
+from .bloxy_graphql_interface import BloxyAPIInterface
 from .graphtools import (
     generate_nodes_edges, generate_nodes_edges_btc,
     generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
@@ -61,7 +61,6 @@ class TrackingResults:
         bloxy_response = bloxy_interface.get_transactions(
                                             self.wallet_address, 
                                             tx_limit, 
-                                            limit, 
                                             depth,
                                             self.from_date, 
                                             till_date, 
@@ -82,7 +81,7 @@ class TrackingResults:
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         till_date_extend = self.to_date + "T23:59:59"
-        bloxy = BloxyAPIInterface(settings.BLOXY_API_KEY)
+        bloxy = BloxyAPIInterface()
 
         if for_source:
             bloxy_db_class = BloxySource
@@ -361,15 +360,14 @@ class BTCTrackingResults(TrackingResults):
 
 class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        external_api_client = BloxyAPIInterface(settings.BLOXY_API_KEY)
+        external_api_client = BloxyAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
         from_time = self.from_date
         till_date_extend = self.to_date + "T23:59:59"
         transaction_data = external_api_client.get_transactions(
                                                         self.wallet_address, 
                                                         tx_limit, 
-                                                        limit,
-                                                        depth_limit, 
+                                                        depth_limit,
                                                         from_time=from_time,
                                                         till_time=till_date_extend,
                                                         token_address = None,

@@ -1,9 +1,10 @@
 import hashlib
 import mimetypes
-import re
-from datetime import datetime,timedelta
-from django.core.files.storage import default_storage
 import random
+import re
+from datetime import datetime, timedelta
+
+from django.core.files.storage import default_storage
 
 from .models import (
     CatvTokens
@@ -12,13 +13,13 @@ from .models import (
 
 def validate_dateformat(value, date_format):
     datetime.strptime(value, date_format)
-  
-def validate_dateformat_and_randomize_seconds(value, input_format,output_format):  
-    random_seconds = random.randint(1, 59)  
-    date_obj = datetime.strptime(value, input_format)  
-    date_obj += timedelta(seconds=random_seconds)  
+
+
+def validate_dateformat_and_randomize_seconds(value, input_format, output_format):
+    random_seconds = random.randint(1, 59)
+    date_obj = datetime.strptime(value, input_format)
+    date_obj += timedelta(seconds=random_seconds)
     return date_obj.strftime(output_format)
-    
 
 
 def create_tracking_cache_pattern(data):
@@ -109,6 +110,7 @@ def pattern_matches_token(address, token_type):
 def upload_content_file_to_gcs(content_file):
     # default_storage is configured as GCS Storage in base.py
     return default_storage.save(content_file.name, content_file)
+
 
 def get_file_meta(file, file_name):
     hasher = hashlib.md5()

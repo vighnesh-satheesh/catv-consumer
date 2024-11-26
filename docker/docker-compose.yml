@@ -8,12 +8,11 @@ services:
     volumes:
       - ..:/app
     environment:
-      - CATV_CONSUMER_API_ENV_PATH=/app/dev.env
-      - API_TOKEN_ENCRYPT_PRIVATE_KEY=/app/key.private
+      - CATV_CONSUMER_ENV_PATH=path.json
       - ALLOWED_HOSTS=*
       - C_FORCE_ROOT=1
-    env_file:
-      #Insert your env file here
-      - ../dev.env
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secret/uppsala-staging-5d1de3f3e220.json
+      - GCP_PROJECT_ID=uppsala-staging
+      - GCP_SECRET_NAME=upp-stg-api-catv-consumer-service
     ports:
       - 8300:8000
