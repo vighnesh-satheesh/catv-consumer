@@ -53,13 +53,14 @@ class GraphQLClient:
 
         for attempt in range(max_retries):
             try:
+                print(f"query: {query}")
                 response = self.session.post(
                     self.endpoint,
                     json={'query': query},
                     headers=self.headers,
                     timeout=self.timeout
                 )
-
+                print(f"X-Graphql-Query-Id: {response.headers['x-graphql-query-id']}")
                 # For gateway errors, implement retry
                 if response.status_code in retriable_status_codes:
                     if attempt == max_retries - 1:  # Last attempt
@@ -100,7 +101,7 @@ class GraphQLClient:
                 raise BitqueryFetchTimedOut
 
         # If we get here somehow, raise the last exception
-        raise BitqueryFetchTimedOut("Max retries exceeded")
+        raise BitqueryFetchTimedOut
 
 
 class BloxyAPIInterface:
