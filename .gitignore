@@ -16,3 +16,4 @@ env-dev/
 celerybeat.pid
 *django.mo
 /venv
+*.json
