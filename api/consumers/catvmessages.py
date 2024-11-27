@@ -31,7 +31,7 @@ from api.rpc.RPCClient import update_s3_attached_file_uid, \
 
 __all__ = ('process_catv_messages',)
 
-from api.utils import  upload_content_file_to_gcs,get_file_meta
+from api.utils import upload_content_file_to_gcs, get_file_meta
 
 
 def process_catv_messages(job: CatvJobQueue):
@@ -116,7 +116,7 @@ def process_catv_messages(job: CatvJobQueue):
         CatvTokens.DASH.value: {
             CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
             CatvSearchType.PATH.value: CatvBtcPathSerializer
-        }          
+        }
     }
 
     try:
@@ -132,7 +132,7 @@ def process_catv_messages(job: CatvJobQueue):
         search_params.update({'force_lookup': True})
         history_runner = catv_history_task if search_type == CatvSearchType.FLOW.value else catv_path_history_task
         print(search_params)
-        
+
         serializer_obj = serializer_map[token_type][search_type](data=search_params)
         serializer_obj._token_type = token_type
         serializer_obj.is_valid(raise_exception=True)
@@ -142,18 +142,21 @@ def process_catv_messages(job: CatvJobQueue):
             if source_depth > 0 and distribution_depth > 0:
                 balanced_tx_limit = balanced_tx_limit / 2
                 balanced_addr_limit = balanced_addr_limit / 2
-            core_results = serializer_obj.get_tracking_results(tx_limit=balanced_tx_limit, limit=balanced_addr_limit, save_to_db=False)
+            core_results = serializer_obj.get_tracking_results(tx_limit=balanced_tx_limit, limit=balanced_addr_limit,
+                                                               save_to_db=False)
         else:
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
-        calculate_total_amounts(graph_data)     
+        calculate_total_amounts(graph_data)
 
         if 'graph_node_list' in graph_data and graph_data['graph_node_list']:
             if len(graph_data['node_list']) != len(graph_data['graph_node_list']):
-                core_results["messages"]["source"] += f"\nThis address has too many transactions. Viewing all transactions would be difficult, "\
-                    f"so we have generated the most relevant graph for you with some scaling down on each level to show nodes which have transacted the most."
+                core_results["messages"][
+                    "source"] += f"\nThis address has too many transactions. Viewing all transactions would be difficult, " \
+                                 f"so we have generated the most relevant graph for you with some scaling down on each level to show nodes which have transacted the most."
             graph_data["node_list"] = graph_data["graph_node_list"]
-            graph_data["edge_list"] = graph_data["graph_edge_list"] if graph_data["graph_edge_list"] else graph_data["edge_list"]
+            graph_data["edge_list"] = graph_data["graph_edge_list"] if graph_data["graph_edge_list"] else graph_data[
+                "edge_list"]
             del graph_data["graph_node_list"]
             del graph_data["graph_edge_list"]
 
@@ -170,11 +173,11 @@ def process_catv_messages(job: CatvJobQueue):
         if token_type in [CatvTokens.ETH.value, CatvTokens.KLAY.value, CatvTokens.BSC.value]:
             print("Entering SmartContractMethodFinder:")
             start_time = time.time()
-            smart_contract_data_obj = SmartContractMethodFinder(token_type, graph_data['node_list'], graph_data['edge_list'])
+            smart_contract_data_obj = SmartContractMethodFinder(token_type, graph_data['node_list'],
+                                                                graph_data['edge_list'])
             graph_data["edge_list"] = smart_contract_data_obj.get_updated_edges()
             elapsed_time = time.time() - start_time
             print("Total time taken for SmartContractMethodFinder: ", elapsed_time)
-
 
         catv_metrics = CatvMetrics(graph_data)
         dist_analysis = {}
@@ -198,7 +201,7 @@ def process_catv_messages(job: CatvJobQueue):
             },
             "messages": {**core_results["messages"]}
         }
-        
+
         search_params.update({'user_id': user_id, 'token_type': token_type})
         if graph_data.get("node_list", {}):
             history_runner.delay(history=search_params, from_history=False)
@@ -270,15 +273,17 @@ def process_catv_messages(job: CatvJobQueue):
             if attached_file_pk != 0:
                 CatvResult.objects.filter(request=request_instance).update(result_file_id=attached_file_pk)
             job.delete()
+
+
 def calculate_total_amounts(transaction_data):
-    if transaction_data["item_list"] and len(transaction_data["item_list"])>0 and transaction_data["item_list"][0].get("amount") and transaction_data["item_list"][0].get("amount_usd"):
-        total_amount=0
-        total_amount_usd=0
+    if transaction_data["item_list"] and len(transaction_data["item_list"]) > 0 and transaction_data["item_list"][
+        0].get("amount") and transaction_data["item_list"][0].get("amount_usd"):
+        total_amount = 0
+        total_amount_usd = 0
         for item in transaction_data["item_list"]:
-            total_amount+=item.get("amount",0)
-            total_amount_usd+=item.get("amount_usd",0)
+            total_amount += item.get("amount", 0)
+            total_amount_usd += item.get("amount_usd", 0)
         transaction_data["total_amount"] = total_amount
         transaction_data["total_amount_usd"] = total_amount_usd
     else:
         return
-        

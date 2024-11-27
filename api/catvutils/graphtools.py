@@ -533,8 +533,7 @@ def generate_nodes_edges(result, mode, build_lossy_graph, token_type='ETH'):
     edge_dict = assign_edges(result, mode, nc.get_node_enum())
     if mode == -1:
         reverse_source_depth(result)
-        
-    tx_count = len(result)
+
     limited_edges = {}
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF and build_lossy_graph:
@@ -570,7 +569,6 @@ def generate_nodes_edges_coinpath(result, mode, build_lossy_graph):
     edge_dict = assign_edges(result, mode, nc.get_node_enum())
     if mode == -1:
         depth_shift_btc(result, mode)
-    tx_count = len(result)
     limited_edges = {}
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF and build_lossy_graph:
@@ -604,7 +602,6 @@ def generate_nodes_edges_ethcoinpath(result, mode, build_lossy_graph):
 
     if mode == -1:
         depth_shift_for_source(result)
-    tx_count = len(result)
     limited_edges = {}
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF and build_lossy_graph:
@@ -634,7 +631,6 @@ def generate_nodes_edges_btccoinpath(result, mode, build_lossy_graph):
 
     if mode == -1:
         depth_shift_for_source(result)
-    tx_count = len(result)
     limited_edges = {}
     limited_nodes = []
     if nc.count > api_settings.CATV_GRAPH_NODES_CUTOFF and build_lossy_graph:
