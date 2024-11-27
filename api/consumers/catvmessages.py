@@ -148,7 +148,7 @@ def process_catv_messages(job: CatvJobQueue):
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
         calculate_total_amounts(graph_data)
-
+        add_token_symbol(graph_data)
         if 'graph_node_list' in graph_data and graph_data['graph_node_list']:
             if len(graph_data['node_list']) != len(graph_data['graph_node_list']):
                 core_results["messages"][
@@ -287,3 +287,8 @@ def calculate_total_amounts(transaction_data):
         transaction_data["total_amount_usd"] = total_amount_usd
     else:
         return
+def add_token_symbol(transaction_data):
+    if transaction_data["item_list"] and len(transaction_data["item_list"]) > 0 and transaction_data["item_list"][
+        0].get("token"):
+        transaction_data["symbol_for_total_amount"] = transaction_data["item_list"][
+        0].get("symbol")
