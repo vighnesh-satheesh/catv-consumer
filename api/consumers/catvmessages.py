@@ -148,7 +148,6 @@ def process_catv_messages(job: CatvJobQueue):
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
         calculate_total_amounts(graph_data)
-        add_token_symbol(graph_data)
         if 'graph_node_list' in graph_data and graph_data['graph_node_list']:
             if len(graph_data['node_list']) != len(graph_data['graph_node_list']):
                 core_results["messages"][
@@ -276,19 +275,15 @@ def process_catv_messages(job: CatvJobQueue):
 
 
 def calculate_total_amounts(transaction_data):
-    if transaction_data["item_list"] and len(transaction_data["item_list"]) > 0 and transaction_data["item_list"][
-        0].get("amount") and transaction_data["item_list"][0].get("amount_usd"):
-        total_amount = 0
-        total_amount_usd = 0
-        for item in transaction_data["item_list"]:
-            total_amount += item.get("amount", 0)
-            total_amount_usd += item.get("amount_usd", 0)
-        transaction_data["total_amount"] = total_amount
-        transaction_data["total_amount_usd"] = total_amount_usd
+    if "item_list" in transaction_data:
+        if transaction_data["item_list"] and len(transaction_data["item_list"]) > 0 and transaction_data["item_list"][
+            0].get("amount") and transaction_data["item_list"][0].get("amount_usd"):
+            total_amount = 0
+            total_amount_usd = 0
+            for item in transaction_data["item_list"]:
+                total_amount += item.get("amount", 0)
+                total_amount_usd += item.get("amount_usd", 0)
+            transaction_data["total_amount"] = total_amount
+            transaction_data["total_amount_usd"] = total_amount_usd
     else:
         return
-def add_token_symbol(transaction_data):
-    if transaction_data["item_list"] and len(transaction_data["item_list"]) > 0 and transaction_data["item_list"][
-        0].get("token"):
-        transaction_data["symbol_for_total_amount"] = transaction_data["item_list"][
-        0].get("symbol")
