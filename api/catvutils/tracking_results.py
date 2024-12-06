@@ -1,21 +1,19 @@
 import traceback
-from datetime import datetime
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 
 from django.conf import settings
-from django.utils.timezone import make_aware
 
 from .bloxy_graphql_interface import BloxyAPIInterface
 from .graphtools import (
-    generate_nodes_edges, generate_nodes_edges_btc,
-    generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
+    generate_nodes_edges, generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
     generate_nodes_edges_btccoinpath
 )
-from .vendor_api import LyzeAPIInterface, BloxyEthAPIInterface
-from ..exceptions import BitqueryFetchTimedOut
+from .vendor_api import BloxyEthAPIInterface
+from ..exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, \
+    BitqueryDataNotFoundError, BitqueryServerError, BitqueryBaseException, BitqueryMemoryLimitExceeded
 from ..models import (
-    BloxyDistribution, BloxySource, CatvTokens
+    CatvTokens
 )
 from ..rpc.RPCClient import fetch_indicators, fetch_cara_report
 
@@ -53,92 +51,56 @@ class TrackingResults:
         self.error_messages = {"source": "", "distribution": ""}
         self.chain = kwargs.get('chain', CatvTokens.ETH.value)
 
-    def bloxy_response_callback(self, *args, **kwargs):
-        if args and 'error' in args[0]:
-            self.error = args[0]['error']
-
-    def get_results_from_bloxy(self, bloxy_interface, depth, till_date, tx_limit, limit, for_source=False):
-        bloxy_response = bloxy_interface.get_transactions(
-                                            self.wallet_address, 
-                                            tx_limit, 
-                                            depth,
-                                            self.from_date, 
-                                            till_date, 
-                                            self.token_address, 
-                                            for_source, 
+    def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
+        bloxy_interface = BloxyAPIInterface()
+        depth_limit = self.source_depth if for_source else self.distribution_depth
+        error_placeholder = "source" if for_source else "distribution"
+        till_date_extend = self.to_date + "T23:59:59"
+        try:
+            transaction_data = bloxy_interface.get_transactions(
+                                            self.wallet_address,
+                                            tx_limit,
+                                            depth_limit,
+                                            self.from_date,
+                                            till_date_extend,
+                                            self.token_address,
+                                            for_source,
                                             self.chain
                                         )
-        if not bloxy_response:
-            error_key = "source" if for_source else "distribution"
-            self.error_messages[error_key] = "Missing {} results for the wallet address within the date range " \
-                                             "specified".format(error_key)
-        return bloxy_response
-
-    def save_bloxy_result(self, bloxy_db_class, depth, from_date, to_date, result):
-        bloxy_db_class(address=self.wallet_address, depth_limit=depth, transaction_limit=self.transaction_limit,
-                       from_time=from_date, till_time=to_date, result=result,
-                       token_address=self.token_address, updated=make_aware(datetime.now())).save()
-
-    def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        till_date_extend = self.to_date + "T23:59:59"
-        bloxy = BloxyAPIInterface()
-
-        if for_source:
-            bloxy_db_class = BloxySource
-            depth_limit = self.source_depth
-            error_placeholder = "source"
-        else:
-            bloxy_db_class = BloxyDistribution
-            depth_limit = self.distribution_depth
-            error_placeholder = "distribution"
-
-        aware_from_date = make_aware(datetime.strptime(self.from_date, '%Y-%m-%d'))
-        aware_to_date = make_aware(datetime.strptime(self.to_date, '%Y-%m-%d'))
-        try:
-            if self.force_lookup:
-                transaction_data = self.get_results_from_bloxy(bloxy, depth_limit, till_date_extend, tx_limit, limit, for_source)
-                if save_to_db and transaction_data:
-                    self.save_bloxy_result(bloxy_db_class, depth_limit, aware_from_date, aware_to_date, transaction_data)
-                self.ext_api_calls += 1
-            else:
-                db_results = bloxy_db_class.objects.filter(address=self.wallet_address, depth_limit=depth_limit,
-                                                           transaction_limit=self.transaction_limit,
-                                                           token_address=self.token_address,
-                                                           from_time__gte=aware_from_date,
-                                                           till_time__lte=aware_to_date).values('result')\
-                                                            .order_by('-id', '-updated', '-till_time',
-                                                                      'from_time')[0:1]
-                if not db_results or len(db_results[0]['result']) == 0:
-                    transaction_data = self.get_results_from_bloxy(bloxy, depth_limit, till_date_extend, tx_limit, limit, for_source)
-                    if save_to_db and transaction_data:
-                        self.save_bloxy_result(bloxy_db_class, depth_limit, aware_from_date, aware_to_date,
-                                               transaction_data)
-                    self.ext_api_calls += 1
-                else:
-                    transaction_data = db_results[0]['result']
-            temp_transaction_data = []
-            for item in transaction_data:
-                if len(item["receiver"]) > 0:
-                    temp_transaction_data.append(item)
-            transaction_data = temp_transaction_data
-
-            return transaction_data
-        except IndexError:
-            self.error_messages[error_placeholder] = "Missing {} results for the wallet address within the date " \
-                                                     "range specified".format(error_placeholder)
-        except BitqueryFetchTimedOut:
-            raise
+            if transaction_data:
+                return [item for item in transaction_data if len(item["receiver"]) > 0]
+            return []
+        except BitqueryConcurrentRequestError as e:
+            self.error_messages[
+                error_placeholder] = "Another request is currently in progress. Please wait a moment and try again."
+            return []
+        except (BitqueryNetworkTimeoutError, BitqueryMemoryLimitExceeded) as e:
+            self.error_messages[
+                error_placeholder] = ("There are too many transactions for this address for the specified date range. "
+                                      "Please try again with a smaller date range.")
+            return []
+        except BitqueryDataNotFoundError:
+            print("here---------->")
+            self.error_messages[
+                error_placeholder] = f"Missing {error_placeholder} results for the wallet address within the date range specified"
+            return []
+        except (BitqueryServerError, BitqueryBaseException) as e:
+            self.error_messages[error_placeholder] = str(e)
+            return []
+        except Exception as e:
+            print(f"Unexpected error in fetch_results: {str(e)}")
+            self.error_messages[
+                error_placeholder] = f"An unexpected error occurred while fetching {error_placeholder} data"
+            return []
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
         if self.source_depth:
             self._skip_source = False
-            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True),
-                                                         callback=self.bloxy_response_callback)
+            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True))
         if self.distribution_depth:
             self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False),
-                                                       callback=self.bloxy_response_callback)
+            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
         pool.close()
         pool.join()
 
@@ -311,86 +273,59 @@ class TrackingResults:
         return graph_dict
 
 
-class BTCTrackingResults(TrackingResults):
-    def __init__(self, **kwargs):
-        super(BTCTrackingResults, self).__init__(**kwargs)
-        self.tx_hash = find_key(kwargs, 'tx_hash')
-        self.address = find_key(kwargs, 'wallet_address')
-
-    def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        external_api_client = LyzeAPIInterface(settings.LYZE_API_KEY)
-        if for_source:
-            depth_limit = self.source_depth if self.source_depth < 3 else 2
-        else:
-            depth_limit = self.distribution_depth if self.distribution_depth < 3 else 2
-        transaction_data = external_api_client.get_transactions(self.address, limit, self.tx_hash, depth_limit, for_source)
-        self.ext_api_calls += 1
-        if not transaction_data:
-            error_key = "source" if for_source else "distribution"
-            self.error_messages[error_key] = "Missing {} results for the wallet address within the date range " \
-                                             "specified".format(error_key)
-        return transaction_data
-
-    def get_tracking_data(self, tx_limit, limit, save_to_db):
-        pool = ThreadPool(processes=2)
-        if self.source_depth:
-            self._skip_source = False
-            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True),
-                                                         callback=self.bloxy_response_callback)
-        if self.distribution_depth:
-            self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False),
-                                                       callback=self.bloxy_response_callback)
-        pool.close()
-        pool.join()
-
-    def create_graph_data(self, wallet_address=None, build_lossy_graph=True):
-        pool = Pool(processes=2)
-        if not self._skip_source:
-            source_result = self._async_source_result.get()
-            if source_result:
-                self._async_source_graph = pool.apply_async(generate_nodes_edges_btc, (source_result, -1, wallet_address, build_lossy_graph))
-        if not self._skip_dist:
-            dist_result = self._async_dist_result.get()
-            if dist_result:
-                self._async_dist_graph = pool.apply_async(generate_nodes_edges_btc, (dist_result, 1, wallet_address, build_lossy_graph))
-        pool.close()
-        pool.join()
-
-
 class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        external_api_client = BloxyAPIInterface()
+        bloxy_interface = BloxyAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
-        from_time = self.from_date
+        error_placeholder = "source" if for_source else "distribution"
         till_date_extend = self.to_date + "T23:59:59"
-        transaction_data = external_api_client.get_transactions(
-                                                        self.wallet_address, 
-                                                        tx_limit, 
-                                                        depth_limit,
-                                                        from_time=from_time,
-                                                        till_time=till_date_extend,
-                                                        token_address = None,
-                                                        source=for_source,
-                                                        chain=self.chain
-                                                    )
-        self.ext_api_calls += 1
-        if not transaction_data:
-            error_key = "source" if for_source else "distribution"
-            self.error_messages[error_key] = "Missing {} results for the wallet address within the date range " \
-                                             "specified".format(error_key)
-        return transaction_data
+        try:
+            transaction_data = bloxy_interface.get_transactions(
+                                                            self.wallet_address,
+                                                            tx_limit,
+                                                            depth_limit,
+                                                            from_time=self.from_date,
+                                                            till_time=till_date_extend,
+                                                            token_address = None,
+                                                            source=for_source,
+                                                            chain=self.chain
+                                                        )
+            self.ext_api_calls += 1
+            # if not transaction_data:
+            #     error_key = "source" if for_source else "distribution"
+            #     self.error_messages[error_key] = "Missing {} results for the wallet address within the date range " \
+            #                                      "specified".format(error_key)
+            return transaction_data
+        except BitqueryConcurrentRequestError as e:
+            self.error_messages[
+                error_placeholder] = "Another request is currently in progress. Please wait a moment and try again."
+            return []
+        except (BitqueryNetworkTimeoutError, BitqueryMemoryLimitExceeded) as e:
+            self.error_messages[
+                error_placeholder] = ("There are too many transactions for this address for the specified date range. "
+                                      "Please try again with a smaller date range.")
+            return []
+        except BitqueryDataNotFoundError:
+            self.error_messages[
+                error_placeholder] = f"Missing {error_placeholder} results for the wallet address within the date range specified"
+            return []
+        except (BitqueryServerError, BitqueryBaseException) as e:
+            self.error_messages[error_placeholder] = str(e)
+            return []
+        except Exception as e:
+            print(f"Unexpected error in fetch_results: {str(e)}")
+            self.error_messages[
+                error_placeholder] = f"An unexpected error occurred while fetching {error_placeholder} data"
+            return []
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
         if self.source_depth:
             self._skip_source = False
-            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True),
-                                                         callback=self.bloxy_response_callback)
+            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True))
         if self.distribution_depth:
             self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False),
-                                                       callback=self.bloxy_response_callback)
+            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
         pool.close()
         pool.join()
 
@@ -434,8 +369,7 @@ class EthPathResults(TrackingResults):
         pool = ThreadPool(processes=1)
         if self.depth_limit:
             self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False),
-                                                       callback=self.bloxy_response_callback)
+            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
         pool.close()
         pool.join()
 

@@ -20,8 +20,8 @@ from api.models import (
     CatvJobQueue
 )
 from api.serializers import (
-    CATVSerializer, CATVBTCCoinpathSerializer,
-    CatvBtcPathSerializer, CATVEthPathSerializer
+    CATVETHSerializer, CATVBTCSerializer,
+    CATVBTCPathSerializer, CATVETHPathSerializer
 )
 
 from api.settings import api_settings
@@ -31,7 +31,7 @@ from api.rpc.RPCClient import update_s3_attached_file_uid, \
 
 __all__ = ('process_catv_messages',)
 
-from api.utils import upload_content_file_to_gcs, get_file_meta
+from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message
 
 
 def process_catv_messages(job: CatvJobQueue):
@@ -42,88 +42,87 @@ def process_catv_messages(job: CatvJobQueue):
 
     serializer_map = {
         CatvTokens.ETH.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.BTC.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         },
         CatvTokens.TRON.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.LTC.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         },
         CatvTokens.BCH.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         },
         CatvTokens.XRP.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.EOS.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.XLM.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.BNB.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.ADA.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         },
         CatvTokens.BSC.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.KLAY.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.LUNC.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.FTM.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.POL.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.AVAX.value: {
-            CatvSearchType.FLOW.value: CATVSerializer,
-            CatvSearchType.PATH.value: CATVEthPathSerializer
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         },
         CatvTokens.DOGE.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         },
         CatvTokens.ZEC.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         },
         CatvTokens.DASH.value: {
-            CatvSearchType.FLOW.value: CATVBTCCoinpathSerializer,
-            CatvSearchType.PATH.value: CatvBtcPathSerializer
+            CatvSearchType.FLOW.value: CATVBTCSerializer,
+            CatvSearchType.PATH.value: CATVBTCPathSerializer
         }
     }
 
     try:
         results = None
-        message_id = UUID(request_body["message_id"])
+        request_uid = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
-        requester = request_body.get("requester", "catv")
         token_type = request_body.get("token_type", CatvTokens.ETH.value)
         search_type = request_body.get("search_type", CatvSearchType.FLOW.value)
         search_params = request_body.get("search_params", {})
@@ -144,6 +143,7 @@ def process_catv_messages(job: CatvJobQueue):
                 balanced_addr_limit = balanced_addr_limit / 2
             core_results = serializer_obj.get_tracking_results(tx_limit=balanced_tx_limit, limit=balanced_addr_limit,
                                                                save_to_db=False)
+            print(f"{core_results=}")
         else:
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
@@ -207,33 +207,28 @@ def process_catv_messages(job: CatvJobQueue):
             task_status = CatvTaskStatusType.RELEASED
         else:
             res = update_catv_usage_error(user_id)
-            print('Node list is empty setting status as FAILED')
+            print('Node list is empty, setting status as FAILED', res)
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
-        error_trace = str(e)
-        traceback.print_exc()
-        generic_error = "Internal server error. Please try again later"
-        safe_error_trace = error_trace or generic_error
-        error_dict = {
-            "data": {},
-            "messages": {
-                "source": safe_error_trace
-            }
-        }
+        task_status = CatvTaskStatusType.FAILED
+        # revert usage in case of exception
         res = update_catv_usage_error(user_id)
         print('Catv error, updating error usage', res)
-        task_status = CatvTaskStatusType.FAILED
+
+        # set error log and appropriate error_message
         ConsumerErrorLogs.objects.create(
             topic="catv-requests",
+            request_uid=request_uid,
             message=request_body,
-            error_trace=traceback.format_exc()
+            error_trace=traceback.format_exc(),
+            user_error_message=get_user_error_message(e, core_results["messages"])
         )
     finally:
-        message = results or error_dict
+        message = results
         with transaction.atomic():
             attached_file_pk = 0
-            # if task_status is failed we don't have to push the response to S3
+            # if task_status is failed we don't have to push the response to GCS
             # and make an RPC call to portal to update the AttachedFile uid
             if task_status != CatvTaskStatusType.FAILED:
                 file_name = None
@@ -242,12 +237,14 @@ def process_catv_messages(job: CatvJobQueue):
                 try:
                     # returns the file name if upload to GCS is successful
                     file_name = upload_content_file_to_gcs(content_file)
-                except Exception:
-                    print("Upload to GCS failed for message_id: ", message_id)
+                except Exception as e:
+                    print("Upload to GCS failed for request_uid: ", request_uid)
                     ConsumerErrorLogs.objects.create(
+                        request_uid=request_uid,
                         topic="s3-upload",
                         message=request_body,
-                        error_trace=traceback.format_exc()
+                        error_trace=traceback.format_exc(),
+                        user_error_message=get_user_error_message(e)
                     )
                 if file_name:
                     file_name = f'{file_name}.json'
@@ -265,7 +262,7 @@ def process_catv_messages(job: CatvJobQueue):
                 else:
                     task_status = CatvTaskStatusType.FAILED
 
-            request_instance = CatvRequestStatus.objects.get(uid=message_id, user_id=user_id)
+            request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
             request_instance.status = task_status
             request_instance.updated = now()
             request_instance.save()
