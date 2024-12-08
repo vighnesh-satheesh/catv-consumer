@@ -361,8 +361,8 @@ class EthPathResults(TrackingResults):
                 self._skip_dist = False
                 self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
         finally:
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
     def create_graph_data(self, build_lossy_graph=True):
         pool = Pool(processes=1)
