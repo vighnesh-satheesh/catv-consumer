@@ -10,8 +10,6 @@ from .graphtools import (
     generate_nodes_edges_btccoinpath
 )
 from .vendor_api import BloxyEthAPIInterface
-from ..exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, \
-    BitqueryDataNotFoundError, BitqueryServerError, BitqueryBaseException, BitqueryMemoryLimitExceeded
 from ..models import (
     CatvTokens
 )
@@ -20,7 +18,7 @@ from ..rpc.RPCClient import fetch_indicators, fetch_cara_report
 
 def chunks(iterable, size):
     for i in range(0, len(iterable), size):
-        yield iterable[i:i+size]
+        yield iterable[i:i + size]
 
 
 def find_key(_dict, key):
@@ -54,68 +52,90 @@ class TrackingResults:
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         bloxy_interface = BloxyAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
-        error_placeholder = "source" if for_source else "distribution"
         till_date_extend = self.to_date + "T23:59:59"
-        try:
-            transaction_data = bloxy_interface.get_transactions(
-                                            self.wallet_address,
-                                            tx_limit,
-                                            depth_limit,
-                                            self.from_date,
-                                            till_date_extend,
-                                            self.token_address,
-                                            for_source,
-                                            self.chain
-                                        )
-            if transaction_data:
-                return [item for item in transaction_data if len(item["receiver"]) > 0]
-            return []
-        except BitqueryConcurrentRequestError as e:
-            self.error_messages[
-                error_placeholder] = "Another request is currently in progress. Please wait a moment and try again."
-            return []
-        except (BitqueryNetworkTimeoutError, BitqueryMemoryLimitExceeded) as e:
-            self.error_messages[
-                error_placeholder] = ("There are too many transactions for this address for the specified date range. "
-                                      "Please try again with a smaller date range.")
-            return []
-        except BitqueryDataNotFoundError:
-            print("here---------->")
-            self.error_messages[
-                error_placeholder] = f"Missing {error_placeholder} results for the wallet address within the date range specified"
-            return []
-        except (BitqueryServerError, BitqueryBaseException) as e:
-            self.error_messages[error_placeholder] = str(e)
-            return []
-        except Exception as e:
-            print(f"Unexpected error in fetch_results: {str(e)}")
-            self.error_messages[
-                error_placeholder] = f"An unexpected error occurred while fetching {error_placeholder} data"
-            return []
+        transaction_data = bloxy_interface.get_transactions(
+            self.wallet_address,
+            tx_limit,
+            depth_limit,
+            self.from_date,
+            till_date_extend,
+            self.token_address,
+            for_source,
+            self.chain
+        )
+        if transaction_data:
+            return [item for item in transaction_data if len(item["receiver"]) > 0]
+        return []
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
+
         if self.source_depth:
             self._skip_source = False
-            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True))
+            source_async = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True))
+
         if self.distribution_depth:
             self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
+            dist_async = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
+
+        # If source depth is greater than distribution depth, check source first
+        if self.source_depth > self.distribution_depth:
+            # Process source first
+            if not self._skip_source:
+                try:
+                    self._async_source_result = source_async.get()
+                except Exception as e:
+                    self.error_messages["source"] = str(e)
+                    self._async_source_result = []
+                    # Raise only if source was the only query
+                    if self._skip_dist:
+                        raise e
+
+            # Then process distribution, but don't raise if it fails
+            if not self._skip_dist:
+                try:
+                    self._async_dist_result = dist_async.get()
+                except Exception as e:
+                    self.error_messages["distribution"] = str(e)
+                    self._async_dist_result = []
+
+        else:
+            # Distribution depth is >= source depth, use original priority logic
+            if not self._skip_dist:
+                try:
+                    self._async_dist_result = dist_async.get()
+                except Exception as e:
+                    self.error_messages["distribution"] = str(e)
+                    self._async_dist_result = []
+                    # If distribution fails, raise immediately
+                    raise e
+
+            # Only process source if dist succeeded or wasn't queried
+            if not self._skip_source:
+                try:
+                    self._async_source_result = source_async.get()
+                except Exception as e:
+                    self.error_messages["source"] = str(e)
+                    self._async_source_result = []
+                    # Only raise if source was the only query
+                    if self._skip_dist:
+                        raise e
+
         pool.close()
         pool.join()
 
     def create_graph_data(self, build_lossy_graph=True):
         pool = Pool(processes=2)
-        if not self._skip_source:
-            source_result = self._async_source_result.get()
-            if source_result:
-                self._async_source_graph = pool.apply_async(generate_nodes_edges, (source_result, -1, build_lossy_graph, self.chain))
-        if not self._skip_dist:
-            dist_result = self._async_dist_result.get()
-            if dist_result:
-                self._async_dist_graph = pool.apply_async(generate_nodes_edges, (dist_result, 1, build_lossy_graph, self.chain))
-        pool.close()
-        pool.join()
+        try:
+            if not self._skip_source and self._async_source_result:
+                self._async_source_graph = pool.apply_async(generate_nodes_edges, (
+                    self._async_source_result, -1, build_lossy_graph, self.chain))
+            if not self._skip_dist and self._async_dist_result:
+                self._async_dist_graph = pool.apply_async(generate_nodes_edges, (
+                    self._async_dist_result, 1, build_lossy_graph, self.chain))
+        finally:
+            pool.close()
+            pool.join()
 
     @staticmethod
     def update_annotations(nc, item_list, token_type):
@@ -141,9 +161,9 @@ class TrackingResults:
                     if cur_node is None:
                         continue
                     cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
-                                            'security_category': item['security_category'],
-                                            'pattern_type': item['pattern_type'],
-                                            'pattern_subtype': item['pattern_subtype']})
+                                               'security_category': item['security_category'],
+                                               'pattern_type': item['pattern_type'],
+                                               'pattern_subtype': item['pattern_subtype']})
                     if cur_node.group == "Exchange/DEX/Bridge/Mixer":
                         seen_indicators.append(item['pattern'].lower())
                         continue
@@ -162,9 +182,12 @@ class TrackingResults:
                         kwargs["group"] = item["security_category"].title()
                         if item["annotation"]:
                             kwargs["annotation"] = item["annotation"]
-                            if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item["annotation"] or "Mixer" in item["annotation"] or "bridge" in item["annotation"] or "mixer" in item["annotation"]:
+                            if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item[
+                                "annotation"] or "Mixer" in item["annotation"] or "bridge" in item[
+                                "annotation"] or "mixer" in item["annotation"]:
                                 kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
-                            elif "Smart" in item["annotation"] or "Contract" in item["annotation"] or "smart" in item["annotation"] or "contract" in item["annotation"]:
+                            elif "Smart" in item["annotation"] or "Contract" in item["annotation"] or "smart" in item[
+                                "annotation"] or "contract" in item["annotation"]:
                                 kwargs["group"] = "Smart Contract"
                         else:
                             kwargs["annotation"] = ""
@@ -181,7 +204,8 @@ class TrackingResults:
                         elif transaction['receiver'].lower() == cur_node.address.lower():
                             transaction['receiver_annotation'] = cur_node.annotation
                     seen_indicators.append(item['pattern'].lower())
-                    if len(new_addresses) > 0 and item["security_category"].lower() == "blacklist" or item["security_category"].lower() == "whitelist":
+                    if len(new_addresses) > 0 and item["security_category"].lower() == "blacklist" or item[
+                        "security_category"].lower() == "whitelist":
                         for result in new_addresses:
                             if item['pattern'].lower() == result[0] or item['pattern'] == result[0]:
                                 new_addresses.remove(result)
@@ -196,15 +220,16 @@ class TrackingResults:
                     annotation_group = nc.get_node(item).group
                     if add_node is None:
                         continue
-                    elif result[1] == 'blacklist' or add_node.group == 'Blacklist' :
+                    elif result[1] == 'blacklist' or add_node.group == 'Blacklist':
                         add_node.update(group="Blacklist", annotation="Blacklist")
                         nc.update_node(result[0], add_node)
                         break
-                    elif result[1] == 'whitelist' or add_node.group == 'Whitelist' :
+                    elif result[1] == 'whitelist' or add_node.group == 'Whitelist':
                         add_node.update(group="Whitelist", annotation="Whitelist")
                         nc.update_node(result[0], add_node)
                         break
-                    elif 'Exchange/DEX/Bridge/Mixer' in annotation_group or add_node.group == 'Exchange/DEX/Bridge/Mixer' and result[1] != 'blacklist' and result[1] != 'whitelist':
+                    elif 'Exchange/DEX/Bridge/Mixer' in annotation_group or add_node.group == 'Exchange/DEX/Bridge/Mixer' and \
+                            result[1] != 'blacklist' and result[1] != 'whitelist':
                         nc.update_node(result[0], add_node)
                         break
                     else:
@@ -216,7 +241,8 @@ class TrackingResults:
         try:
             if not self._skip_source and self._async_source_graph:
                 tracking_results, nc = self._async_source_graph.get()
-                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
+                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'],
+                                                                                   self.chain)
                 tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
                 tracking_results['item_list'] = updated_item_list
                 updated_nc.filter_update_nodes()
@@ -225,7 +251,8 @@ class TrackingResults:
                 self._source_graph = tracking_results
             if not self._skip_dist and self._async_dist_graph:
                 tracking_results, nc = self._async_dist_graph.get()
-                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'], self.chain)
+                updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'],
+                                                                                   self.chain)
                 tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
                 tracking_results['item_list'] = updated_item_list
                 updated_nc.filter_update_nodes()
@@ -269,7 +296,7 @@ class TrackingResults:
             track_source_result = self._source_graph
             graph_dict.update(track_source_result)
             graph_dict['receive_count'] = graph_dict.pop('volume_count_-1')
-        
+
         return graph_dict
 
 
@@ -277,70 +304,32 @@ class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         bloxy_interface = BloxyAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
-        error_placeholder = "source" if for_source else "distribution"
         till_date_extend = self.to_date + "T23:59:59"
-        try:
-            transaction_data = bloxy_interface.get_transactions(
-                                                            self.wallet_address,
-                                                            tx_limit,
-                                                            depth_limit,
-                                                            from_time=self.from_date,
-                                                            till_time=till_date_extend,
-                                                            token_address = None,
-                                                            source=for_source,
-                                                            chain=self.chain
-                                                        )
-            self.ext_api_calls += 1
-            # if not transaction_data:
-            #     error_key = "source" if for_source else "distribution"
-            #     self.error_messages[error_key] = "Missing {} results for the wallet address within the date range " \
-            #                                      "specified".format(error_key)
-            return transaction_data
-        except BitqueryConcurrentRequestError as e:
-            self.error_messages[
-                error_placeholder] = "Another request is currently in progress. Please wait a moment and try again."
-            return []
-        except (BitqueryNetworkTimeoutError, BitqueryMemoryLimitExceeded) as e:
-            self.error_messages[
-                error_placeholder] = ("There are too many transactions for this address for the specified date range. "
-                                      "Please try again with a smaller date range.")
-            return []
-        except BitqueryDataNotFoundError:
-            self.error_messages[
-                error_placeholder] = f"Missing {error_placeholder} results for the wallet address within the date range specified"
-            return []
-        except (BitqueryServerError, BitqueryBaseException) as e:
-            self.error_messages[error_placeholder] = str(e)
-            return []
-        except Exception as e:
-            print(f"Unexpected error in fetch_results: {str(e)}")
-            self.error_messages[
-                error_placeholder] = f"An unexpected error occurred while fetching {error_placeholder} data"
-            return []
-
-    def get_tracking_data(self, tx_limit, limit, save_to_db):
-        pool = ThreadPool(processes=2)
-        if self.source_depth:
-            self._skip_source = False
-            self._async_source_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, True))
-        if self.distribution_depth:
-            self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
-        pool.close()
-        pool.join()
+        transaction_data = bloxy_interface.get_transactions(
+            self.wallet_address,
+            tx_limit,
+            depth_limit,
+            from_time=self.from_date,
+            till_time=till_date_extend,
+            token_address=None,
+            source=for_source,
+            chain=self.chain
+        )
+        self.ext_api_calls += 1
+        return transaction_data
 
     def create_graph_data(self, build_lossy_graph=True):
         pool = Pool(processes=2)
-        if not self._skip_source:
-            source_result = self._async_source_result.get()
-            if source_result:
-                self._async_source_graph = pool.apply_async(generate_nodes_edges_coinpath, (source_result, -1, build_lossy_graph))
-        if not self._skip_dist:
-            dist_result = self._async_dist_result.get()
-            if dist_result:
-                self._async_dist_graph = pool.apply_async(generate_nodes_edges_coinpath, (dist_result, 1, build_lossy_graph))
-        pool.close()
-        pool.join()
+        try:
+            if not self._skip_source and self._async_source_result:
+                self._async_source_graph = pool.apply_async(generate_nodes_edges_coinpath,
+                                                            (self._async_source_result, -1, build_lossy_graph))
+            if not self._skip_dist and self._async_dist_result:
+                self._async_dist_graph = pool.apply_async(generate_nodes_edges_coinpath,
+                                                          (self._async_dist_result, 1, build_lossy_graph))
+        finally:
+            pool.close()
+            pool.join()
 
 
 class EthPathResults(TrackingResults):
@@ -367,20 +356,24 @@ class EthPathResults(TrackingResults):
 
     def get_tracking_data(self, tx_limit=None, limit=None, save_to_db=False):
         pool = ThreadPool(processes=1)
-        if self.depth_limit:
-            self._skip_dist = False
-            self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
+        try:
+            if self.depth_limit:
+                self._skip_dist = False
+                self._async_dist_result = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
+        finally:
         pool.close()
         pool.join()
 
     def create_graph_data(self, build_lossy_graph=True):
         pool = Pool(processes=1)
-        if not self._skip_dist:
-            dist_result = self._async_dist_result.get()
-            if dist_result:
-                self._async_dist_graph = pool.apply_async(self._graph_func, (dist_result, 1, build_lossy_graph))
-        pool.close()
-        pool.join()
+        try:
+            if not self._skip_dist:
+                dist_result = self._async_dist_result.get()
+                if dist_result:
+                    self._async_dist_graph = pool.apply_async(self._graph_func, (dist_result, 1, build_lossy_graph))
+        finally:
+            pool.close()
+            pool.join()
 
 
 class BtcPathResults(EthPathResults):

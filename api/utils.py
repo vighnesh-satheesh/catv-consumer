@@ -125,7 +125,7 @@ def get_file_meta(file, file_name):
     return hasher.hexdigest(), size, mime_type
 
 
-def get_user_error_message(exception: Exception, messages_dict: dict) -> str:
+def get_user_error_message(exception: Exception) -> str:
     """
     Convert exceptions to user-friendly error messages, prioritizing existing messages.
 
@@ -136,11 +136,6 @@ def get_user_error_message(exception: Exception, messages_dict: dict) -> str:
     Returns:
         A user-friendly error message string
     """
-    if messages_dict:
-        # Use the first non-empty error message we find
-        for message in messages_dict.values():
-            if message:
-                return message
 
     error_messages = {
         BitqueryConcurrentRequestError: "Another request is currently in progress. Please wait a moment and try again.",

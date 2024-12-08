@@ -69,8 +69,9 @@ class CATVETHSerializer(serializers.Serializer):
                 "api_calls": tracking_results.ext_api_calls,
                 "messages": tracking_results.error_messages
             }
+        except ReadTimeout:
+            raise exceptions.FileNotFound("Timeout exceeded while fetching/processing data.")
         except Exception:
-            print("here 1------>", traceback.format_exception())
             raise
 
 
@@ -175,23 +176,11 @@ class CATVBTCSerializer(CATVETHSerializer):
                 "api_calls": tracking_results.ext_api_calls,
                 "messages": tracking_results.error_messages
             }
-        # except ReadTimeout:
-        #     tracking_results.error_messages["source"] = "Timeout exceeded while fetching/processing data."
-        #     raise exceptions.FileNotFound(tracking_results.error_messages["source"])
+        except ReadTimeout:
+            raise exceptions.FileNotFound(tracking_results.error_messages["source"])
         except Exception:
             traceback.print_exc()
             raise
-            # # Check if we already have specific error messages from lower layers
-            # if any(tracking_results.error_messages.values()):
-            #     # Use the first non-empty error message we find
-            #     for message in tracking_results.error_messages.values():
-            #         if message:
-            #             raise exceptions.FileNotFound(message)
-            # # If no specific error message, use appropriate fallback
-            # fallback_message = "Incorrect or missing transactions. Please try adjusting your search criteria."
-            # tracking_results.error_messages["source"] = fallback_message
-            # tracking_results.error_messages["distribution"] = fallback_message
-            # raise exceptions.FileNotFound(fallback_message)
 
 
 class CATVBTCPathSerializer(CATVETHPathSerializer):

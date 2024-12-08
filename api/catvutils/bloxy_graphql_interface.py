@@ -29,7 +29,7 @@ class GraphQLClient:
         # Configure retry strategy
         retry_strategy = Retry(
             total=3,
-            backoff_factor=5,
+            backoff_factor=10,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST"],
             respect_retry_after_header=True,  # Honor server's retry guidance
@@ -58,13 +58,12 @@ class GraphQLClient:
                 timeout=self.timeout
             )
 
-            print(f"X-Graphql-Query-Id: {response.headers['x-graphql-query-id']} {response}")
-            print(f"{response.json() =}")
+            print(f"X-Graphql-Query-Id: {response.headers['x-graphql-query-id']} status: {response.status_code}")
 
             # Raise for any HTTP error status codes
             response.raise_for_status()
 
-            # Parse and check for GraphQL-level errorsexc
+            # Parse and check for GraphQL-level errors
             json_response = response.json()
             if 'errors' in json_response:
                 error = json_response.get('errors')[0]
