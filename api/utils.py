@@ -138,11 +138,15 @@ def get_user_error_message(exception: Exception) -> str:
     """
 
     error_messages = {
-        BitqueryConcurrentRequestError: "Another request is currently in progress. Please wait a moment and try again.",
-        BitqueryNetworkTimeoutError: "There are too many transactions for this address. Please try with a smaller date range.",
-        BitqueryMemoryLimitExceeded: "There are too many transactions for this address. Please update the search criteria and try again.",
-        BitqueryDataNotFoundError: "Missing results for the wallet address within the date range specified.",
-        ReadTimeout: "Request timed out. Please try again.",
+        BitqueryConcurrentRequestError: "The system is currently processing another request. Please try again in a few moments.",
+
+        BitqueryNetworkTimeoutError: "Transaction volume is too high for the selected date range. Please reduce the date range or try searching for a shorter period.",
+
+        BitqueryMemoryLimitExceeded: "Transaction volume exceeds the system limit. Please try: 1) Reducing the date range 2) Limiting the transaction depth.",
+
+        BitqueryDataNotFoundError: "No transactions found for this wallet address in the specified date range. Please verify the address and date range.",
+
+        ReadTimeout: "Request timed out due to high network traffic. Please wait a moment and try your request again. If the issue persists, consider narrowing your search criteria.",
     }
 
     # Return specific message if exception type matches, otherwise return generic error

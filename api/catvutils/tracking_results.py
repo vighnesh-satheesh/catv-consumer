@@ -69,6 +69,8 @@ class TrackingResults:
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
+        source_async = None
+        dist_async = None
 
         if self.source_depth:
             self._skip_source = False
@@ -78,51 +80,58 @@ class TrackingResults:
             self._skip_dist = False
             dist_async = pool.apply_async(self.fetch_results, (tx_limit, limit, save_to_db, False))
 
-        # If source depth is greater than distribution depth, check source first
-        if self.source_depth > self.distribution_depth:
-            # Process source first
-            if not self._skip_source:
-                try:
-                    self._async_source_result = source_async.get()
-                except Exception as e:
-                    self.error_messages["source"] = str(e)
-                    self._async_source_result = []
-                    # Raise only if source was the only query
-                    if self._skip_dist:
+        process_source_first = False
+        if self.source_depth and self.distribution_depth:
+            process_source_first = self.source_depth > self.distribution_depth
+        elif self.source_depth:
+            process_source_first = True
+
+        try:
+            if process_source_first:
+                # Process source first
+                if not self._skip_source:
+                    try:
+                        self._async_source_result = source_async.get()
+                    except Exception as e:
+                        self.error_messages["source"] = str(e)
+                        self._async_source_result = []
+                        # Raise only if source was the only query
+                        if self._skip_dist:
+                            raise e
+
+                # Then process distribution, but don't raise if it fails
+                if not self._skip_dist:
+                    try:
+                        self._async_dist_result = dist_async.get()
+                    except Exception as e:
+                        self.error_messages["distribution"] = str(e)
+                        self._async_dist_result = []
+
+            else:
+                # Distribution depth is >= source depth or only distribution exists
+                if not self._skip_dist:
+                    try:
+                        self._async_dist_result = dist_async.get()
+                    except Exception as e:
+                        self.error_messages["distribution"] = str(e)
+                        self._async_dist_result = []
+                        # If distribution fails, raise immediately
                         raise e
 
-            # Then process distribution, but don't raise if it fails
-            if not self._skip_dist:
-                try:
-                    self._async_dist_result = dist_async.get()
-                except Exception as e:
-                    self.error_messages["distribution"] = str(e)
-                    self._async_dist_result = []
+                # Only process source if dist succeeded or wasn't queried
+                if not self._skip_source:
+                    try:
+                        self._async_source_result = source_async.get()
+                    except Exception as e:
+                        self.error_messages["source"] = str(e)
+                        self._async_source_result = []
+                        # Only raise if source was the only query
+                        if self._skip_dist:
+                            raise e
 
-        else:
-            # Distribution depth is >= source depth, use original priority logic
-            if not self._skip_dist:
-                try:
-                    self._async_dist_result = dist_async.get()
-                except Exception as e:
-                    self.error_messages["distribution"] = str(e)
-                    self._async_dist_result = []
-                    # If distribution fails, raise immediately
-                    raise e
-
-            # Only process source if dist succeeded or wasn't queried
-            if not self._skip_source:
-                try:
-                    self._async_source_result = source_async.get()
-                except Exception as e:
-                    self.error_messages["source"] = str(e)
-                    self._async_source_result = []
-                    # Only raise if source was the only query
-                    if self._skip_dist:
-                        raise e
-
-        pool.close()
-        pool.join()
+        finally:
+            pool.close()
+            pool.join()
 
     def create_graph_data(self, build_lossy_graph=True):
         pool = Pool(processes=2)
