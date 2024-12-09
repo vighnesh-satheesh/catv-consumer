@@ -121,6 +121,7 @@ def process_catv_messages(job: CatvJobQueue):
 
     try:
         results = None
+        request_instance = None
         request_uid = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
         token_type = request_body.get("token_type", CatvTokens.ETH.value)
@@ -217,10 +218,12 @@ def process_catv_messages(job: CatvJobQueue):
         res = update_catv_usage_error(user_id)
         print('Catv error, updating error usage', res)
 
+        request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
+
         # set error log and appropriate error_message
         ConsumerErrorLogs.objects.create(
             topic="catv-requests",
-            request_uid=request_uid,
+            request=request_instance,
             message=request_body,
             error_trace=traceback.format_exc(),
             user_error_message=get_user_error_message(e)
@@ -263,7 +266,8 @@ def process_catv_messages(job: CatvJobQueue):
                 else:
                     task_status = CatvTaskStatusType.FAILED
 
-            request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
+            if not request_instance:
+                request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
             request_instance.status = task_status
             request_instance.updated = now()
             request_instance.save()
