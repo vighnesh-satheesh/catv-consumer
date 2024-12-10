@@ -144,7 +144,6 @@ def process_catv_messages(job: CatvJobQueue):
                 balanced_addr_limit = balanced_addr_limit / 2
             core_results = serializer_obj.get_tracking_results(tx_limit=balanced_tx_limit, limit=balanced_addr_limit,
                                                                save_to_db=False)
-            print(f"{core_results=}")
         else:
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
