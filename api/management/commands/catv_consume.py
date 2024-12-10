@@ -1,14 +1,13 @@
 import sys
+from multiprocessing.pool import ThreadPool
 from time import sleep
 
 from django.core.management.base import BaseCommand
 from django.db import transaction, connection
-from multiprocessing.pool import ThreadPool
 
 from api.constants import Constants
 from api.consumers import process_catv_messages
 from api.models import CatvJobQueue, CatvCSVJobQueue
-from api.serializers import CATVETHSerializer
 from api.settings import api_settings
 
 

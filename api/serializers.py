@@ -11,7 +11,6 @@ from .catvutils.tracking_results import (
     TrackingResults, BTCCoinpathTrackingResults, EthPathResults,
     BtcPathResults
 )
-from .exceptions import BitqueryFetchTimedOut
 
 
 class CATVETHSerializer(serializers.Serializer):

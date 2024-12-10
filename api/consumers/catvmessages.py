@@ -7,27 +7,24 @@ from uuid import UUID, uuid4
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.timezone import now
-from django.core.files.storage import default_storage
 
 from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
 from api.catvutils.smc_method_finder import SmartContractMethodFinder
-from api.exceptions import FileNotFound
 from api.models import (
     CatvTokens, CatvSearchType,
     CatvRequestStatus, CatvTaskStatusType,
     ConsumerErrorLogs, CatvResult,
     CatvJobQueue
 )
+from api.rpc.RPCClient import update_s3_attached_file_uid, \
+    update_catv_usage_error
 from api.serializers import (
     CATVETHSerializer, CATVBTCSerializer,
     CATVBTCPathSerializer, CATVETHPathSerializer
 )
-
 from api.settings import api_settings
 from api.tasks import catv_history_task, catv_path_history_task
-from api.rpc.RPCClient import update_s3_attached_file_uid, \
-    update_catv_usage_error
 
 __all__ = ('process_catv_messages',)
 
