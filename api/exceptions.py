@@ -26,6 +26,7 @@ class AuthenticationCheckError(exceptions.AuthenticationFailed):
 class FileNotFound(exceptions.NotFound):
     default_detail = _('file not found')
 
+
 #####
 # 409
 #####
@@ -33,6 +34,42 @@ class DataIntegrityError(exceptions.APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = _('data conflict')
 
+
 class BitqueryFetchTimedOut(exceptions.APIException):
     status_code = status.HTTP_200_OK
     default_detail = _('Fetching data from bitquery timed out')
+
+
+class BitqueryBaseException(Exception):
+    """Base exception for all Bitquery related errors"""
+    pass
+
+
+class BitqueryConcurrentRequestError(BitqueryBaseException):
+    """Raised when Bitquery rejects concurrent requests"""
+    pass
+
+
+class BitqueryNetworkTimeoutError(BitqueryBaseException):
+    """Raised when Bitquery encounters network timeout"""
+    pass
+
+
+class BitqueryMemoryLimitExceeded(BitqueryBaseException):
+    """Raised when Bitquery encounters network timeout"""
+    pass
+
+
+class BitqueryDataNotFoundError(BitqueryBaseException):
+    """Raised when no data is found for the given criteria"""
+    pass
+
+
+class BitqueryServerError(BitqueryBaseException):
+    """Raised for other server-side errors"""
+    pass
+
+
+class InvalidGraphqlQuery(Exception):
+    """Raised for invalid graphql query"""
+    pass

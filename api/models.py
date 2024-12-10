@@ -13,6 +13,7 @@ from enumfields import EnumField
 
 warnings.filterwarnings("once", "This field is deprecated", DeprecationWarning)
 
+
 class CatvTokens(Enum):
     ETH = 'ETH'
     BTC = 'BTC'
@@ -34,14 +35,17 @@ class CatvTokens(Enum):
     ZEC = 'ZEC'
     DASH = 'DASH'
 
+
 class CatvSearchType(Enum):
     PATH = 'path'
     FLOW = 'flow'
+
 
 class CatvTaskStatusType(Enum):
     PROGRESS = 'progress'
     RELEASED = 'released'
     FAILED = 'failed'
+
 
 class PostgresILike(IContains):
     lookup_name = 'ilike'
@@ -61,6 +65,7 @@ class PostgresArrayILike(IContains):
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = lhs_params + rhs_params
         return 'array_to_text(%s) ILIKE %s' % (lhs, rhs), params
+
 
 # IndicatorExtraAnnotation
 class CustomGinIndex(GinIndex):
@@ -111,17 +116,6 @@ class BloxySource(models.Model):
                                  'from_time', 'till_time'])
         ]
 
-class ConsumerErrorLogs(models.Model):
-    topic = models.CharField(max_length=100)
-    message = JSONField(default=dict)
-    error_trace = models.TextField()
-    logged_time = models.DateTimeField(default=now)
-
-    class Meta:
-        db_table = 'api_consumer_error_logs'
-        indexes = [
-            models.Index(fields=['topic'])
-        ]
 
 class CatvRequestStatus(models.Model):
     uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -142,6 +136,7 @@ class CatvRequestStatus(models.Model):
             models.Index(fields=['uid']),
         ]
 
+
 # Need RPC
 class IndicatorExtraAnnotation(models.Model):
     pattern = models.CharField(max_length=256)
@@ -157,6 +152,7 @@ class IndicatorExtraAnnotation(models.Model):
             models.Index(fields=['annotation', ]),
             models.Index(fields=['pattern', ]),
         ]
+
 
 class CatvResult(models.Model):
     request = models.ForeignKey(CatvRequestStatus, null=False,
@@ -182,13 +178,29 @@ class CatvJobQueue(models.Model):
             models.Index(fields=['created'])
         ]
 
+
 class CatvCSVJobQueue(models.Model):
     message = JSONField(default=dict)
     retries_remaining = models.IntegerField(default=3)
     created = models.DateTimeField(default=now)
+
     class Meta:
         db_table = 'api_csv_catv_job_queue'
         indexes = [
             models.Index(fields=['retries_remaining']),
             models.Index(fields=['created'])
         ]
+
+
+class ConsumerErrorLogs(models.Model):
+    request = models.ForeignKey(CatvRequestStatus, null=True,
+                                blank=False, on_delete=models.CASCADE, related_name='error_logs')
+    topic = models.CharField(max_length=100)
+    message = JSONField(default=dict)
+    error_trace = models.TextField()
+    user_error_message = models.TextField(default=None)
+    logged_time = models.DateTimeField(default=now)
+
+    class Meta:
+        db_table = 'api_consumer_error_logs'
+        indexes = [models.Index(fields=["request"])]

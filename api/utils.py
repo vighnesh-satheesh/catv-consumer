@@ -5,7 +5,10 @@ import re
 from datetime import datetime, timedelta
 
 from django.core.files.storage import default_storage
+from requests import ReadTimeout
 
+from .exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, BitqueryDataNotFoundError, \
+    BitqueryMemoryLimitExceeded
 from .models import (
     CatvTokens
 )
@@ -120,3 +123,31 @@ def get_file_meta(file, file_name):
     content = file.read()
     hasher.update(content)
     return hasher.hexdigest(), size, mime_type
+
+
+def get_user_error_message(exception: Exception) -> str:
+    """
+    Convert exceptions to user-friendly error messages, prioritizing existing messages.
+
+    Args:
+        exception: The caught exception
+        messages_dict: Dictionary containing error messages for source and distribution
+
+    Returns:
+        A user-friendly error message string
+    """
+
+    error_messages = {
+        BitqueryConcurrentRequestError: "The system is currently processing another request. Please try again in a few moments.",
+
+        BitqueryNetworkTimeoutError: "Transaction volume is too high for the selected date range. Please reduce the date range or try searching for a shorter period.",
+
+        BitqueryMemoryLimitExceeded: "Transaction volume exceeds the system limit. Please try: 1) Reducing the date range 2) Limiting the transaction depth.",
+
+        BitqueryDataNotFoundError: "No transactions found for this wallet address in the specified date range. Please verify the address and date range.",
+
+        ReadTimeout: "Request timed out due to high network traffic. Please wait a moment and try your request again. If the issue persists, consider narrowing your search criteria.",
+    }
+
+    # Return specific message if exception type matches, otherwise return generic error
+    return error_messages.get(type(exception), "Not able to fetch results at this time. Please try again.")

@@ -1,4 +1,3 @@
-import time
 import traceback
 from datetime import datetime
 from typing import Optional, Any, Dict, List
@@ -9,7 +8,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from api.constants import Constants
-from api.exceptions import BitqueryFetchTimedOut
+from api.exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, \
+    BitqueryServerError, BitqueryBaseException, BitqueryDataNotFoundError, BitqueryMemoryLimitExceeded, \
+    InvalidGraphqlQuery
 from api.utils import validate_dateformat_and_randomize_seconds
 
 
@@ -28,9 +29,12 @@ class GraphQLClient:
         # Configure retry strategy
         retry_strategy = Retry(
             total=3,
-            backoff_factor=1,
-            status_forcelist=[502, 503, 504],
-            allowed_methods=["POST"]
+            backoff_factor=10,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["POST"],
+            respect_retry_after_header=True,  # Honor server's retry guidance
+            raise_on_redirect=True,  # Fail fast on redirects
+            raise_on_status=True
         )
 
         # Configure connection pooling
@@ -45,64 +49,59 @@ class GraphQLClient:
         return session
 
     def execute(self, query: str) -> Dict[str, Any]:
-        """Execute GraphQL query with retry logic for gateway errors."""
-        max_retries = 2
-        initial_delay = 1
-        max_delay = 13
-        retriable_status_codes = {502, 503, 504}
+        try:
+            print(f"query: {query}")
+            response = self.session.post(
+                self.endpoint,
+                json={'query': query},
+                headers=self.headers,
+                timeout=self.timeout
+            )
 
-        for attempt in range(max_retries):
-            try:
-                print(f"query: {query}")
-                response = self.session.post(
-                    self.endpoint,
-                    json={'query': query},
-                    headers=self.headers,
-                    timeout=self.timeout
-                )
-                print(f"X-Graphql-Query-Id: {response.headers['x-graphql-query-id']}")
-                # For gateway errors, implement retry
-                if response.status_code in retriable_status_codes:
-                    if attempt == max_retries - 1:  # Last attempt
-                        response.raise_for_status()
+            print(f"X-Graphql-Query-Id: {response.headers['x-graphql-query-id']} status: {response.status_code}")
 
-                    delay = min(initial_delay * (2 ** attempt), max_delay)  # exponential backoff
-                    print(
-                        f"Gateway error (status: {response.status_code}) on attempt {attempt + 1}/{max_retries}. Retrying in {delay} seconds")
-                    time.sleep(delay)
-                    continue
+            # Raise for any HTTP error status codes
+            response.raise_for_status()
 
-                # Raise for other error status codes
-                response.raise_for_status()
+            # Parse and check for GraphQL-level errors
+            json_response = response.json()
+            if 'errors' in json_response:
+                error = json_response.get('errors')[0]
+                error_message = error.get('message', '')
+                error_type = error.get('error_type', '')
+                query_id = error.get('query_id', '')
 
-                # Check for GraphQL-level errors
-                json_response = response.json()
-                if 'errors' in json_response:
-                    error_message = str(json_response.get('errors'))
-                    print(f"GraphQL returned errors: {error_message}", )
-                    raise BitqueryFetchTimedOut
+                print(f"GraphQL Error: {error_message} (Type: {error_type}, Query ID: {query_id})")
 
-                return json_response
+                # Handle specific error cases
+                if "simultaneous requests" in error_message.lower():
+                    raise BitqueryConcurrentRequestError(f"Concurrent request limit exceeded: {error_message}")
+                elif "timeout" in error_message.lower() or "net::readtimeout" in error_message.lower():
+                    raise BitqueryNetworkTimeoutError(f"Network timeout occurred: {error_message}")
+                elif "ActiveRecord::ActiveRecordError" in error_message.lower():
+                    raise BitqueryMemoryLimitExceeded(f"Network timeout occurred: {error_message}")
+                elif error_type == 'server':
+                    raise BitqueryServerError(f"Server error occurred: {error_message}")
+                else:
+                    raise BitqueryBaseException(f"GraphQL error: {error_message}")
 
-            except requests.exceptions.RequestException as e:
-                if attempt == max_retries - 1:  # Last attempt
-                    print(f"Request failed after {max_retries} retries: {str(e)}", max_retries, str(e))
-                    raise
+            # Even if we don't have explicit errors, check if we got a valid response structure
+            if not json_response.get('data'):
+                raise BitqueryDataNotFoundError("No data returned from API")
 
-                # Only retry gateway errors
-                if isinstance(e,
-                              requests.exceptions.HTTPError) and e.response.status_code not in retriable_status_codes:
-                    raise
-
-                delay = min(initial_delay * (2 ** attempt), max_delay)
-                print(
-                    f"Request failed on attempt {attempt + 1}/{max_retries}: {str(e)}. Retrying in {delay} seconds...")
-                time.sleep(delay)
-            except Exception as e:
-                raise BitqueryFetchTimedOut
-
-        # If we get here somehow, raise the last exception
-        raise BitqueryFetchTimedOut
+            return json_response
+        except requests.exceptions.Timeout:
+            print("Request timed out")
+            raise BitqueryNetworkTimeoutError("Request timed out")
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {str(e)}")
+            raise BitqueryServerError(f"Request failed: {str(e)}")
+        except (BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, BitqueryMemoryLimitExceeded,
+                BitqueryServerError, BitqueryBaseException, BitqueryDataNotFoundError):
+            raise
+        except Exception as e:
+            print(f"Unexpected error during query execution: {str(e)}")
+            raise BitqueryServerError(f"Unexpected error: {str(e)}")
 
 
 class BloxyAPIInterface:
@@ -140,8 +139,8 @@ class BloxyAPIInterface:
                 graphql_client=self._graphql_client
             )
             return graphql_interface.call_graphql_endpoint()
-        except Exception as e:
-            print(f"Failed to get transactions: {str(e)}")
+        except Exception:
+            traceback.print_exc()
             raise
 
 
@@ -172,26 +171,29 @@ class GraphQLInterface:
 
     def call_graphql_endpoint(self) -> List[Dict[str, Any]]:
         """Execute GraphQL query and process response."""
-        request_body = self._graphql_query_builder()
-        if not request_body:
-            print("Error while forming query")
-            return []
         try:
+            request_body = self._graphql_query_builder()
+            if not request_body:
+                raise InvalidGraphqlQuery(f"Error while forming query")
             response = self._graphql_client.execute(request_body)
             return self._process_response(response)
-        except Exception as e:
-            print(f"Failed to execute GraphQL query: {str(e)}")
+        except Exception:
             raise
 
+    """Process and flatten GraphQL response."""
+
     def _process_response(self, response: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Process and flatten GraphQL response."""
         try:
             response_data = response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]
+            print(f"{response_data=}")
+            if not response_data:
+                raise BitqueryDataNotFoundError("No data found for the specified date range.")
             return self._flatten_response(response_data)
         except KeyError as e:
             if response and "errors" in response:
                 print(f"Bitquery error response: {response['errors']}")
-            return []
+                raise BitqueryServerError(f"API returned errors: {response['errors']}")
+            raise BitqueryBaseException("Invalid response structure from API")
 
     def _flatten_response(self, response_data: List[Dict[str, Any]]) -> List[Dict]:
         """Flatten response data into desired format."""
@@ -404,6 +406,6 @@ class GraphQLInterface:
                 }}   
                 """
             return graphql_query
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
             return None
