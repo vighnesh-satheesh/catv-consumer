@@ -126,6 +126,10 @@ def process_catv_messages(job: CatvJobQueue):
         search_params = request_body.get("search_params", {})
         source_depth = search_params.get("source_depth", 0)
         distribution_depth = search_params.get("distribution_depth", 0)
+        if source_depth == 0:
+            search_params.pop("source_depth", None)
+        if distribution_depth == 0:
+            search_params.pop("distribution_depth", None)
         search_params.update({'force_lookup': True})
         history_runner = catv_history_task if search_type == CatvSearchType.FLOW.value else catv_path_history_task
         print(search_params)
