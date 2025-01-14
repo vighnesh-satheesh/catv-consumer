@@ -31,7 +31,7 @@ __all__ = ('process_catv_messages',)
 from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message
 
 
-def process_catv_messages(job: CatvJobQueue):
+def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
     message = job.message
     request_body = message
     print("Processing message:\n")
@@ -138,7 +138,7 @@ def process_catv_messages(job: CatvJobQueue):
         serializer_obj._token_type = token_type
         serializer_obj.is_valid(raise_exception=True)
         if search_type == CatvSearchType.FLOW.value:
-            balanced_tx_limit = api_settings.CATV_TX_LIMIT
+            balanced_tx_limit = search_params['transaction_limit'] if is_csv_job else api_settings.CATV_TX_LIMIT
             balanced_addr_limit = api_settings.CATV_ADDRESS_LIMT
             if source_depth > 0 and distribution_depth > 0:
                 balanced_tx_limit = balanced_tx_limit / 2

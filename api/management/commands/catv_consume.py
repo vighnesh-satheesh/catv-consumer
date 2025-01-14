@@ -17,7 +17,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             print("Connecting to databasejob queue table....")
-            while(True):
+            while True:
                 with transaction.atomic():
                     pending_jobs = CatvJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
                     pending_csv_jobs = CatvCSVJobQueue.objects.using('default').raw(Constants.QUERIES["SELECT_CSV_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
@@ -47,7 +47,7 @@ class Command(BaseCommand):
                     with connection.cursor() as cursor:
                         cursor.execute(query_csv)
                     pool = ThreadPool(processes=4)
-                    pool.map(process_catv_messages, pending_csv_jobs_arr)
+                    pool.map(process_catv_messages, [pending_csv_jobs_arr, True])
                 else:
                     print("Relaxing for some time...")
                     sleep(15)

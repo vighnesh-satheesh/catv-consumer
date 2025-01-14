@@ -185,7 +185,6 @@ class GraphQLInterface:
     def _process_response(self, response: Dict[str, Any]) -> List[Dict[str, Any]]:
         try:
             response_data = response["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["coinpath"]
-            print(f"{response_data=}")
             if not response_data:
                 raise BitqueryDataNotFoundError("No data found for the specified date range.")
             return self._flatten_response(response_data)
