@@ -1,4 +1,4 @@
-FROM asia-docker.pkg.dev/uppsala-devops/application-base-image-repository/python:latest
+FROM python:3.13.1-bookworm
 
 MAINTAINER uppsala <developer@sentinelprotocol.io>
 
