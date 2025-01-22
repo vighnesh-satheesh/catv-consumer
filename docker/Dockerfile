@@ -37,14 +37,14 @@ RUN apt-get update && \
     nodejs \
     redis-server \
     gettext && \
-    npm install pm2@latest -g
+    npm install pm2@5.4.3 -g
 
 # Install requirements
 COPY ./requirements/${CATV_CONSUMER_API_ENV}.txt ./requirements.txt
 COPY ./library ./library
 RUN pip install --upgrade pip setuptools && \
     pip install -r /app/requirements.txt && \
-    pip install uwsgi && \
+    pip install uwsgi==2.0.28 && \
     pip install -e /app/library/indicator-lib/src/py
 # Install google cloud CLI
 RUN curl -sSL https://sdk.cloud.google.com | bash
