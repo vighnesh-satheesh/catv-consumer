@@ -145,7 +145,9 @@ USE_TZ = True
 
 # cross origin setting
 
-CORS_ALLOWED_ORIGIN_REGEXES = env.str('CORS_ORIGIN_WHITELIST_REGEX', default=["^https:\/\/\.*?.*?.\w+.sentinelprotocol.[a-zA-Z]+$","^http:\/\/localhost:[0-9]+$"])
+CORS_ALLOWED_ORIGIN_REGEXES = env.str('CORS_ORIGIN_WHITELIST_REGEX',
+                                     default=[r'^https://.*?.*?\w+\.sentinelprotocol\.[a-zA-Z]+$',
+                                             r'^http://localhost:[0-9]+$'])
 if not CORS_ALLOWED_ORIGIN_REGEXES:
     CORS_ORIGIN_ALLOW_ALL = True
 
