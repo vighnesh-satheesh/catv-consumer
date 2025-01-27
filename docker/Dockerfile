@@ -72,4 +72,4 @@ RUN groupadd -g 999 uppsala && \
 
 USER uppsala
 
-CMD ["pm2-runtime", "/app/deploy/conf/$PORTAL_PM2_CONFIG_FILE"]
+CMD pm2-runtime /app/deploy/conf/$PORTAL_PM2_CONFIG_FILE
