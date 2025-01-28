@@ -40,11 +40,12 @@ RUN apt-get update --fix-missing && \
     nodejs \
     redis-server \
     gettext && \
-    curl --proto '=https' --tlsv1.2 -sSf https://deb.nodesource.com/setup_20.x | bash - && \
+    curl --proto '=https' --tlsv1.2 -sSf https://deb.nodesource.com/setup_23.x | bash - && \
     apt-get update && \
     apt-get install -y nodejs && \
-    npm install pm2@5.4.3 -g --ignore-scripts && \
+    npm install pm2 -g --ignore-scripts && \
     curl --proto '=https' --tlsv1.2 -sSf https://sdk.cloud.google.com | bash && \
+    apt-get install --only-upgrade libtiff5 -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -52,7 +53,7 @@ COPY ./requirements/${CATV_CONSUMER_API_ENV}.txt ./requirements.txt
 COPY ./library ./library
 
 # Combine Python package installation steps
-RUN pip install --upgrade pip setuptools && \
+RUN pip install --upgrade pip setuptools==75.0.0 && \
     pip install -r /app/requirements.txt && \
     pip install uwsgi==2.0.28 && \
     pip install -e /app/library/indicator-lib/src/py
