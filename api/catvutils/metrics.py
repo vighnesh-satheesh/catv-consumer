@@ -1,5 +1,4 @@
 from collections import defaultdict
-from itertools import groupby
 from operator import gt
 
 from django.utils.timezone import now
@@ -16,14 +15,25 @@ class CatvMetrics:
         self.item_list = data.get("item_list", [])
         self.node_list = data.get("node_list", [])
         self.edge_list = data.get("edge_list", [])
-        self.send_count = data.get("send_count", {})
+        # self.send_count = data.get("send_count", {})
         self.receive_count = data.get("receive_count", {})
         self.seg_item_list = []
         self.seg_node_list = []
         self.search_params = search_params
         self.token_type = token_type
         self.origin = search_params['wallet_address']
-        self._overview_metrics = None  # Cache for overview metrics
+        self._category_metrics = {
+            'outbound': {
+                'blacklisted': {'count': 0, 'total_amount': 0},
+                'exchanges': {'count': 0, 'total_amount': 0},
+                'annotated': {'count': 0, 'total_amount': 0}
+            },
+            'inbound': {
+                'blacklisted': {'count': 0, 'total_amount': 0},
+                'exchanges': {'count': 0, 'total_amount': 0},
+                'annotated': {'count': 0, 'total_amount': 0}
+            }
+        }
 
     def generate_metrics(self, compare_operator):
         # Filter items and nodes based on depth/level
@@ -40,10 +50,13 @@ class CatvMetrics:
                     "max_receiver": {}
                 },
                 "enhanced_metrics": {
-                    "overview": self._generate_overview_metrics(),
+                    "overview": {},
                     "blacklisted": {"wallets": [], "total_amount": 0},
                     "exchanges": {"wallets": [], "total_amount": 0},
-                    "annotated": {"wallets": [], "total_amount": 0}
+                    "annotated": {"wallets": [], "total_amount": 0},
+                    "depth_breakdown": {},
+                    "max_sender": {},
+                    "max_receiver": {}
                 }
             }
 
@@ -121,20 +134,43 @@ class CatvMetrics:
         wallet_metrics = self._calculate_wallet_metrics(is_outbound)
 
         # Add overview section for enhanced metrics
-        wallet_metrics["overview"] = self._generate_overview_metrics()
+        wallet_metrics["overview"] = self._generate_flow_overview(is_outbound)
 
         return wallet_metrics
 
-    def _generate_overview_metrics(self):
-        if self._overview_metrics is None:
-            self._overview_metrics = {
-                'transactions_from_origin': sum(1 for item in self.item_list if item['sender'] == self.origin),
-                'transactions_to_origin': sum(1 for item in self.item_list if item['receiver'] == self.origin),
-                'blacklisted_wallets': len([node for node in self.node_list if node['group'] == 'Blacklist']),
-                'annotated_wallets': len([node for node in self.node_list if node['group'] == 'Annotated']),
-                'exchanges': len([node for node in self.node_list if node['group'] == 'Exchange/DEX/Bridge/Mixer'])
+    def _generate_flow_overview(self, is_outbound):
+        """Generate flow-specific (inbound/outbound) overview metrics"""
+        flow_type = 'outbound' if is_outbound else 'inbound'
+
+        return {
+            'blacklisted_wallets': {
+                'count': self._category_metrics[flow_type]['blacklisted']['count'],
+                'total_amount': self._category_metrics[flow_type]['blacklisted']['total_amount']
+            },
+            'annotated_wallets': {
+                'count': self._category_metrics[flow_type]['annotated']['count'],
+                'total_amount': self._category_metrics[flow_type]['annotated']['total_amount']
+            },
+            'exchanges': {
+                'count': self._category_metrics[flow_type]['exchanges']['count'],
+                'total_amount': self._category_metrics[flow_type]['exchanges']['total_amount']
             }
-        return self._overview_metrics
+        }
+
+    def generate_overview_metrics(self):
+        """Generate total overview metrics"""
+        blacklisted_addresses = {node['address'] for node in self.node_list if node['group'] == 'Blacklist'}
+        annotated_addresses = {node['address'] for node in self.node_list if node['group'] == 'Annotated'}
+        exchange_addresses = {node['address'] for node in self.node_list if
+                              node['group'] == 'Exchange/DEX/Bridge/Mixer'}
+
+        return {
+            'transactions_from_origin': sum(1 for item in self.item_list if item['sender'] == self.origin),
+            'transactions_to_origin': sum(1 for item in self.item_list if item['receiver'] == self.origin),
+            'blacklisted_wallets': len(blacklisted_addresses),
+            'annotated_wallets': len(annotated_addresses),
+            'exchanges': len(exchange_addresses)
+        }
 
     def _calculate_wallet_metrics(self, is_outbound):
         """Calculate enhanced wallet metrics using seg_item_list"""
@@ -157,6 +193,7 @@ class CatvMetrics:
             'exchanges': set(),
             'annotated': set()
         }
+
         # Process nodes and categorize wallets
         for node in self.seg_node_list:
             addr = node['address']
@@ -166,7 +203,7 @@ class CatvMetrics:
             wallet_info = {
                 'address': addr,
                 'total_amount': wallet_amounts[addr]['total_amount'],
-                'transaction_count': self.send_count.get(addr, 0) if is_outbound else self.receive_count.get(addr, 0),
+                # 'transaction_count': self.send_count.get(addr, 0) if is_outbound else self.receive_count.get(addr, 0),
                 'depth': wallet_amounts[addr]['depth']
             }
 
@@ -183,10 +220,14 @@ class CatvMetrics:
                 wallet_metrics['annotated']['wallets'].append(wallet_info)
                 processed_addresses['annotated'].add(addr)
 
+        flow_type = 'outbound' if is_outbound else 'inbound'
         # Calculate category totals
         for category in wallet_metrics:
-            wallet_metrics[category]['total_amount'] = sum(
-                w['total_amount'] for w in wallet_metrics[category]['wallets'])
+            total = sum(w['total_amount'] for w in wallet_metrics[category]['wallets'])
+            count = len(wallet_metrics[category]['wallets'])
+            wallet_metrics[category]['total_amount'] = total
+            self._category_metrics[flow_type][category]['total_amount'] = total
+            self._category_metrics[flow_type][category]['count'] = count
 
         return wallet_metrics
 

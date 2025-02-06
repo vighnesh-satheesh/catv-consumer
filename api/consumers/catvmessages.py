@@ -199,7 +199,7 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
                 enhanced_metrics["dist_analysis"] = results["enhanced_metrics"]
         catv_metrics.save_annotations()
         print("total number of nodes: ", len(graph_data["node_list"]))
-
+        enhanced_metrics["overview"] = catv_metrics.generate_overview_metrics()
         results = {
             "data": {
                 **graph_data,
