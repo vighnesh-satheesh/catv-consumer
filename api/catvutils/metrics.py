@@ -201,6 +201,7 @@ class CatvMetrics:
                 continue
 
             wallet_info = {
+                'id': node['id'],
                 'address': addr,
                 'total_amount': wallet_amounts[addr]['total_amount'],
                 # 'transaction_count': self.send_count.get(addr, 0) if is_outbound else self.receive_count.get(addr, 0),
