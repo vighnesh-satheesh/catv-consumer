@@ -179,25 +179,33 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
             elapsed_time = time.time() - start_time
             print("Total time taken for SmartContractMethodFinder: ", elapsed_time)
 
-        catv_metrics = CatvMetrics(graph_data)
+        catv_metrics = CatvMetrics(graph_data, search_params, token_type)
         dist_analysis = {}
         src_analysis = {}
+        enhanced_metrics = {}
         if search_type == CatvSearchType.FLOW.value:
             if search_params.get("distribution_depth", 0) > 0:
-                dist_analysis = catv_metrics.generate_metrics(gt)
+                results = catv_metrics.generate_metrics(gt)
+                dist_analysis = results["legacy_metrics"]
+                enhanced_metrics["dist_analysis"] = results["enhanced_metrics"]
             if search_params.get("source_depth", 0) > 0:
-                src_analysis = catv_metrics.generate_metrics(lt)
+                results = catv_metrics.generate_metrics(lt)
+                src_analysis = results["legacy_metrics"]
+                enhanced_metrics["src_analysis"] = results["enhanced_metrics"]
         else:
             if search_params.get("depth", 0) > 0:
-                dist_analysis = catv_metrics.generate_metrics(gt)
+                results = catv_metrics.generate_metrics(gt)
+                dist_analysis = results["legacy_metrics"]
+                enhanced_metrics["dist_analysis"] = results["enhanced_metrics"]
         catv_metrics.save_annotations()
         print("total number of nodes: ", len(graph_data["node_list"]))
-
+        enhanced_metrics["overview"] = catv_metrics.generate_overview_metrics()
         results = {
             "data": {
                 **graph_data,
                 "dist_analysis": dist_analysis,
-                "src_analysis": src_analysis
+                "src_analysis": src_analysis,
+                "metrics": enhanced_metrics
             },
             "messages": {**core_results["messages"]}
         }
