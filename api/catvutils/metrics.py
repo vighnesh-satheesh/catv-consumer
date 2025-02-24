@@ -165,8 +165,8 @@ class CatvMetrics:
                               node['group'] == 'Exchange/DEX/Bridge/Mixer'}
 
         return {
-            'transactions_from_origin': sum(1 for item in self.item_list if item['sender'] == self.origin),
-            'transactions_to_origin': sum(1 for item in self.item_list if item['receiver'] == self.origin),
+            'transactions_from_origin': sum(1 for item in self.item_list if item['sender'].lower() == self.origin.lower()),
+            'transactions_to_origin': sum(1 for item in self.item_list if item['receiver'].lower() == self.origin.lower()),
             'blacklisted_wallets': len(blacklisted_addresses),
             'annotated_wallets': len(annotated_addresses),
             'exchanges': len(exchange_addresses)
