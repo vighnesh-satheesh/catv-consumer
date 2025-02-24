@@ -16,7 +16,7 @@ class CatvMetrics:
         self.node_list = data.get("node_list", [])
         self.edge_list = data.get("edge_list", [])
         # self.send_count = data.get("send_count", {})
-        self.receive_count = data.get("receive_count", {})
+        # self.receive_count = data.get("receive_count", {})
         self.seg_item_list = []
         self.seg_node_list = []
         self.search_params = search_params

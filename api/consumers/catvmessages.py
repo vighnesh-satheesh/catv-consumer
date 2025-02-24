@@ -28,7 +28,7 @@ from api.tasks import catv_history_task, catv_path_history_task
 
 __all__ = ('process_catv_messages',)
 
-from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message
+from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message, get_gcs_file
 
 
 def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
@@ -121,6 +121,10 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
         request_instance = None
         request_uid = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
+        parent_result_file_id = request_body.get("parent_result_file_id", None)
+        parent_result = None
+        if parent_result_file_id:
+            parent_result = get_gcs_file(f'{api_settings.ATTACHED_FILE_S3_KEY_PREFIX + parent_result_file_id}')
         token_type = request_body.get("token_type", CatvTokens.ETH.value)
         search_type = request_body.get("search_type", CatvSearchType.FLOW.value)
         search_params = request_body.get("search_params", {})

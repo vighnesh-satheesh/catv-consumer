@@ -4,7 +4,7 @@ from multiprocessing.pool import ThreadPool
 
 from django.conf import settings
 
-from .bloxy_graphql_interface import BloxyAPIInterface
+from .bitquery_interface import BitqueryAPIInterface
 from .graphtools import (
     generate_nodes_edges, generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
     generate_nodes_edges_btccoinpath
@@ -50,7 +50,7 @@ class TrackingResults:
         self.chain = kwargs.get('chain', CatvTokens.ETH.value)
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        bloxy_interface = BloxyAPIInterface()
+        bloxy_interface = BitqueryAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
         transaction_data = bloxy_interface.get_transactions(
@@ -311,7 +311,7 @@ class TrackingResults:
 
 class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        bloxy_interface = BloxyAPIInterface()
+        bloxy_interface = BitqueryAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
         transaction_data = bloxy_interface.get_transactions(

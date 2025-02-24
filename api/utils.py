@@ -1,4 +1,6 @@
+import ast
 import hashlib
+import json
 import mimetypes
 import random
 import re
@@ -6,12 +8,16 @@ from datetime import datetime, timedelta
 
 from django.core.files.storage import default_storage
 from requests import ReadTimeout
+from google.cloud import storage
+from django.core.exceptions import SuspiciousOperation
+from google.cloud.exceptions import NotFound
 
 from .exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, BitqueryDataNotFoundError, \
     BitqueryMemoryLimitExceeded
 from .models import (
     CatvTokens
 )
+from .settings import api_settings
 
 
 def validate_dateformat(value, date_format):
@@ -106,13 +112,24 @@ def pattern_matches_token(address, token_type):
     return re.compile(pattern).match(address)
 
 
-# def upload_content_file_to_s3(content_file):
-#     # default_storage is configured as S3Storage in base.py
-#     return default_storage.save(content_file.name, content_file)
-
 def upload_content_file_to_gcs(content_file):
     # default_storage is configured as GCS Storage in base.py
     return default_storage.save(content_file.name, content_file)
+
+
+def get_gcs_file(filename):
+    client = storage.Client()
+    bucket = client.bucket(api_settings.ATTACHED_FILE_S3_BUCKET_NAME)
+
+    try:
+        blob = bucket.blob(filename)
+        body = blob.download_as_text()
+        results = json.loads(body)
+        if isinstance(results, str):
+            results = ast.literal_eval(results)
+        return results
+    except NotFound:
+        raise SuspiciousOperation(f"The file '{filename}' does not exist in the GCS bucket.")
 
 
 def get_file_meta(file, file_name):
@@ -151,3 +168,33 @@ def get_user_error_message(exception: Exception) -> str:
 
     # Return specific message if exception type matches, otherwise return generic error
     return error_messages.get(type(exception), "Not able to fetch results at this time. Please try again.")
+
+
+def safe_get(dict_obj, *keys, default=None):
+    """
+    Safely get nested values from dictionaries and lists
+    Args:
+        dict_obj: The object to traverse (can be dict or list)
+        *keys: Keys/indices to access nested values
+        default: Default value if path doesn't exist
+    """
+    try:
+        result = dict_obj
+        for key in keys:
+            if isinstance(result, dict):
+                if key not in result:
+                    return default
+                result = result[key]
+            elif isinstance(result, list):
+                if not isinstance(key, int) or key >= len(result):
+                    return default
+                result = result[key]
+            else:
+                return default
+
+            if result in [None, "None"]:
+                return default
+
+        return result
+    except Exception:
+        return default
