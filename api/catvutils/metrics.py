@@ -6,6 +6,7 @@ from django.utils.timezone import now
 from api.catvutils.tracking_results import chunks
 from api.models import IndicatorExtraAnnotation
 from api.settings import api_settings
+from decimal import Decimal, ROUND_DOWN
 
 __all__ = ('CatvMetrics',)
 
@@ -15,12 +16,9 @@ class CatvMetrics:
         self.item_list = data.get("item_list", [])
         self.node_list = data.get("node_list", [])
         self.edge_list = data.get("edge_list", [])
-        # self.send_count = data.get("send_count", {})
-        # self.receive_count = data.get("receive_count", {})
         self.seg_item_list = []
         self.seg_node_list = []
         self.search_params = search_params
-        self.token_type = token_type
         self.origin = search_params['wallet_address']
         self._category_metrics = {
             'outbound': {
@@ -34,6 +32,7 @@ class CatvMetrics:
                 'annotated': {'count': 0, 'total_amount': 0}
             }
         }
+        self.symbol = self.item_list[0]['symbol'] if self.item_list else token_type
 
     def generate_metrics(self, compare_operator):
         # Filter items and nodes based on depth/level
@@ -164,9 +163,17 @@ class CatvMetrics:
         exchange_addresses = {node['address'] for node in self.node_list if
                               node['group'] == 'Exchange/DEX/Bridge/Mixer'}
 
+        transactions_from_origin_sum = Decimal(sum(
+            item['amount'] for item in self.item_list if item['sender'].lower() == self.origin.lower())).quantize(
+            Decimal('0.01'), rounding=ROUND_DOWN)
+        transactions_to_origin_sum = Decimal(sum(
+            item['amount'] for item in self.item_list if item['receiver'].lower() == self.origin.lower())).quantize(
+            Decimal('0.01'), rounding=ROUND_DOWN)
         return {
             'transactions_from_origin': sum(1 for item in self.item_list if item['sender'].lower() == self.origin.lower()),
             'transactions_to_origin': sum(1 for item in self.item_list if item['receiver'].lower() == self.origin.lower()),
+            'transactions_from_origin_sum': f"{transactions_from_origin_sum} {self.symbol}",
+            'transactions_to_origin_sum': f"{transactions_to_origin_sum} {self.symbol}",
             'blacklisted_wallets': len(blacklisted_addresses),
             'annotated_wallets': len(annotated_addresses),
             'exchanges': len(exchange_addresses)
@@ -204,7 +211,6 @@ class CatvMetrics:
                 'id': node['id'],
                 'address': addr,
                 'total_amount': wallet_amounts[addr]['total_amount'],
-                # 'transaction_count': self.send_count.get(addr, 0) if is_outbound else self.receive_count.get(addr, 0),
                 'depth': wallet_amounts[addr]['depth']
             }
 
