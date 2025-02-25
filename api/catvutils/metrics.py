@@ -41,22 +41,8 @@ class CatvMetrics:
 
         if not self.seg_node_list:
             return {
-                "legacy_metrics": {
-                    "blacklisted": [],
-                    "exchange": [],
-                    "depth_breakdown": {},
-                    "max_sender": {},
-                    "max_receiver": {}
-                },
-                "enhanced_metrics": {
-                    "overview": {},
-                    "blacklisted": {"wallets": [], "total_amount": 0},
-                    "exchanges": {"wallets": [], "total_amount": 0},
-                    "annotated": {"wallets": [], "total_amount": 0},
-                    "depth_breakdown": {},
-                    "max_sender": {},
-                    "max_receiver": {}
-                }
+                "legacy_metrics": {},
+                "enhanced_metrics": {}
             }
 
         # Calculate legacy metrics
