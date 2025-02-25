@@ -601,10 +601,7 @@ class GraphQLInterface:
 
     def process_swap(self, swap):
         tx_hash = swap["transaction"]["hash"]
-        initial_depth = swap["depth"] - 1  # to adjust for the depth issue
-        sender = swap["sender"]["address"]
         request_body = self._graphql_dex_trades_query_builder(tx_hash)
-        # print(f"THE TRANSCATION COMING TO SWAP IS : {swap}")
         print(f"dex: {request_body}")
         if request_body is None or len(request_body) == 0:
             return []
@@ -619,31 +616,158 @@ class GraphQLInterface:
             initial_smartcontract_address = dex_trades[0]['smartContract']['address']['address']
             if initial_smartcontract_address != swap["receiver"]["address"]:
                 return None
-            final_currency_address = dex_trades[-1]['sellCurrency']['address']
-            from_time = dex_trades[-1]['block']['timestamp']['time']
+            token_address = dex_trades[-1]['sellCurrency']['address']
+            # from_time = dex_trades[-1]['block']['timestamp']['time']
             new_amount = dex_trades[-1]['sellAmount']
             new_amount_usd = dex_trades[-1]['sell_amount_usd']
 
-            token_address = dex_trades[-1]['sellCurrency']['address']
+            new_currency = {
+                "name": dex_trades[-1]['sellCurrency']['name'],
+                "symbol": dex_trades[-1]['sellCurrency']['symbol'],
+                "address": token_address
+            }
+            swap_txn = self.modify_swap_data(swap, new_amount, new_amount_usd, new_currency)
 
-            new_currency = {"name": dex_trades[-1]['sellCurrency']['name'],
-                            "symbol": dex_trades[-1]['sellCurrency']['symbol'],
-                            "address": token_address
-                            }
-            swap_node = self.modify_swap_data(swap, new_amount, new_amount_usd, new_currency)
-
-            print(f"THE TRANSCATION COMING TO swap_node IS : {swap_node}")
+            print(f"THE SWAP TRANSCATION : {swap_txn}")
 
             response = []
 
-            self.flatten_node(0, swap_node, response, [], token_address)
+            self._flatten_node(swap_txn, response, [], token_address)
 
-            results = self.call_graphql_endpoint(sender, final_currency_address, from_time, initial_depth)
-            return response + results
+            if response and len(response) > 0:
+                response[0] = self.add_swap_info(response[0], dex_trades)
+
+            return response
         except Exception:
             print("ERROR : process_swap")
             traceback.print_exc()
             return []
+
+    def add_swap_info(self, swap_txn: dict, dex_trades: list) -> dict:
+        """
+        Adds swap_info to the transaction object based on dex trades data.
+
+        Args:
+            swap_txn: Flattened transaction object
+            dex_trades: List of dex trades from the API response
+
+        Returns:
+            Updated transaction object with swap_info
+        """
+        try:
+            # Get first and last trade
+            first_trade = dex_trades[0]
+            last_trade = dex_trades[-1]
+
+            # Create swap_info object
+            swap_info = {
+                "protocol": first_trade["protocol"],
+                "amount_in": str(first_trade["buyAmount"]),
+                "amount_out": str(last_trade["sellAmount"]),
+                "token_in": {
+                    "address": first_trade["buyCurrency"]["address"],
+                    "symbol": first_trade["buyCurrency"]["symbol"]
+                },
+                "token_out": {
+                    "address": last_trade["sellCurrency"]["address"],
+                    "symbol": last_trade["sellCurrency"]["symbol"]
+                },
+                "pool_address": first_trade["smartContract"]["address"]["address"]
+            }
+
+            # Add swap_info to transaction
+            swap_txn["swap_info"] = swap_info
+            return swap_txn
+        except Exception as e:
+            print(f"Error creating swap info: {str(e)}")
+            return swap_txn
+
+    def modify_swap_data(self, swap, new_amount=0, new_amount_usd=0, new_currency=None):
+
+        def deep_copy_safe(obj):
+            if isinstance(obj, dict):
+                return {k: deep_copy_safe(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [deep_copy_safe(x) for x in obj]
+            else:
+                return obj
+
+        def update_amount_fields(obj, new_val):
+            if isinstance(obj, dict):
+                for key in obj:
+                    if isinstance(obj[key], (dict, list)):
+                        update_amount_fields(obj[key], new_val)
+                    elif key in ['amount', 'value', 'txValue']:
+                        obj[key] = float(new_val)
+                    elif key in ['amountOut', 'amountIn']:
+                        obj[key] = str(new_val)
+
+        try:
+
+            modified_swap = deep_copy_safe(swap)
+
+            original_sender = deep_copy_safe(swap.get('sender', {}))
+            original_receiver = deep_copy_safe(swap.get('receiver', {}))
+
+            modified_swap['sender'] = {
+                'address': original_receiver.get('address', ''),
+                'annotation': original_receiver.get('annotation'),
+                'type': original_receiver.get('type', 'Wallet'),
+                'receiversCount': original_receiver.get('receiversCount'),
+                'sendersCount': original_receiver.get('sendersCount'),
+                'amountOut': str(new_amount),
+                'amountIn': str(new_amount),
+                'balance': original_receiver.get('balance', '0.0'),
+                'firstTxAt': original_receiver.get('firstTxAt'),
+                'lastTxAt': original_receiver.get('lastTxAt'),
+                'smartContract': original_receiver.get('smartContract')
+            }
+
+            modified_swap['receiver'] = {
+                'address': original_sender.get('address', ''),
+                'annotation': original_sender.get('annotation'),
+                'type': original_sender.get('type', 'Wallet'),
+                'receiversCount': original_sender.get('receiversCount'),
+                'sendersCount': original_sender.get('sendersCount'),
+                'amountOut': str(new_amount),
+                'amountIn': str(new_amount),
+                'balance': original_sender.get('balance', '0.0'),
+                'firstTxAt': original_sender.get('firstTxAt'),
+                'lastTxAt': original_sender.get('lastTxAt'),
+                'smartContract': original_sender.get('smartContract')
+            }
+
+            update_amount_fields(modified_swap, new_amount)
+
+            if 'amount_usd' in modified_swap:
+                modified_swap['amount_usd'] = new_amount_usd
+
+            default_currency = {
+                'name': '',
+                'symbol': '',
+                'tokenId': '',
+                'tokenType': '',
+                'address': ''
+            }
+
+            if new_currency and isinstance(new_currency, dict):
+                modified_swap['currency'] = {**default_currency, **new_currency}
+            else:
+                modified_swap['currency'] = default_currency
+
+            if 'transaction' in modified_swap:
+                modified_swap['transaction']['value'] = new_amount
+
+            if 'transactions' in modified_swap:
+                for tx in modified_swap['transactions']:
+                    tx['txValue'] = new_amount
+                    tx['amount'] = new_amount
+
+            return modified_swap
+
+        except Exception as e:
+            print(f"Error modifying swap data: {str(e)}")
+            return None
 
     def _graphql_dex_trades_query_builder(self, tx_hash):
 
