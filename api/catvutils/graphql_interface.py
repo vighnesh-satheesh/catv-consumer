@@ -1,3 +1,4 @@
+import os
 import traceback
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
@@ -48,7 +49,7 @@ class GraphQLClient:
         session.mount("https://", adapter)
         return session
 
-    def execute(self, query: str) -> Dict[str, Any]:
+    def execute_query(self, query: str) -> Dict[str, Any]:
         try:
             print(f"query: {query}")
             response = self.session.post(
@@ -133,7 +134,7 @@ class GraphQLInterface:
             request_body = self._graphql_query_builder()
             if not request_body:
                 raise InvalidGraphqlQuery(f"Error while forming query")
-            response = self._graphql_client.execute(request_body)
+            response = self._graphql_client.execute_query(request_body)
             return self._process_response(response)
         except Exception:
             raise
@@ -150,7 +151,7 @@ class GraphQLInterface:
             for item in response_data:
                 self._flatten_node(item, flattened_response, possible_swaps)
             if len(possible_swaps) > 0:
-                self.update_swap_info(possible_swaps, flattened_response)
+                flattened_response = self.update_swap_info(possible_swaps, flattened_response)
             return flattened_response
         except KeyError as e:
             if response and "errors" in response:
@@ -303,7 +304,9 @@ class GraphQLInterface:
                 })
 
                 if self.is_swaps(item):
-                    possible_swaps.append(item)
+                    swap_dict = {"flattened_swap_txn": current_iter_dict, "bq_swap_txn": item}
+                    possible_swaps.append(swap_dict)
+                    return
 
                 flattened_response.append(current_iter_dict)
                 return
@@ -327,7 +330,6 @@ class GraphQLInterface:
 
         except Exception as e:
             print(f"Error in flatten_node for chain {self.chain}: {str(e)}")
-
 
     # def _flatten_response1(self, response_data: List[Dict[str, Any]]) -> List[Dict]:
     #     """Flatten response data into desired format."""
@@ -588,19 +590,30 @@ class GraphQLInterface:
 
     def update_swap_info(self, possible_swaps, flattened_response):
         try:
+            # Get logical CPU count for optimal threading
+            cpu_count = os.cpu_count()
+            # Limit workers to a reasonable number (min of CPU count and max 8)
+            worker_count = min(cpu_count or 4, 8)
+
             print(f"{len(possible_swaps)=}")
-            with ThreadPool(processes=len(possible_swaps)) as pool:
+            # Process in batches rather than creating a thread per swap
+            with ThreadPool(processes=worker_count) as pool:
                 results = pool.map(self.process_swap, possible_swaps)
-            valid_requests = [item for result in results if result is not None for item in result]
-            flattened_response.extend(valid_requests)
+
+            # Use a list comprehension with filtering in one pass
+            valid_swaps = [item for result in results if result is not None for item in result]
+            flattened_response.extend(valid_swaps)
             return flattened_response
         except Exception as e:
-            print("ERROR : get_tx_with_swaps")
+            print(f"ERROR : get_tx_with_swaps: {str(e)}")
             traceback.print_exc()
             return None
 
-    def process_swap(self, swap):
-        tx_hash = swap["transaction"]["hash"]
+    def process_swap(self, swap_dict):
+        incoming_swap_txn = swap_dict['flattened_swap_txn']
+        bq_swap_txn = swap_dict['bq_swap_txn']
+        print(f"Processing {incoming_swap_txn}")
+        tx_hash = incoming_swap_txn["tx_hash"]
         request_body = self._graphql_dex_trades_query_builder(tx_hash)
         print(f"dex: {request_body}")
         if request_body is None or len(request_body) == 0:
@@ -613,8 +626,9 @@ class GraphQLInterface:
             dex_trades = response_object["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["dexTrades"]
             if len(dex_trades) < 1:
                 return None
-            initial_smartcontract_address = dex_trades[0]['smartContract']['address']['address']
-            if initial_smartcontract_address != swap["receiver"]["address"]:
+            swap_aggregator_node = dex_trades[0]['smartContract']['address']['address']
+            # check if receiver is the
+            if swap_aggregator_node != incoming_swap_txn["receiver"]:
                 return None
             token_address = dex_trades[-1]['sellCurrency']['address']
             # from_time = dex_trades[-1]['block']['timestamp']['time']
@@ -626,16 +640,17 @@ class GraphQLInterface:
                 "symbol": dex_trades[-1]['sellCurrency']['symbol'],
                 "address": token_address
             }
-            swap_txn = self.modify_swap_data(swap, new_amount, new_amount_usd, new_currency)
 
-            print(f"THE SWAP TRANSCATION : {swap_txn}")
+            # add entire swap details into the incoming swap txn
+            updated_incoming_swap_txn = self.add_swap_info(incoming_swap_txn, dex_trades)
 
-            response = []
+            outgoing_swap_txn = self.modify_swap_data(bq_swap_txn, new_amount, new_amount_usd, new_currency)
+            #
+            print(f"THE outgoing swap txn : {outgoing_swap_txn}")
 
-            self._flatten_node(swap_txn, response, [], token_address)
+            response = [updated_incoming_swap_txn]
 
-            if response and len(response) > 0:
-                response[0] = self.add_swap_info(response[0], dex_trades)
+            self._flatten_node(outgoing_swap_txn, response, [], token_address)
 
             return response
         except Exception:
@@ -643,7 +658,7 @@ class GraphQLInterface:
             traceback.print_exc()
             return []
 
-    def add_swap_info(self, swap_txn: dict, dex_trades: list) -> dict:
+    def add_swap_info(self, incoming_swap_txn: dict, dex_trades: list) -> dict:
         """
         Adds swap_info to the transaction object based on dex trades data.
 
@@ -662,11 +677,11 @@ class GraphQLInterface:
             # Create swap_info object
             swap_info = {
                 "protocol": first_trade["protocol"],
-                "amount_in": str(first_trade["buyAmount"]),
+                "amount_in": str(incoming_swap_txn.get("amount")),  # Use incoming transaction amount
                 "amount_out": str(last_trade["sellAmount"]),
                 "token_in": {
-                    "address": first_trade["buyCurrency"]["address"],
-                    "symbol": first_trade["buyCurrency"]["symbol"]
+                    "address": incoming_swap_txn.get("receiver", ""),  # Use incoming transaction token
+                    "symbol": incoming_swap_txn.get("symbol", "")
                 },
                 "token_out": {
                     "address": last_trade["sellCurrency"]["address"],
@@ -675,12 +690,12 @@ class GraphQLInterface:
                 "pool_address": first_trade["smartContract"]["address"]["address"]
             }
 
-            # Add swap_info to transaction
-            swap_txn["swap_info"] = swap_info
-            return swap_txn
+            # Add swap_info to incoming swap transaction
+            incoming_swap_txn["swap_info"] = swap_info
+            return incoming_swap_txn
         except Exception as e:
             print(f"Error creating swap info: {str(e)}")
-            return swap_txn
+            return incoming_swap_txn
 
     def modify_swap_data(self, swap, new_amount=0, new_amount_usd=0, new_currency=None):
 

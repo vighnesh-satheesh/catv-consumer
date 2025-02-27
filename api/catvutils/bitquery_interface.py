@@ -5,9 +5,10 @@ from typing import Optional, Any, Dict, List
 from django.conf import settings
 
 from api.catvutils.graphql_interface import GraphQLInterface, GraphQLClient
+from api.catvutils.transactions_api_interface import TransactionAPIInterface
 
 
-class BitqueryAPIInterface:
+class BitqueryAPIInterface(TransactionAPIInterface):
     def __init__(self):
         self._graphql_client = GraphQLClient(
             endpoint=settings.GRAPHQL_ENDPOINT,

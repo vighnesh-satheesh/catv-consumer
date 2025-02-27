@@ -9,6 +9,7 @@ from .graphtools import (
     generate_nodes_edges, generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
     generate_nodes_edges_btccoinpath
 )
+from .tracer_interface import TracerAPIInterface
 from .vendor_api import BloxyEthAPIInterface
 from ..models import (
     CatvTokens
@@ -48,24 +49,71 @@ class TrackingResults:
         self.ext_api_calls = 0
         self.error_messages = {"source": "", "distribution": ""}
         self.chain = kwargs.get('chain', CatvTokens.ETH.value)
+        self.api_used = ""
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        bloxy_interface = BitqueryAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
-        transaction_data = bloxy_interface.get_transactions(
-            self.wallet_address,
-            tx_limit,
-            depth_limit,
-            self.from_date,
-            till_date_extend,
-            self.token_address,
-            for_source,
-            self.chain
-        )
-        if transaction_data:
-            return [item for item in transaction_data if len(item["receiver"]) > 0]
-        return []
+
+        # Determine if we should use Tracer API first based on chain
+        should_use_tracer_first = self.chain != 'KLAY' and self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'AVAX']
+
+        if should_use_tracer_first:
+            try:
+                # Try Tracer API first
+                tracer_interface = TracerAPIInterface()
+                transaction_data = tracer_interface.get_transactions(
+                    self.wallet_address,
+                    tx_limit,
+                    depth_limit,
+                    self.from_date,
+                    till_date_extend,
+                    self.token_address,
+                    for_source,
+                    self.chain
+                )
+                self.ext_api_calls += 1
+
+                if transaction_data:
+                    self.api_used = "tracer"
+                    print(f"Tracer API successful: Retrieved {len(transaction_data)} transactions")
+                    return [item for item in transaction_data if len(item["receiver"]) > 0]
+                else:
+                    print("Tracer API returned no data, falling back to Bitquery")
+
+            except Exception as e:
+                # Log the error but don't raise it - we'll fall back to Bitquery
+                error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
+                print(error_msg)
+                # Don't update error_messages here as we're going to try Bitquery
+
+        # Either Tracer API failed, we're processing Klaytn, or Tracer API wasn't applicable
+        try:
+            # Fall back to Bitquery or use it directly for Klaytn
+            bloxy_interface = BitqueryAPIInterface()
+            transaction_data = bloxy_interface.get_transactions(
+                self.wallet_address,
+                tx_limit,
+                depth_limit,
+                self.from_date,
+                till_date_extend,
+                self.token_address,
+                for_source,
+                self.chain
+            )
+            self.ext_api_calls += 1
+            self.api_used = "bitquery"
+            if transaction_data:
+                return [item for item in transaction_data if len(item["receiver"]) > 0]
+
+        except Exception as e:
+            # Both APIs failed or we went straight to Bitquery and it failed
+            error_source = "source" if for_source else "distribution"
+            self.error_messages[error_source] = str(e)
+            print(f"Bitquery API failed for {error_source}: {str(e)}")
+            raise  # Propagate the exception to be handled by get_tracking_data
+
+        return []  # Return empty list if no data or all filtering removed items
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)

@@ -289,6 +289,7 @@ API_SETTINGS = {
     "RABBIT_MQ_LOCAL_URL":env.str("RABBIT_MQ_LOCAL_URL", "rabbitmq"),
     "RABBIT_MQ_HOST":env.str("RABBIT_MQ_HOST", "localhost"),
     "GRAPHQL_ENDPOINT": env.str("GRAPHQL_ENDPOINT", ""),
+    "TRACER_ENDPOINT": env.str("TRACER_ENDPOINT", "https://stgtracer-api.sentinelprotocol.io/"),
     "GRAPHQL_X_API_KEY": env.str("GRAPHQL_X_API_KEY", ""),
     "GOOGLE_PROJECT_ID": env.str('GCP_PROJECT_ID', None),
 }
