@@ -405,7 +405,6 @@ class TrackingResults:
                     nc.update_node(address, addr_node)
                 else:
                     addr_node.update(group="Suspicious", annotation="Extremely High Risk")
-                    print(f"2) {addr_node=}")
 
                     nc.update_node(address, addr_node)
 
