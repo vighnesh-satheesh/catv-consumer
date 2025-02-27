@@ -247,11 +247,11 @@ class TrackingResults:
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
 
         indicators = fetch_indicators(request_dict)
-        print(f"{indicators=}")
+        print(f"{len(indicators)=}")
         request_dict_cara = {'addr_list': list(addr_list)}
 
         addresses_with_cara_report = fetch_cara_report(request_dict_cara)
-        print(f"{addresses_with_cara_report=}")
+        print(f"{len(addresses_with_cara_report)=}")
 
         # Create a dictionary for quick lookup of CARA report addresses
         cara_addr_dict = {addr_score[0].lower(): addr_score for addr_score in addresses_with_cara_report}
@@ -385,7 +385,6 @@ class TrackingResults:
         if cara_addr_dict:
             # Rebuild the list from the dictionary values
             remaining_addresses = list(cara_addr_dict.values())
-
             for address_score_list in remaining_addresses:
                 address = address_score_list[0]
                 addr_node = nc.get_node(address)
@@ -406,6 +405,8 @@ class TrackingResults:
                     nc.update_node(address, addr_node)
                 else:
                     addr_node.update(group="Suspicious", annotation="Extremely High Risk")
+                    print(f"2) {addr_node=}")
+
                     nc.update_node(address, addr_node)
 
         return nc, item_list

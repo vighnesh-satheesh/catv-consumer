@@ -49,16 +49,14 @@ class ExchangeNodeList:
         # marking nodes with unique transactions above 5000 as exchange in both dist/src side
         if send_count:
             dist_nodes_marked_as_exchange = [node for node in self.dist_node_list
-                                             if node['id'] != 0 and node['address'] in send_count and send_count[node['address']] >= 2000]
-            print('dist_nodes_marked_as_exchange:-', dist_nodes_marked_as_exchange)
+                                             if node['id'] != 0 and node['address'] in send_count and send_count[node['address']] >= 1000]
             # adding dist side marked nodes into dist_exchange_nodes
             self.dist_exchange_nodes.extend(node for node in dist_nodes_marked_as_exchange
                                             if node not in self.dist_exchange_nodes)
 
         if receive_count:
             src_nodes_marked_as_exchange = [node for node in self.src_node_list
-                                            if node['id'] != 0 and node['address'] in receive_count and receive_count[node['address']] >= 2000]
-            print('src_nodes_marked_as_exchange:-', src_nodes_marked_as_exchange)
+                                            if node['id'] != 0 and node['address'] in receive_count and receive_count[node['address']] >= 1000]
             # adding src side marked nodes into src_exchange_nodes
             self.src_exchange_nodes.extend(node for node in src_nodes_marked_as_exchange
                                            if node not in self.src_exchange_nodes)
@@ -162,7 +160,6 @@ class ExchangeChecker:
         self.required_node_addresses = []
         self.exchange_node_ids = self.exchange_nodes_obj.get_exchange_node_ids(mode)
         self.exchange_nodes = self.exchange_nodes_obj.get_exchange_nodes(mode)
-        print("exchange nodes", self.exchange_nodes)
 
         if mode == -1:
             # removing all edges ending in exchanges
@@ -334,7 +331,6 @@ class ExchangeChecker:
 
     def set_graph_data(self, mode):
         # updating the final values for graph_data
-        print("Updating final values for graph_data")
         self.graph_data['node_list'] = self.node_list
         self.graph_data['edge_list'] = self.edge_list
         self.graph_data['item_list'] = self.item_list
