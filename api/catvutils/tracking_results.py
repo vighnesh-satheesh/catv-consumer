@@ -146,104 +146,268 @@ class TrackingResults:
             pool.close()
             pool.join()
 
+    # @staticmethod
+    # def update_annotations(nc, item_list, token_type):
+    #     print(f"{item_list=}")
+    #     addr_list = nc.get_node_enum().keys()
+    #     addr_list_for_portal = [addr.lower() for addr in addr_list]
+    #     request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
+    #     indicators = fetch_indicators(request_dict)
+    #     print("indicators length ", len(indicators))
+    #     # Extremely High Node
+    #     cara_addr_list = [addr for addr in addr_list]
+    #     request_dict_cara = {'addr_list': cara_addr_list}
+    #     new_addresses = fetch_cara_report(request_dict_cara)
+    #     seen_indicators = []
+    #     if len(indicators) > 0:
+    #         try:
+    #             for item in indicators:
+    #                 if "annotation" not in item.keys():
+    #                     item["annotation"] = ""
+    #                 if item['pattern'].lower() in seen_indicators:
+    #                     continue
+    #                 cur_node = nc.get_node(item["pattern"].lower())
+    #                 cur_node = nc.get_node(item["pattern"]) if cur_node is None else cur_node
+    #                 if cur_node is None:
+    #                     continue
+    #                 cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
+    #                                            'security_category': item['security_category'],
+    #                                            'pattern_type': item['pattern_type'],
+    #                                            'pattern_subtype': item['pattern_subtype']})
+    #                 if cur_node.group == "Exchange/DEX/Bridge/Mixer":
+    #                     seen_indicators.append(item['pattern'].lower())
+    #                     continue
+    #                 if item["security_category"].lower() == "graylist":
+    #                     if item["annotation"]:
+    #                         cur_node.update(annotation=item["annotation"])
+    #                         cur_node.set_group_from_annotation()
+    #                     else:
+    #                         cur_node.update(group="No Tag", annotation="")
+    #                 elif item["security_category"].lower() == "blacklist":
+    #                     cur_node.update(group="Blacklist", annotation="Blacklist")
+    #                 elif item["security_category"].lower() == "whitelist":
+    #                     cur_node.update(group="Whitelist", annotation="Whitelist")
+    #                 else:
+    #                     kwargs = {}
+    #                     kwargs["group"] = item["security_category"].title()
+    #                     if item["annotation"]:
+    #                         kwargs["annotation"] = item["annotation"]
+    #                         if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item[
+    #                             "annotation"] or "Mixer" in item["annotation"] or "bridge" in item[
+    #                             "annotation"] or "mixer" in item["annotation"]:
+    #                             kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
+    #                         elif "Smart" in item["annotation"] or "Contract" in item["annotation"] or "smart" in item[
+    #                             "annotation"] or "contract" in item["annotation"]:
+    #                             kwargs["group"] = "Smart Contract"
+    #                     else:
+    #                         kwargs["annotation"] = ""
+    #                     cur_node.update(**kwargs)
+    #                 nc.update_node(item['pattern'].lower(), cur_node)
+    #                 for transaction in item_list:
+    #                     if not transaction.get('sender_annotation', None):
+    #                         transaction['sender_annotation'] = ''
+    #                     if not transaction.get('receiver_annotation', None):
+    #                         transaction['receiver_annotation'] = ''
+    #
+    #                     if transaction['sender'].lower() == cur_node.address.lower():
+    #                         transaction['sender_annotation'] = cur_node.annotation
+    #                     elif transaction['receiver'].lower() == cur_node.address.lower():
+    #                         transaction['receiver_annotation'] = cur_node.annotation
+    #                 seen_indicators.append(item['pattern'].lower())
+    #                 if len(new_addresses) > 0 and item["security_category"].lower() == "blacklist" or item[
+    #                     "security_category"].lower() == "whitelist":
+    #                     for result in new_addresses:
+    #                         if item['pattern'].lower() == result[0] or item['pattern'] == result[0]:
+    #                             new_addresses.remove(result)
+    #         except Exception as e:
+    #             traceback.print_exc()
+    #             raise
+    #
+    # if len(new_addresses) > 0:
+    #     for result in new_addresses:
+    #         add_node = nc.get_node(result[0])
+    #         for item in cara_addr_list:
+    #             annotation_group = nc.get_node(item).group
+    #             if add_node is None:
+    #                 continue
+    #             elif 'Exchange/DEX/Bridge/Mixer' in annotation_group or add_node.group == 'Exchange/DEX/Bridge/Mixer':
+    #                 nc.update_node(result[0], add_node)
+    #                 break
+    #             else:
+    #                 add_node.update(group="Suspicious", annotation="Extremely High Risk")
+    #                 nc.update_node(result[0], add_node)
+    #     return nc, item_list
+
     @staticmethod
     def update_annotations(nc, item_list, token_type):
         addr_list = nc.get_node_enum().keys()
+
+        # Convert to lowercase once
         addr_list_for_portal = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
+
         indicators = fetch_indicators(request_dict)
-        print("indicators length ", len(indicators))
-        # Extremely High Node
-        cara_addr_list = [addr for addr in addr_list]
-        request_dict_cara = {'addr_list': cara_addr_list}
-        new_addresses = fetch_cara_report(request_dict_cara)
-        seen_indicators = []
-        if len(indicators) > 0:
+        print(f"{indicators=}")
+        request_dict_cara = {'addr_list': list(addr_list)}
+
+        addresses_with_cara_report = fetch_cara_report(request_dict_cara)
+        print(f"{addresses_with_cara_report=}")
+
+        # Create a dictionary for quick lookup of CARA report addresses
+        cara_addr_dict = {addr_score[0].lower(): addr_score for addr_score in addresses_with_cara_report}
+
+        # Create sets for O(1) lookups
+        seen_indicators = set()
+        updated_nodes = 0
+        updated_transactions = 0
+
+        # Pre-compute lower case addresses for each transaction to avoid repeated conversions
+        sender_to_tx = {}
+        receiver_to_tx = {}
+        for tx in item_list:
+            # Initialize annotations if missing (do this once outside the main loop)
+            if not tx.get('sender_annotation', None):
+                tx['sender_annotation'] = ''
+            if not tx.get('receiver_annotation', None):
+                tx['receiver_annotation'] = ''
+
+            # Build address to transaction mappings
+            sender_lower = tx['sender'].lower()
+            receiver_lower = tx['receiver'].lower()
+
+            if sender_lower not in sender_to_tx:
+                sender_to_tx[sender_lower] = []
+            sender_to_tx[sender_lower].append(tx)
+
+            if receiver_lower not in receiver_to_tx:
+                receiver_to_tx[receiver_lower] = []
+            receiver_to_tx[receiver_lower].append(tx)
+
+        if indicators:
             try:
-                for item in indicators:
-                    if "annotation" not in item.keys():
+                for i, item in enumerate(indicators):
+                    # Ensure annotation exists
+                    if "annotation" not in item:
                         item["annotation"] = ""
-                    if item['pattern'].lower() in seen_indicators:
+
+                    pattern = item['pattern']
+                    pattern_lower = pattern.lower()
+
+                    # Skip if already processed
+                    if pattern_lower in seen_indicators:
                         continue
-                    cur_node = nc.get_node(item["pattern"].lower())
-                    cur_node = nc.get_node(item["pattern"]) if cur_node is None else cur_node
+
+                    # Get node using lowercase pattern first
+                    cur_node = nc.get_node(pattern_lower)
+                    if cur_node is None:
+                        cur_node = nc.get_node(pattern)
+
                     if cur_node is None:
                         continue
+
+                    # Update node trdb_info
                     cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
                                                'security_category': item['security_category'],
                                                'pattern_type': item['pattern_type'],
                                                'pattern_subtype': item['pattern_subtype']})
+
+                    # Skip further updates if Exchange/DEX/Bridge/Mixer
                     if cur_node.group == "Exchange/DEX/Bridge/Mixer":
-                        seen_indicators.append(item['pattern'].lower())
+                        seen_indicators.add(pattern_lower)
                         continue
-                    if item["security_category"].lower() == "graylist":
+
+                    security_category = item["security_category"].lower()
+
+                    # Update node based on security category (logic unchanged)
+                    if security_category == "graylist":
                         if item["annotation"]:
                             cur_node.update(annotation=item["annotation"])
                             cur_node.set_group_from_annotation()
                         else:
                             cur_node.update(group="No Tag", annotation="")
-                    elif item["security_category"].lower() == "blacklist":
+                    elif security_category == "blacklist":
                         cur_node.update(group="Blacklist", annotation="Blacklist")
-                    elif item["security_category"].lower() == "whitelist":
+                    elif security_category == "whitelist":
                         cur_node.update(group="Whitelist", annotation="Whitelist")
                     else:
                         kwargs = {}
                         kwargs["group"] = item["security_category"].title()
+
                         if item["annotation"]:
                             kwargs["annotation"] = item["annotation"]
-                            if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item[
-                                "annotation"] or "Mixer" in item["annotation"] or "bridge" in item[
-                                "annotation"] or "mixer" in item["annotation"]:
+
+                            annotation_lower = item["annotation"].lower()
+                            if any(term in annotation_lower for term in ["exchange", "dex", "bridge", "mixer"]):
                                 kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
-                            elif "Smart" in item["annotation"] or "Contract" in item["annotation"] or "smart" in item[
-                                "annotation"] or "contract" in item["annotation"]:
+                            elif any(term in annotation_lower for term in ["smart", "contract"]):
                                 kwargs["group"] = "Smart Contract"
                         else:
                             kwargs["annotation"] = ""
-                        cur_node.update(**kwargs)
-                    nc.update_node(item['pattern'].lower(), cur_node)
-                    for transaction in item_list:
-                        if not transaction.get('sender_annotation', None):
-                            transaction['sender_annotation'] = ''
-                        if not transaction.get('receiver_annotation', None):
-                            transaction['receiver_annotation'] = ''
 
-                        if transaction['sender'].lower() == cur_node.address.lower():
-                            transaction['sender_annotation'] = cur_node.annotation
-                        elif transaction['receiver'].lower() == cur_node.address.lower():
-                            transaction['receiver_annotation'] = cur_node.annotation
-                    seen_indicators.append(item['pattern'].lower())
-                    if len(new_addresses) > 0 and item["security_category"].lower() == "blacklist" or item[
-                        "security_category"].lower() == "whitelist":
-                        for result in new_addresses:
-                            if item['pattern'].lower() == result[0] or item['pattern'] == result[0]:
-                                new_addresses.remove(result)
+                        cur_node.update(**kwargs)
+
+                    nc.update_node(pattern_lower, cur_node)
+                    updated_nodes += 1
+
+                    # Update transaction annotations using our pre-built dictionaries
+                    tx_updates = 0
+                    node_address_lower = cur_node.address.lower()
+
+                    # Update sender annotations
+                    if node_address_lower in sender_to_tx:
+                        for tx in sender_to_tx[node_address_lower]:
+                            tx['sender_annotation'] = cur_node.annotation
+                            tx_updates += 1
+
+                    # Update receiver annotations
+                    if node_address_lower in receiver_to_tx:
+                        for tx in receiver_to_tx[node_address_lower]:
+                            tx['receiver_annotation'] = cur_node.annotation
+                            tx_updates += 1
+
+                    updated_transactions += tx_updates
+
+                    seen_indicators.add(pattern_lower)
+
+                    print(f"[DEBUG] Updated {updated_nodes} nodes and {updated_transactions} transaction annotations")
+
+                    # Remove from cara_addr_dict if blacklist or whitelist
+                    if security_category in ["blacklist", "whitelist"]:
+                        # Check if the pattern exists in the cara report dict
+                        cara_addr_dict.pop(pattern_lower, None)
+                        cara_addr_dict.pop(pattern, None)
+
             except Exception as e:
                 traceback.print_exc()
                 raise
 
-        if len(new_addresses) > 0:
-            for result in new_addresses:
-                add_node = nc.get_node(result[0])
-                for item in cara_addr_list:
-                    annotation_group = nc.get_node(item).group
-                    if add_node is None:
-                        continue
-                    elif result[1] == 'blacklist' or add_node.group == 'Blacklist':
-                        add_node.update(group="Blacklist", annotation="Blacklist")
-                        nc.update_node(result[0], add_node)
+        # Process remaining CARA report items
+        if cara_addr_dict:
+            # Rebuild the list from the dictionary values
+            remaining_addresses = list(cara_addr_dict.values())
+
+            for address_score_list in remaining_addresses:
+                address = address_score_list[0]
+                addr_node = nc.get_node(address)
+
+                if addr_node is None:
+                    continue
+
+                # Check if any node in cara_addr_list has 'Exchange/DEX/Bridge/Mixer' in its group
+                is_exchange = False
+                for item in addr_list:
+                    item_node = nc.get_node(item)
+                    if item_node and 'Exchange/DEX/Bridge/Mixer' in item_node.group:
+                        is_exchange = True
                         break
-                    elif result[1] == 'whitelist' or add_node.group == 'Whitelist':
-                        add_node.update(group="Whitelist", annotation="Whitelist")
-                        nc.update_node(result[0], add_node)
-                        break
-                    elif 'Exchange/DEX/Bridge/Mixer' in annotation_group or add_node.group == 'Exchange/DEX/Bridge/Mixer' and \
-                            result[1] != 'blacklist' and result[1] != 'whitelist':
-                        nc.update_node(result[0], add_node)
-                        break
-                    else:
-                        add_node.update(group="Suspicious", annotation="Extremely High Risk")
-                        nc.update_node(result[0], add_node)
+
+                # Check if the node itself is an Exchange
+                if is_exchange or 'Exchange/DEX/Bridge/Mixer' in addr_node.group:
+                    nc.update_node(address, addr_node)
+                else:
+                    addr_node.update(group="Suspicious", annotation="Extremely High Risk")
+                    nc.update_node(address, addr_node)
+
         return nc, item_list
 
     def set_annotations_from_db(self, token_type='ETH'):

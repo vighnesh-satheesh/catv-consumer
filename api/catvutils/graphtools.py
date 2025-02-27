@@ -30,28 +30,47 @@ class Node:
         self.set_group_from_annotation()
 
     def set_group_from_annotation(self):
+        # Initialize default
+        self.group = ""
+
+        # Use casefold() for case-insensitive comparison
         annotation_list = self.annotation.casefold().split(", ")
-        if len(annotation_list) == 0:
-            self.group = 'No Tag'
-        else:
+
+        if annotation_list:
+            # Define term sets for faster lookups
+            suspicious_terms = {'scamming', 'phishing'}
+            exchange_terms = {'dex', 'exchange', 'bridge', 'mixer'}
+            contract_terms = {'smart', 'contract'}
+
+            # Process annotations
             for annotation in annotation_list:
-                if 'scamming' in annotation or 'phishing' in annotation:
+                # Check for suspicious terms
+                if any(term in annotation for term in suspicious_terms):
                     self.group = 'Suspicious'
                     break
-                elif 'dex' in annotation or 'exchange' in annotation or 'bridge' in annotation or 'mixer' in annotation:
+
+                # Check for exchange-related terms
+                elif any(term in annotation for term in exchange_terms):
                     self.group = 'Exchange/DEX/Bridge/Mixer'
                     break
-                elif self.type != 'Wallet' and self.group == "":
+
+                # Check for smart contract terms
+                elif any(term in annotation for term in contract_terms):
                     self.group = 'Smart Contract'
                     break
-                elif "smart" in annotation or "contract" in annotation:
-                    self.group = "Smart Contract"
-                    break
-                else:
-                    if annotation:
-                        self.group = 'Annotated'
-                    else:
-                        self.group = 'No Tag'
+
+                # Default case for this annotation
+                elif annotation:
+                    self.group = 'Annotated'
+
+        # Node type check after annotation processing
+        if self.group == "" and self.type != 'Wallet':
+            print(f"SMC {self.address}")
+            self.group = 'Smart Contract'
+
+        # Final fallback to ensure group is never empty
+        if self.group == "":
+            self.group = 'No Tag'
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -63,21 +82,34 @@ class BTCNode(Node):
         super(BTCNode, self).__init__(**kwargs)
 
     def set_group_from_annotation(self):
-        annotation_list = self.annotation.split(", ")
-        for annotation in annotation_list:
-            if 'Scamming' in annotation or 'Phishing' in annotation:
-                self.group = 'Suspicious'
-                break
-            elif 'Dex' in annotation or 'Exchange' in annotation or 'Bridge' in annotation or 'Mixer' in annotation or 'bridge' in annotation or 'mixer' in annotation:
-                self.group = 'Exchange/DEX/Bridge/Mixer'
-                break
-            elif "Smart" in annotation or "Contract" in annotation or "smart" in annotation or "contract" in annotation:
-                self.group = "Smart Contract"
-                break
-            elif self.annotation:
-                self.group = 'Annotated'
-            else:
-                self.group = "No Tag"
+        annotation_list = self.annotation.casefold().split(", ")
+
+        # Initialize default
+        self.group = ""
+
+        # Case-insensitive terms to check
+        suspicious_terms = ['scamming', 'phishing', 'Scamming', 'Phishing']
+        exchange_terms = {'dex', 'exchange', 'bridge', 'mixer'}
+
+        if annotation_list:
+            for annotation in annotation_list:
+                # Check for suspicious terms
+                if any(term in annotation for term in suspicious_terms):
+                    self.group = 'Suspicious'
+                    break
+
+                # Check for exchange-related terms
+                elif any(term in annotation for term in exchange_terms):
+                    self.group = 'Exchange/DEX/Bridge/Mixer'
+                    break
+
+                # Default case for this annotation
+                elif annotation:
+                    self.group = 'Annotated'
+
+        # Final fallback to ensure group is never empty
+        if self.group == "":
+            self.group = 'No Tag'
 
 
 class NodesCollection:
