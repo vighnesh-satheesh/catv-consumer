@@ -48,6 +48,7 @@ class TracerAPIInterface(TransactionAPIInterface):
                 "chain_id": chain_id,
                 "start_address": address,
                 "start_datetime": start_datetime,
+                "end_datetime": till_time,
                 "max_hops": depth_limit,
                 "max_workers": 5,
                 "tokens": [
