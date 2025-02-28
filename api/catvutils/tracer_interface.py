@@ -33,22 +33,19 @@ class TracerAPIInterface(TransactionAPIInterface):
         try:
             # Convert chain to chain_id
             chain_id = self._get_chain_id(chain)
-
-            # Format the start_datetime if needed
-            # Assuming from_time is in format "YYYY-MM-DD" and needs to be converted
-            # to "YYYY-MM-DDT00:00:00.000Z" format
             if from_time and 'T' not in from_time:
                 start_datetime = f"{from_time}T00:00:00.000Z"
             else:
                 start_datetime = from_time
-            till_time = f"{till_time}Z"
+
+            end_datetime = f"{till_time}Z"
             # Prepare request body
             request_body = {
                 "chain_type": "evm",
                 "chain_id": chain_id,
                 "start_address": address,
                 "start_datetime": start_datetime,
-                "end_datetime": till_time,
+                "end_datetime": end_datetime,
                 "max_hops": depth_limit,
                 "max_workers": 5,
                 "tokens": [
@@ -94,6 +91,78 @@ class TracerAPIInterface(TransactionAPIInterface):
         """
         transactions = response_data.get('transactions', [])
 
-        # process swaps here -> convert swap_info into a txn item
+        # Process swaps to create reverse transactions
+        swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
+        reverse_swap_transactions = self._create_reverse_swap_transactions(swap_transactions)
+
+        # Add the reverse swap transactions to the original list
+        if reverse_swap_transactions:
+            transactions.extend(reverse_swap_transactions)
+            print(f"Added {len(reverse_swap_transactions)} reverse swap transactions")
 
         return transactions
+
+    def _create_reverse_swap_transactions(self, swap_transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Create reverse transactions for swaps to visualize token flow from router back to sender.
+
+        Args:
+            swap_transactions: List of transactions with is_swap=true and valid swap_info
+
+        Returns:
+            List of new transaction objects representing the reverse swap flow
+        """
+        reverse_transactions = []
+
+        for tx in swap_transactions:
+            swap_info = tx.get('swap_info', {})
+            token_out = swap_info.get('token_out', {})
+
+            # Skip if token_out is missing or invalid
+            if not token_out or not isinstance(token_out, dict):
+                continue
+
+            # Create reverse transaction (from router to original sender)
+            reverse_tx = {
+                # Keep same identification fields
+                "chain_id": tx.get('chain_id'),
+                "depth": tx.get('depth'),
+                "direction": tx.get('direction'),
+                "tx_hash": tx.get('tx_hash'),
+                "block_height": tx.get('block_height'),
+                "tx_time": tx.get('tx_time'),
+
+                # Swap addresses
+                "sender": tx.get('receiver'),  # Router address is now sender
+                "receiver": tx.get('sender'),  # Original sender is now receiver
+
+                # Swap annotations and security categories
+                "sender_annotation": tx.get('receiver_annotation', ''),
+                "receiver_annotation": tx.get('sender_annotation', ''),
+                "sender_security_category": tx.get('receiver_security_category', ''),
+                "receiver_security_category": tx.get('sender_security_category', ''),
+
+                # Token details from token_out
+                "symbol": token_out.get('symbol', ''),
+                "token": {
+                    "address": token_out.get('address', ''),
+                    "symbol": token_out.get('symbol', ''),
+                    "decimals": token_out.get('decimals')
+                },
+                "token_type": "ERC20",  # Assuming all swap tokens are ERC20
+                "token_id": "",
+
+                # Amount from swap_info.amount_out
+                "amount": swap_info.get('amount_out', 0),
+                "amount_usd": 0,  # Empty as specified
+
+                # Swap sender/receiver types
+                "sender_type": tx.get('receiver_type', 'Wallet'),
+                "receiver_type": tx.get('sender_type', 'Wallet'),
+
+                "is_swap": True
+            }
+
+            reverse_transactions.append(reverse_tx)
+
+        return reverse_transactions

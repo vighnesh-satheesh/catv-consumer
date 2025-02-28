@@ -65,7 +65,6 @@ class Node:
 
         # Node type check after annotation processing
         if self.group == "" and self.type != 'Wallet':
-            print(f"SMC {self.address}")
             self.group = 'Smart Contract'
 
         # Final fallback to ensure group is never empty
@@ -232,9 +231,11 @@ def create_edge(id, tx, node_enum):
             'amount': abs(tx['amount']),
             'tx_hash': tx['tx_hash'],
             'depth': tx['depth'],
-            'tx_time': '{} {}'.format(tx['tx_time'].split("T")[0], tx['tx_time'].split("T")[1][:5]) if len(tx['tx_time'].split("T")) > 1 else tx['tx_time']
+            'tx_time': format_tx_time(tx['tx_time']),
+            'symbol': tx['symbol']
         }],
-        'depth': tx['depth']
+        'depth': tx['depth'],
+        'is_swap': tx['is_swap'] if 'is_swap' in tx else False,
     }
     return edge
 
@@ -299,7 +300,6 @@ def assign_edges(result, mode, node_enum):
     edge_dict = {}
     counter = 0
     for item in result:
-        print(f"Inside assign_edges {counter}) {item=}")
         try:
             amount = float(item['amount']) if isinstance(item['amount'], str) else item['amount']
             amount_usd = 0
@@ -313,7 +313,6 @@ def assign_edges(result, mode, node_enum):
                 'amount': abs(amount),
                 'tx_hash': item['tx_hash'],
                 'depth': item['depth'],
-                # 'tx_time': '{} {}'.format(item['tx_time'].split("T")[0], item['tx_time'].split("T")[1][:5]) if len(item['tx_time'].split("T")) > 1 else item['tx_time'],
                 'tx_time': formatted_tx_time,
                 'amount_usd': abs(amount_usd)
             })

@@ -146,8 +146,10 @@ class ExchangeChecker:
                 self.tracking_exchanges(mode=-1)
             elif dist_exchange_nodes and src_exchange_nodes:
                 print("Exchanges found in both source and distribution")
-                self.tracking_exchanges(1)
-                self.tracking_exchanges(-1)
+                self.tracking_exchanges_combined(src_exchange_nodes, dist_exchange_nodes)
+
+                # self.tracking_exchanges(1)
+                # self.tracking_exchanges(-1)
         except Exception as e:
             traceback.print_exc()
             print("The following exception occurred while trying to get exchanges:", e)
@@ -155,48 +157,145 @@ class ExchangeChecker:
 
         return self.graph_data
 
+    def tracking_exchanges_combined(self, src_exchange_nodes, dist_exchange_nodes):
+        """
+        Process both source and distribution exchanges in a single pass
+        to properly handle cases where both types exist
+        """
+        # Get exchange node IDs for both sides
+        src_exchange_node_ids = [node['id'] for node in src_exchange_nodes]
+        dist_exchange_node_ids = [node['id'] for node in dist_exchange_nodes]
+
+        # Separate swap edges from non-swap edges
+        swap_edges = [edge for edge in self.edge_list if edge.get('is_swap', False)]
+        non_swap_edges = [edge for edge in self.edge_list if not edge.get('is_swap', False)]
+
+        # Apply both filters at once to non-swap edges
+        filtered_non_swap_edges = [
+            edge for edge in non_swap_edges
+            if (edge['to'] not in src_exchange_node_ids or edge.get('is_swap',
+                                                                    False)) and  # Not ending at source exchanges
+               (edge['from'] not in dist_exchange_node_ids or edge.get('is_swap', False))
+            # Not starting from dist exchanges
+        ]
+
+        # Update edge list with filtered non-swap edges plus all swap edges
+        self.edge_list = filtered_non_swap_edges + swap_edges
+
+        # Run both BFS methods to identify connected nodes
+        self.bfs_src_connected_nodes()
+        self.bfs_dist_connected_nodes()
+
+        # Filter node lists based on BFS results
+        self.src_node_list = [
+            node for node in self.src_node_list
+            if node['id'] in self.src_connected_nodes_list
+        ]
+
+        self.dist_node_list = [
+            node for node in self.dist_node_list
+            if node['id'] in self.dist_connected_nodes_list
+        ]
+
+        # Process nodes and edges
+        self.process_node_list()
+
+        # Process edges with combined mode
+        self.process_edge_list_combined(src_exchange_node_ids, dist_exchange_node_ids)
+
+        # Complete remaining processing
+        self.validate_node_addresses()
+        self.process_address_data()
+        self.process_item_list()
+
+        # Set final graph data
+        self.set_graph_data(mode=0)  # Using 0 to indicate combined mode
+
+    def process_edge_list_combined(self, src_exchange_node_ids, dist_exchange_node_ids):
+        """
+        Process edge list for combined source and distribution modes
+        """
+        node_ids = [node['id'] for node in self.node_list]
+
+        # Get all swap edges
+        swap_edges = [edge for edge in self.edge_list if edge.get('is_swap', False)]
+
+        # Filter non-swap edges
+        non_swap_edges = [
+            edge for edge in self.edge_list
+            if not edge.get('is_swap', False) and
+               edge['from'] in node_ids and
+               edge['to'] in node_ids and
+               edge['to'] not in src_exchange_node_ids and  # Not ending at source exchanges
+               edge['from'] not in dist_exchange_node_ids  # Not starting from dist exchanges
+        ]
+
+        # Combine filtered non-swap edges with all swap edges
+        self.edge_list = non_swap_edges + swap_edges
+
     def tracking_exchanges(self, mode):
         self.exchange_node_ids = []
         self.required_node_addresses = []
         self.exchange_node_ids = self.exchange_nodes_obj.get_exchange_node_ids(mode)
         self.exchange_nodes = self.exchange_nodes_obj.get_exchange_nodes(mode)
 
+        # First, separate swap edges from non-swap edges
+        swap_edges = [edge for edge in self.edge_list if edge.get('is_swap', False)]
+        non_swap_edges = [edge for edge in self.edge_list if not edge.get('is_swap', False)]
+
         if mode == -1:
-            # removing all edges ending in exchanges
-            self.edge_list = [
-                edge for edge in self.edge_list
+            # Filter only non-swap edges - remove those ending at exchanges
+            filtered_non_swap_edges = [
+                edge for edge in non_swap_edges
                 if edge[TO] not in self.exchange_node_ids
             ]
+
+            # Combine filtered non-swap edges with all swap edges
+            self.edge_list = filtered_non_swap_edges + swap_edges
+
+            # Run BFS and update connected nodes
             self.bfs_src_connected_nodes()
-            # modifying src node list after BFS
+
+            # Modify src node list after BFS
             self.src_node_list = [
                 node for node in self.src_node_list
                 if node['id'] in self.src_connected_nodes_list
             ]
         else:
-            # removing all edges originating from exchanges
-            self.edge_list = [
-                edge for edge in self.edge_list
+            # Filter only non-swap edges - remove those starting from exchanges
+            filtered_non_swap_edges = [
+                edge for edge in non_swap_edges
                 if edge[FROM] not in self.exchange_node_ids
             ]
+
+            # Combine filtered non-swap edges with all swap edges
+            self.edge_list = filtered_non_swap_edges + swap_edges
+
+            # Run BFS and update connected nodes
             self.bfs_dist_connected_nodes()
-            # modifying dist node list after BFS
+
+            # Modify dist node list after BFS
             self.dist_node_list = [
                 node for node in self.dist_node_list
                 if node['id'] in self.dist_connected_nodes_list
             ]
 
-        # processing the node list first to remove irrelevant nodes
+        # Process the node list first to remove irrelevant nodes
         self.process_node_list()
-        # remove edges of already removed nodes from edge_list
+
+        # Remove edges of already removed nodes from edge_list
         self.process_edge_list(mode=mode)
-        # find node addresses to kept
+
+        # Find node addresses to keep
         self.validate_node_addresses()
-        # process node_enum, receive_count and send_count
+
+        # Process node_enum, receive_count and send_count
         self.process_address_data()
-        # remove extra transactions from item_list
+
+        # Remove extra transactions from item_list
         self.process_item_list()
-        # set final graph_data
+
+        # Set final graph_data
         self.set_graph_data(mode=mode)
 
     # breadth-first search to remove disconnected nodes from the main graph in src side
@@ -253,17 +352,37 @@ class ExchangeChecker:
         ]
 
     def process_edge_list(self, mode):
+        """
+        Process edge list to remove edges involving exchange nodes,
+        but preserve swap edges regardless of exchange involvement.
+        """
         if mode == -1:
-            key = TO
+            key = 'to'  # Using string keys instead of variables
         else:
-            key = FROM
+            key = 'from'
+
         node_ids = [node['id'] for node in self.node_list]
-        self.edge_list = [
+
+        # Separate swap edges from non-swap edges in the original edge list
+        swap_edges = [
             edge for edge in self.graph_data['edge_list']
-            if edge[FROM] in node_ids and
-               edge[TO] in node_ids and
+            if edge.get('is_swap', False) and
+               edge['from'] in node_ids and
+               edge['to'] in node_ids
+        ]
+
+        # Filter non-swap edges
+        non_swap_edges = [
+            edge for edge in self.graph_data['edge_list']
+            if not edge.get('is_swap', False) and
+               edge['from'] in node_ids and
+               edge['to'] in node_ids and
                edge[key] not in self.exchange_node_ids
         ]
+
+        # Combine filtered non-swap edges with all swap edges
+        self.edge_list = non_swap_edges + swap_edges
+        print(f"After process_edge_list: {len(self.edge_list)} total edges, {len(swap_edges)} swap edges kept")
 
     # getting the node addresses that will be kept after processing
     def validate_node_addresses(self):
