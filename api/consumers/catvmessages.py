@@ -224,6 +224,7 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
+        traceback.print_exc()
         print(f"Inside catvmessages: {type(e)}")
         task_status = CatvTaskStatusType.FAILED
         # revert usage in case of exception

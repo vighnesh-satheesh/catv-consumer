@@ -127,10 +127,10 @@ class CatvRequestStatus(models.Model):
     updated = models.DateTimeField(auto_now=True)
     labels = ArrayField(models.CharField(max_length=100, blank=False), default=list)
     token_type = EnumField(CatvTokens, default=CatvTokens.ETH)
-    parent_request = models.ForeignKey('self', null=True, blank=True,
-                                       on_delete=models.CASCADE,
-                                       related_name='swap_requests')
-    is_swap_request = models.BooleanField(default=False)
+    # parent_request = models.ForeignKey('self', null=True, blank=True,
+    #                                    on_delete=models.CASCADE,
+    #                                    related_name='swap_requests')
+    # is_swap_request = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'api_catv_request_status'

@@ -276,17 +276,46 @@ def add_edge_ids_to_item_list(edge_list, result):
     return result
 
 
+def format_tx_time(tx_time):
+    """Handle multiple timestamp formats from different vendors"""
+    try:
+        # Split the timestamp string to handle different formats
+        parts = tx_time.replace('Z', '').replace('+00:00', '')
+
+        # Handle format with 'T' separator
+        if 'T' in parts:
+            date_part, time_part = parts.split('T')
+            # Return format: "YYYY-MM-DD HH:MM"
+            return f"{date_part} {time_part[:5]}"
+        else:
+            # If the format is unexpected, return the original
+            return tx_time
+    except Exception:
+        # If any parsing error occurs, return the original
+        return tx_time
+
+
 def assign_edges(result, mode, node_enum):
     edge_dict = {}
     counter = 0
     for item in result:
+        print(f"Inside assign_edges {counter}) {item=}")
         try:
+            amount = float(item['amount']) if isinstance(item['amount'], str) else item['amount']
+            amount_usd = 0
+            if 'amount_usd' in item:
+                amount_usd = float(item['amount_usd']) if isinstance(item['amount_usd'], str) else item['amount_usd']
+            formatted_tx_time = format_tx_time(item['tx_time'])
+            item['amount'] = amount
+            item['tx_time'] = formatted_tx_time
+            item['amount_usd'] = amount_usd
             edge_dict[(item['sender'], item['receiver'])]['data'].append({
-                'amount': abs(item['amount']),
+                'amount': abs(amount),
                 'tx_hash': item['tx_hash'],
                 'depth': item['depth'],
-                'tx_time': '{} {}'.format(item['tx_time'].split("T")[0], item['tx_time'].split("T")[1][:5]) if len(item['tx_time'].split("T")) > 1 else item['tx_time'],
-                'amount_usd': abs(item['amount_usd']) if 'amount_usd' in item else 0
+                # 'tx_time': '{} {}'.format(item['tx_time'].split("T")[0], item['tx_time'].split("T")[1][:5]) if len(item['tx_time'].split("T")) > 1 else item['tx_time'],
+                'tx_time': formatted_tx_time,
+                'amount_usd': abs(amount_usd)
             })
             edge_dict[(item['sender'], item['receiver'])]['sum'] += abs(item['amount'])
             if 'depth' not in edge_dict[(item['sender'], item['receiver'])]:

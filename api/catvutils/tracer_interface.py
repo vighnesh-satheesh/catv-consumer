@@ -41,7 +41,7 @@ class TracerAPIInterface(TransactionAPIInterface):
                 start_datetime = f"{from_time}T00:00:00.000Z"
             else:
                 start_datetime = from_time
-
+            till_time = f"{till_time}Z"
             # Prepare request body
             request_body = {
                 "chain_type": "evm",

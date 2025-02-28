@@ -57,7 +57,7 @@ class TrackingResults:
 
         # Determine if we should use Tracer API first based on chain
         should_use_tracer_first = self.chain != 'KLAY' and self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'AVAX']
-
+        print(f"{should_use_tracer_first=}")
         if should_use_tracer_first:
             try:
                 # Try Tracer API first
