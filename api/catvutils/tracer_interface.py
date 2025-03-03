@@ -91,6 +91,12 @@ class TracerAPIInterface(TransactionAPIInterface):
         """
         transactions = response_data.get('transactions', [])
 
+        # offsetting depth to -(depth) for source transactions
+        if source:
+            for transaction in transactions:
+                if 'depth' in transaction:
+                    transaction['depth'] = -transaction['depth']
+
         # Process swaps to create reverse transactions
         swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
         reverse_swap_transactions = self._create_reverse_swap_transactions(swap_transactions)

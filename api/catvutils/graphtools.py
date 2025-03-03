@@ -221,10 +221,17 @@ def uniqfy_generator(seq, addr_key, exclusions):
 
 
 def create_edge(id, tx, node_enum):
+    amount = tx['amount']
+    symbol = tx.get('symbol', '')
+    sum_dict = {symbol: abs(amount)}
+    sum_list = [f"{abs(amount)} {symbol}"]
+
     edge = {
         'id': id,
         'arrows': 'to',
         'sum': abs(tx['amount']),
+        'sum_dict': sum_dict,  # Add new field for symbol-based sums
+        'sum_list': sum_list,
         'from': node_enum[tx['sender']],
         'to': node_enum[tx['receiver']],
         'data': [{
@@ -232,7 +239,7 @@ def create_edge(id, tx, node_enum):
             'tx_hash': tx['tx_hash'],
             'depth': tx['depth'],
             'tx_time': format_tx_time(tx['tx_time']),
-            'symbol': tx['symbol']
+            'symbol': symbol
         }],
         'depth': tx['depth'],
         'is_swap': tx['is_swap'] if 'is_swap' in tx else False,
@@ -309,14 +316,24 @@ def assign_edges(result, mode, node_enum):
             item['amount'] = amount
             item['tx_time'] = formatted_tx_time
             item['amount_usd'] = amount_usd
+            symbol = item.get('symbol', '')
+
             edge_dict[(item['sender'], item['receiver'])]['data'].append({
                 'amount': abs(amount),
                 'tx_hash': item['tx_hash'],
                 'depth': item['depth'],
                 'tx_time': formatted_tx_time,
-                'amount_usd': abs(amount_usd)
+                'amount_usd': abs(amount_usd),
+                'symbol': symbol
             })
             edge_dict[(item['sender'], item['receiver'])]['sum'] += abs(item['amount'])
+
+            # Update the sum_dict - internal tracking of amounts by symbol
+            if symbol in edge_dict[(item['sender'], item['receiver'])]['sum_dict']:
+                edge_dict[(item['sender'], item['receiver'])]['sum_dict'][symbol] += abs(amount)
+            else:
+                edge_dict[(item['sender'], item['receiver'])]['sum_dict'][symbol] = abs(amount)
+
             if 'depth' not in edge_dict[(item['sender'], item['receiver'])]:
                 edge_dict[(item['sender'], item['receiver'])]['depth'] = item['depth']
         except KeyError:
@@ -329,6 +346,14 @@ def assign_edges(result, mode, node_enum):
             edge_dict[(item['sender'], item['receiver'])]['width'] = EDGE_WIDTH_MIN
         else:
             edge_dict[(item['sender'], item['receiver'])]['width'] = width
+
+    # Process all edges after the main loop to set sum_list and is_swap flags
+    for key_tuple, edge in edge_dict.items():
+        # Update sum_list from sum_dict with proper formatting
+        edge['sum_list'] = [
+            f"{amount} {symbol}" for symbol, amount in edge['sum_dict'].items()
+        ]
+
     return edge_dict
 
 
