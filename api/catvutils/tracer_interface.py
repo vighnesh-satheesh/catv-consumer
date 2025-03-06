@@ -165,7 +165,6 @@ class TracerAPIInterface(TransactionAPIInterface):
                 # Swap sender/receiver types
                 "sender_type": tx.get('receiver_type', 'Wallet'),
                 "receiver_type": tx.get('sender_type', 'Wallet'),
-
                 "is_swap": True
             }
 
