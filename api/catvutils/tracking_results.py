@@ -417,14 +417,13 @@ class TrackingResults:
 
                     seen_indicators.add(pattern_lower)
 
-                    print(f"[DEBUG] Updated {updated_nodes} nodes and {updated_transactions} transaction annotations")
-
                     # Remove from cara_addr_dict if blacklist or whitelist
                     if security_category in ["blacklist", "whitelist"]:
                         # Check if the pattern exists in the cara report dict
                         cara_addr_dict.pop(pattern_lower, None)
                         cara_addr_dict.pop(pattern, None)
 
+                print(f"Updated {updated_nodes} nodes and {updated_transactions} transaction annotations")
             except Exception as e:
                 traceback.print_exc()
                 raise
