@@ -31,7 +31,29 @@ class CatvMetrics:
                 'annotated': {'count': 0, 'total_amount': 0}
             }
         }
-        self.symbol = self.item_list[0]['symbol'] if self.item_list else token_type
+        self.symbol = self.find_main_token(token_type)
+
+    def find_main_token(self, token_type):
+        # Determine the main token by finding the most frequent symbol in a subset
+        if self.item_list:
+            # Use a sample of up to 20 transactions to determine main token
+            sample_size = min(20, len(self.item_list))
+            sample_items = self.item_list[:sample_size]
+
+            # Count occurrences of each token symbol
+            token_counts = {}
+            for item in sample_items:
+                symbol = item.get('symbol')
+                if symbol:
+                    token_counts[symbol] = token_counts.get(symbol, 0) + 1
+
+            # Find the symbol with highest count
+            if token_counts:
+                return max(token_counts.items(), key=lambda x: x[1])[0]
+            else:
+                return token_type
+        else:
+            return token_type
 
     def generate_metrics(self, compare_operator):
         # Filter items and nodes based on depth/level
@@ -329,6 +351,24 @@ class CatvMetrics:
                 n_list.append(item)
                 seen.append(item[key])
         return n_list
+
+    def calculate_total_amounts(self):
+        """Calculate total amounts in main token currency and USD value"""
+        # Default values
+        total_amount = 0
+        total_amount_usd = 0
+
+        # Check if we have valid items with amount data
+        if not self.item_list:
+            return total_amount, total_amount_usd
+
+        # Filter items for main token and sum in a single pass
+        for item in self.item_list:
+            if item['symbol'] == self.symbol:
+                total_amount += item.get("amount", 0)
+                total_amount_usd += item.get("amount_usd", 0)
+
+        return total_amount, total_amount_usd
 
     def _group_by(self, items, key_func):
         """Helper function to group items by a key function"""
