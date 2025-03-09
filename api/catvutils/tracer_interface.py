@@ -99,7 +99,7 @@ class TracerAPIInterface(TransactionAPIInterface):
 
         # Process swaps to create reverse transactions
         swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
-        reverse_swap_transactions = self._create_reverse_swap_transactions(swap_transactions)
+        reverse_swap_transactions = TracerAPIInterface.create_reverse_swap_transactions(swap_transactions)
 
         # Add the reverse swap transactions to the original list
         if reverse_swap_transactions:
@@ -108,7 +108,8 @@ class TracerAPIInterface(TransactionAPIInterface):
 
         return transactions
 
-    def _create_reverse_swap_transactions(self, swap_transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def create_reverse_swap_transactions(swap_transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Create reverse transactions for swaps to visualize token flow from router back to sender.
 
@@ -131,11 +132,11 @@ class TracerAPIInterface(TransactionAPIInterface):
             # Create reverse transaction (from router to original sender)
             reverse_tx = {
                 # Keep same identification fields
-                "chain_id": tx.get('chain_id'),
+                "chain_id": tx.get('chain_id', None),
                 "depth": tx.get('depth'),
-                "direction": tx.get('direction'),
+                "direction": tx.get('direction', None),
                 "tx_hash": tx.get('tx_hash'),
-                "block_height": tx.get('block_height'),
+                "block_height": tx.get('block_height', None),
                 "tx_time": tx.get('tx_time'),
 
                 # Swap addresses
@@ -159,11 +160,11 @@ class TracerAPIInterface(TransactionAPIInterface):
                 "token_id": "",
 
                 # Amount from swap_info.amount_out
-                "amount": swap_info.get('amount_out', 0),
-                "amount_usd": 0,  # Empty as specified
+                "amount": float(swap_info.get('amount_out', 0)),
+                "amount_usd": 0,  # Update when value is available
 
                 # Swap sender/receiver types
-                "sender_type": tx.get('receiver_type', 'Wallet'),
+                "sender_type": tx.get('receiver_type', 'Generic'),
                 "receiver_type": tx.get('sender_type', 'Wallet'),
                 "is_swap": True
             }
