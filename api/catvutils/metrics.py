@@ -308,7 +308,8 @@ class CatvMetrics:
                         'value': token_out_amount,
                         'symbol': token_out_symbol
                     },
-                    'protocol': item['swap_info'].get('protocol', 'Unknown')
+                    'protocol': item['swap_info'].get('protocol', 'Unknown'),
+                    'edge_id': item['edge_id']
                 })
 
         return {
