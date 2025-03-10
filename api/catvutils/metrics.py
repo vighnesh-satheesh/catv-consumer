@@ -280,7 +280,6 @@ class CatvMetrics:
 
         # Create simplified swap information
         swap_details = []
-        total_main_token_amount = 0
 
         for item in swap_items:
             if 'swap_info' in item:
@@ -290,12 +289,6 @@ class CatvMetrics:
 
                 token_in_amount = item['swap_info']['amount_in']
                 token_out_amount = item['swap_info']['amount_out']
-
-                # Add to main token total if involved
-                if token_in_symbol == self.symbol:
-                    total_main_token_amount += token_in_amount
-                elif token_out_symbol == self.symbol:
-                    total_main_token_amount += token_out_amount
 
                 swap_details.append({
                     'depth': item['depth'],
