@@ -280,14 +280,49 @@ class CatvMetrics:
 
         # Create simplified swap information
         swap_details = []
+        # Define mapping of wrapped token addresses to native token symbols
+        WRAPPED_TO_NATIVE = {
+            # Ethereum
+            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "ETH",  # WETH -> ETH
+
+            # Binance Smart Chain
+            "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c": "BNB",  # WBNB -> BNB
+
+            # Polygon
+            "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270": "MATIC",  # WMATIC -> MATIC
+
+            # Avalanche
+            "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7": "AVAX",  # WAVAX -> AVAX
+
+            # Fantom
+            "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83": "FTM",  # WFTM -> FTM
+        }
+
+        # Symbol mapping (alternative approach)
+        WRAPPED_SYMBOLS = {
+            "WETH": "ETH",
+            "WBNB": "BNB",
+            "WMATIC": "MATIC",
+            "WAVAX": "AVAX",
+            "WFTM": "FTM"
+        }
 
         for item in swap_items:
             if 'swap_info' in item:
                 # Determine amount of main token involved
-                token_in_symbol = item['swap_info']['token_in']['symbol']
-                token_out_symbol = item['swap_info']['token_out']['symbol']
 
+                token_in_address = item['swap_info']['token_in']['address'].lower()
+                token_in_symbol = item['swap_info']['token_in']['symbol']
                 token_in_amount = item['swap_info']['amount_in']
+
+                # Check if token_in is a wrapped token and replace with native symbol
+                if token_in_address in WRAPPED_TO_NATIVE:
+                    token_in_symbol = WRAPPED_TO_NATIVE[token_in_address]
+                # Alternative: Check by symbol
+                elif token_in_symbol in WRAPPED_SYMBOLS:
+                    token_in_symbol = WRAPPED_SYMBOLS[token_in_symbol]
+
+                token_out_symbol = item['swap_info']['token_out']['symbol']
                 token_out_amount = item['swap_info']['amount_out']
 
                 swap_details.append({
