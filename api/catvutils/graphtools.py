@@ -3,6 +3,7 @@ from itertools import chain, islice
 from math import ceil
 
 from api.settings import api_settings
+from api.utils import format_tx_time, generate_node_label
 
 MULTIPLIER = 0.4
 EDGE_WIDTH_MAX = 4
@@ -21,7 +22,7 @@ class Node:
         self.annotation = annotation
         self.type = type
         self.level = depth
-        self.label = address[:8]
+        self.label = generate_node_label(address, annotation)
         self.balance = balance
         self.amount_in = amount_in
         self.amount_out = amount_out
@@ -282,25 +283,6 @@ def add_edge_ids_to_item_list(edge_list, result):
         else:
             entry['edge_id'] = None  # If no match is found, set edge_id to None
     return result
-
-
-def format_tx_time(tx_time):
-    """Handle multiple timestamp formats from different vendors"""
-    try:
-        # Split the timestamp string to handle different formats
-        parts = tx_time.replace('Z', '').replace('+00:00', '')
-
-        # Handle format with 'T' separator
-        if 'T' in parts:
-            date_part, time_part = parts.split('T')
-            # Return format: "YYYY-MM-DD HH:MM"
-            return f"{date_part} {time_part[:5]}"
-        else:
-            # If the format is unexpected, return the original
-            return tx_time
-    except Exception:
-        # If any parsing error occurs, return the original
-        return tx_time
 
 
 def assign_edges(result, mode, node_enum):
