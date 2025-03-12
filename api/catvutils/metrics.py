@@ -248,15 +248,18 @@ class CatvMetrics:
             }
 
             if node['group'] == 'Blacklist' and addr not in processed_addresses['blacklisted']:
-                wallet_info['label'] = node.get('annotation', '')
+                wallet_info['label'] = node.get('label', '')
+                wallet_info['annotation'] = node.get('annotation', '')
                 wallet_metrics['blacklisted']['wallets'].append(wallet_info)
                 processed_addresses['blacklisted'].add(addr)
             elif node['group'] == 'Exchange/DEX/Bridge/Mixer' and addr not in processed_addresses['exchanges']:
-                wallet_info['label'] = node.get('annotation', '')
+                wallet_info['label'] = node.get('label', '')
+                wallet_info['annotation'] = node.get('annotation', '')
                 wallet_metrics['exchanges']['wallets'].append(wallet_info)
                 processed_addresses['exchanges'].add(addr)
             elif node['group'] == 'Annotated' and addr not in processed_addresses['annotated']:
-                wallet_info['label'] = node.get('annotation', '')
+                wallet_info['label'] = node.get('label', '')
+                wallet_info['annotation'] = node.get('annotation', '')
                 wallet_metrics['annotated']['wallets'].append(wallet_info)
                 processed_addresses['annotated'].add(addr)
 
