@@ -674,7 +674,7 @@ class GraphQLInterface:
             # Create swap_info object
             swap_info = {
                 "protocol": first_trade["protocol"],
-                "amount_in": str(incoming_swap_txn.get("amount")),  # Use incoming transaction amount
+                "amount_in": str(first_trade("buyAmount")),
                 "amount_out": str(last_trade["sellAmount"]),
                 "token_in": {
                     "address": first_trade["buyCurrency"]["address"],

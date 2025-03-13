@@ -3,6 +3,8 @@ import traceback
 from typing import List, Dict, Any, Optional
 
 import requests
+from django.conf import settings
+
 # from django.conf import settings
 
 from api.catvutils.transactions_api_interface import TransactionAPIInterface
@@ -12,8 +14,7 @@ class TracerAPIInterface(TransactionAPIInterface):
     """Interface for Tracer API"""
 
     def __init__(self):
-        # self._api_url = settings.TRACER_ENDPOINT
-        self._api_url = "https://stgtracer-api.sentinelprotocol.io/"
+        self._api_url = settings.TRACER_ENDPOINT
         self._timeout = (60, 300)
 
     def get_transactions(
@@ -91,11 +92,21 @@ class TracerAPIInterface(TransactionAPIInterface):
         """
         transactions = response_data.get('transactions', [])
 
-        # offsetting depth to -(depth) for source transactions
-        if source:
-            for transaction in transactions:
-                if 'depth' in transaction:
-                    transaction['depth'] = -transaction['depth']
+        unwanted_fields = [
+            'chain_id', 'block_height', 'direction', 'original_value',
+            'tracked_value', 'pending_value', 'receiver_sender_type',
+            'sender_security_category', 'receiver_security_category'
+        ]
+
+        # Process transactions
+        for transaction in transactions:
+            # Remove unwanted fields
+            for field in unwanted_fields:
+                transaction.pop(field, None)
+
+            # offsetting depth to -(depth) for source transactions
+            if source:
+                transaction['depth'] = -transaction['depth']
 
         # Process swaps to create reverse transactions
         swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
@@ -132,11 +143,8 @@ class TracerAPIInterface(TransactionAPIInterface):
             # Create reverse transaction (from router to original sender)
             reverse_tx = {
                 # Keep same identification fields
-                "chain_id": tx.get('chain_id', None),
                 "depth": tx.get('depth'),
-                "direction": tx.get('direction', None),
                 "tx_hash": tx.get('tx_hash'),
-                "block_height": tx.get('block_height', None),
                 "tx_time": tx.get('tx_time'),
 
                 # Swap addresses
@@ -146,16 +154,10 @@ class TracerAPIInterface(TransactionAPIInterface):
                 # Swap annotations and security categories
                 "sender_annotation": tx.get('receiver_annotation', ''),
                 "receiver_annotation": tx.get('sender_annotation', ''),
-                "sender_security_category": tx.get('receiver_security_category', ''),
-                "receiver_security_category": tx.get('sender_security_category', ''),
 
                 # Token details from token_out
                 "symbol": token_out.get('symbol', ''),
-                "token": {
-                    "address": token_out.get('address', ''),
-                    "symbol": token_out.get('symbol', ''),
-                    "decimals": token_out.get('decimals')
-                },
+                "token": token_out.get('address', ''),
                 "token_type": "ERC20",  # Assuming all swap tokens are ERC20
                 "token_id": "",
 

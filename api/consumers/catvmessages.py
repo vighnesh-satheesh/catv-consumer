@@ -15,7 +15,7 @@ from api.models import (
     CatvTokens, CatvSearchType,
     CatvRequestStatus, CatvTaskStatusType,
     ConsumerErrorLogs, CatvResult,
-    CatvJobQueue
+    CatvNeoJobQueue
 )
 from api.rpc.RPCClient import update_s3_attached_file_uid, \
     update_catv_usage_error
@@ -31,7 +31,7 @@ __all__ = ('process_catv_messages',)
 from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message, get_gcs_file
 
 
-def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
+def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
     message = job.message
     request_body = message
     print("Processing message:\n")
