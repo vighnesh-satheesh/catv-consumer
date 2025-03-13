@@ -4,9 +4,6 @@ from typing import List, Dict, Any, Optional
 
 import requests
 from django.conf import settings
-
-# from django.conf import settings
-
 from api.catvutils.transactions_api_interface import TransactionAPIInterface
 
 

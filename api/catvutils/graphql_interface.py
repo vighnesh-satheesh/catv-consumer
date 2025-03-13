@@ -1,12 +1,11 @@
-import json
 import os
 import traceback
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
 from typing import Optional, Any, Dict, List
-from django.conf import settings
 
 import requests
+from django.conf import settings
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -630,23 +629,6 @@ class GraphQLInterface:
             dex_trades = response_object["data"][Constants.NETWORK_CHAIN_MAPPING_FOR_RESPONSE[self.chain]]["dexTrades"]
             if len(dex_trades) < 1:
                 return [incoming_swap_txn]
-            # swap_aggregator_node = dex_trades[0]['smartContract']['address']['address']
-            # # check if receiver is the
-            # if swap_aggregator_node != incoming_swap_txn["receiver"]:
-            #     print("Inside if swap_aggregator_node != incoming_swap_txn ")
-            #     return None
-            # token_address = dex_trades[-1]['sellCurrency']['address']
-            # from_time = dex_trades[-1]['block']['timestamp']['time']
-            # new_amount = dex_trades[-1]['sellAmount']
-            # new_amount_usd = dex_trades[-1]['sell_amount_usd']
-            #
-            # new_currency = {
-            #     "name": dex_trades[-1]['sellCurrency']['name'],
-            #     "symbol": dex_trades[-1]['sellCurrency']['symbol'],
-            #     "address": token_address
-            # }
-
-            # add swap info into the incoming swap txn
             updated_incoming_swap_txn = self.add_swap_info(incoming_swap_txn, dex_trades)
             return [updated_incoming_swap_txn]
         except Exception:
@@ -665,16 +647,14 @@ class GraphQLInterface:
         Returns:
             Updated transaction object with swap_info
         """
-        print(f"DEX TRADES: {json.dumps(dex_trades, indent=2)}")
         try:
             # Get first and last trade
             first_trade = dex_trades[0]
             last_trade = dex_trades[-1]
-
             # Create swap_info object
             swap_info = {
                 "protocol": first_trade["protocol"],
-                "amount_in": str(first_trade("buyAmount")),
+                "amount_in": str(first_trade["buyAmount"]),
                 "amount_out": str(last_trade["sellAmount"]),
                 "token_in": {
                     "address": first_trade["buyCurrency"]["address"],
@@ -691,8 +671,8 @@ class GraphQLInterface:
             incoming_swap_txn["swap_info"] = swap_info
             incoming_swap_txn["is_swap"] = True
             return incoming_swap_txn
-        except Exception as e:
-            print(f"Error creating swap info: {str(e)}")
+        except Exception:
+            traceback.print_exc()
             return incoming_swap_txn
 
     def _graphql_dex_trades_query_builder(self, tx_hash):

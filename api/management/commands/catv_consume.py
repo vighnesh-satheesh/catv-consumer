@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            print("Connecting to databasejob queue table....")
+            print("[Neo-Catv] Connecting to database job queue table....")
             while True:
                 with transaction.atomic():
                     pending_jobs = CatvNeoJobQueue.objects.using('default').raw(
