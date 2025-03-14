@@ -3,6 +3,7 @@ from itertools import chain, islice
 from math import ceil
 
 from api.settings import api_settings
+from api.utils import format_tx_time, generate_node_label
 
 MULTIPLIER = 0.4
 EDGE_WIDTH_MAX = 4
@@ -21,7 +22,7 @@ class Node:
         self.annotation = annotation
         self.type = type
         self.level = depth
-        self.label = address[:8]
+        self.label = generate_node_label(address, annotation)
         self.balance = balance
         self.amount_in = amount_in
         self.amount_out = amount_out
@@ -65,7 +66,6 @@ class Node:
 
         # Node type check after annotation processing
         if self.group == "" and self.type != 'Wallet':
-            print(f"SMC {self.address}")
             self.group = 'Smart Contract'
 
         # Final fallback to ensure group is never empty
@@ -222,19 +222,28 @@ def uniqfy_generator(seq, addr_key, exclusions):
 
 
 def create_edge(id, tx, node_enum):
+    amount = tx['amount']
+    symbol = tx.get('symbol', '')
+    sum_dict = {symbol: abs(amount)}
+    sum_list = [f"{abs(amount)} {symbol}"]
+
     edge = {
         'id': id,
         'arrows': 'to',
         'sum': abs(tx['amount']),
+        'sum_dict': sum_dict,  # Add new field for symbol-based sums
+        'sum_list': sum_list,
         'from': node_enum[tx['sender']],
         'to': node_enum[tx['receiver']],
         'data': [{
             'amount': abs(tx['amount']),
             'tx_hash': tx['tx_hash'],
             'depth': tx['depth'],
-            'tx_time': '{} {}'.format(tx['tx_time'].split("T")[0], tx['tx_time'].split("T")[1][:5]) if len(tx['tx_time'].split("T")) > 1 else tx['tx_time']
+            'tx_time': format_tx_time(tx['tx_time']),
+            'symbol': symbol
         }],
-        'depth': tx['depth']
+        'depth': tx['depth'],
+        'is_swap': tx['is_swap'] if 'is_swap' in tx else False,
     }
     return edge
 
@@ -281,14 +290,32 @@ def assign_edges(result, mode, node_enum):
     counter = 0
     for item in result:
         try:
+            amount = float(item['amount']) if isinstance(item['amount'], str) else item['amount']
+            amount_usd = 0
+            if 'amount_usd' in item:
+                amount_usd = float(item['amount_usd']) if isinstance(item['amount_usd'], str) else item['amount_usd']
+            formatted_tx_time = format_tx_time(item['tx_time'])
+            item['amount'] = amount
+            item['tx_time'] = formatted_tx_time
+            item['amount_usd'] = amount_usd
+            symbol = item.get('symbol', '')
+
             edge_dict[(item['sender'], item['receiver'])]['data'].append({
-                'amount': abs(item['amount']),
+                'amount': abs(amount),
                 'tx_hash': item['tx_hash'],
                 'depth': item['depth'],
-                'tx_time': '{} {}'.format(item['tx_time'].split("T")[0], item['tx_time'].split("T")[1][:5]) if len(item['tx_time'].split("T")) > 1 else item['tx_time'],
-                'amount_usd': abs(item['amount_usd']) if 'amount_usd' in item else 0
+                'tx_time': formatted_tx_time,
+                'amount_usd': abs(amount_usd),
+                'symbol': symbol
             })
             edge_dict[(item['sender'], item['receiver'])]['sum'] += abs(item['amount'])
+
+            # Update the sum_dict - internal tracking of amounts by symbol
+            if symbol in edge_dict[(item['sender'], item['receiver'])]['sum_dict']:
+                edge_dict[(item['sender'], item['receiver'])]['sum_dict'][symbol] += abs(amount)
+            else:
+                edge_dict[(item['sender'], item['receiver'])]['sum_dict'][symbol] = abs(amount)
+
             if 'depth' not in edge_dict[(item['sender'], item['receiver'])]:
                 edge_dict[(item['sender'], item['receiver'])]['depth'] = item['depth']
         except KeyError:
@@ -301,6 +328,14 @@ def assign_edges(result, mode, node_enum):
             edge_dict[(item['sender'], item['receiver'])]['width'] = EDGE_WIDTH_MIN
         else:
             edge_dict[(item['sender'], item['receiver'])]['width'] = width
+
+    # Process all edges after the main loop to set sum_list and is_swap flags
+    for key_tuple, edge in edge_dict.items():
+        # Update sum_list from sum_dict with proper formatting
+        edge['sum_list'] = [
+            f"{amount} {symbol}" for symbol, amount in edge['sum_dict'].items()
+        ]
+
     return edge_dict
 
 

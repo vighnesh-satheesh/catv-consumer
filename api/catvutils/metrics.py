@@ -15,7 +15,6 @@ class CatvMetrics:
     def __init__(self, data, search_params, token_type):
         self.item_list = data.get("item_list", [])
         self.node_list = data.get("node_list", [])
-        self.edge_list = data.get("edge_list", [])
         self.seg_item_list = []
         self.seg_node_list = []
         self.search_params = search_params
@@ -32,7 +31,29 @@ class CatvMetrics:
                 'annotated': {'count': 0, 'total_amount': 0}
             }
         }
-        self.symbol = self.item_list[0]['symbol'] if self.item_list else token_type
+        self.symbol = self.find_main_token(token_type)
+
+    def find_main_token(self, token_type):
+        # Determine the main token by finding the most frequent symbol in a subset
+        if self.item_list:
+            # Use a sample of up to 20 transactions to determine main token
+            sample_size = min(20, len(self.item_list))
+            sample_items = self.item_list[:sample_size]
+
+            # Count occurrences of each token symbol
+            token_counts = {}
+            for item in sample_items:
+                symbol = item.get('symbol')
+                if symbol:
+                    token_counts[symbol] = token_counts.get(symbol, 0) + 1
+
+            # Find the symbol with highest count
+            if token_counts:
+                return max(token_counts.items(), key=lambda x: x[1])[0]
+            else:
+                return token_type
+        else:
+            return token_type
 
     def generate_metrics(self, compare_operator):
         # Filter items and nodes based on depth/level
@@ -60,6 +81,10 @@ class CatvMetrics:
 
     def _calculate_legacy_metrics(self, compare_operator):
         """Calculate legacy metrics using seg_item_list and seg_node_list"""
+
+        # Only use main token transactions for calculations
+        main_token_items = [item for item in self.seg_item_list if item['symbol'] == self.symbol]
+
         # Top 10 blacklisted wallets by balance
         black_wallets = list(filter(lambda node: node["group"] == 'Blacklist', self.seg_node_list))
         black_wallets_top = sorted(black_wallets, key=lambda wallet: wallet["balance"], reverse=True)
@@ -86,7 +111,7 @@ class CatvMetrics:
                 exchange_wallets_clean[clean_name] = clean_name
 
         # Calculate depth breakdown
-        grouped_by_depth = self._group_by(self.seg_item_list, lambda item: str(item["depth"]))
+        grouped_by_depth = self._group_by(main_token_items, lambda item: str(item["depth"]))
         highest_by_depth = defaultdict(dict)
 
         # Calculate highest sent/received per level
@@ -101,7 +126,7 @@ class CatvMetrics:
                                                            "amount": max_sent_item["amount"]}
 
         # Calculate max sender/receiver
-        max_sender, max_receiver = self._calculate_max_senders_receivers()
+        max_sender, max_receiver = self._calculate_max_senders_receivers(main_token_items)
 
         return {
             "blacklisted": black_wallets_top,
@@ -117,6 +142,11 @@ class CatvMetrics:
 
         # Calculate wallet metrics
         wallet_metrics = self._calculate_wallet_metrics(is_outbound)
+
+        # Calculate swap metrics
+        if self.symbol in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'AVAX'] and is_outbound:
+            swap_metrics = self._calculate_swap_metrics()
+            wallet_metrics["swap_metrics"] = swap_metrics
 
         # Add overview section for enhanced metrics
         wallet_metrics["overview"] = self._generate_flow_overview(is_outbound)
@@ -149,12 +179,23 @@ class CatvMetrics:
         exchange_addresses = {node['address'] for node in self.node_list if
                               node['group'] == 'Exchange/DEX/Bridge/Mixer'}
 
-        transactions_from_origin_sum = Decimal(sum(
-            item['amount'] for item in self.item_list if item['sender'].lower() == self.origin.lower())).quantize(
+        main_token_from_origin = [item for item in self.item_list
+                                  if item['sender'].lower() == self.origin.lower()
+                                  and item['symbol'] == self.symbol]
+
+        main_token_to_origin = [item for item in self.item_list
+                                if item['receiver'].lower() == self.origin.lower()
+                                and item['symbol'] == self.symbol]
+
+        # Calculate sums for main token
+        transactions_from_origin_sum = Decimal(sum(item['amount'] for item in main_token_from_origin)).quantize(
             Decimal('0.01'), rounding=ROUND_DOWN)
-        transactions_to_origin_sum = Decimal(sum(
-            item['amount'] for item in self.item_list if item['receiver'].lower() == self.origin.lower())).quantize(
+
+        transactions_to_origin_sum = Decimal(sum(item['amount'] for item in main_token_to_origin)).quantize(
             Decimal('0.01'), rounding=ROUND_DOWN)
+
+        tokens_involved = {item['symbol'] for item in self.item_list}
+
         return {
             'transactions_from_origin': sum(1 for item in self.item_list if item['sender'].lower() == self.origin.lower()),
             'transactions_to_origin': sum(1 for item in self.item_list if item['receiver'].lower() == self.origin.lower()),
@@ -162,15 +203,21 @@ class CatvMetrics:
             'transactions_to_origin_sum': f"{transactions_to_origin_sum} {self.symbol}",
             'blacklisted_wallets': len(blacklisted_addresses),
             'annotated_wallets': len(annotated_addresses),
-            'exchanges': len(exchange_addresses)
+            'exchanges': len(exchange_addresses),
+            'tokens_involved': list(tokens_involved),
         }
 
     def _calculate_wallet_metrics(self, is_outbound):
         """Calculate enhanced wallet metrics using seg_item_list"""
+
+        # Filter for main token transactions
+        main_token_items = [item for item in self.seg_item_list
+                            if item['symbol'] == self.symbol and not item.get('is_swap', False)]
+
         wallet_amounts = defaultdict(lambda: {'total_amount': 0, 'depth': None})
 
         # Calculate total amounts in a single pass
-        for item in self.seg_item_list:
+        for item in main_token_items:
             wallet = item['receiver'] if is_outbound else item['sender']
             wallet_amounts[wallet]['total_amount'] += item['amount']
             wallet_amounts[wallet]['depth'] = item['depth']
@@ -201,15 +248,18 @@ class CatvMetrics:
             }
 
             if node['group'] == 'Blacklist' and addr not in processed_addresses['blacklisted']:
-                wallet_info['label'] = node.get('annotation', '')
+                wallet_info['label'] = node.get('label', '')
+                wallet_info['annotation'] = node.get('annotation', '')
                 wallet_metrics['blacklisted']['wallets'].append(wallet_info)
                 processed_addresses['blacklisted'].add(addr)
             elif node['group'] == 'Exchange/DEX/Bridge/Mixer' and addr not in processed_addresses['exchanges']:
-                wallet_info['label'] = node.get('annotation', '').split(',')[0]
+                wallet_info['label'] = node.get('label', '')
+                wallet_info['annotation'] = node.get('annotation', '')
                 wallet_metrics['exchanges']['wallets'].append(wallet_info)
                 processed_addresses['exchanges'].add(addr)
             elif node['group'] == 'Annotated' and addr not in processed_addresses['annotated']:
-                wallet_info['label'] = node.get('annotation', '')
+                wallet_info['label'] = node.get('label', '')
+                wallet_info['annotation'] = node.get('annotation', '')
                 wallet_metrics['annotated']['wallets'].append(wallet_info)
                 processed_addresses['annotated'].add(addr)
 
@@ -224,12 +274,85 @@ class CatvMetrics:
 
         return wallet_metrics
 
-    def _calculate_max_senders_receivers(self):
-        """Calculate maximum senders and receivers from seg_item_list"""
+    def _calculate_swap_metrics(self):
+        """Calculate metrics specifically for swap transactions"""
+        # Filter only swap transactions
+        swap_items = [item for item in self.seg_item_list if item.get('is_swap', False)]
+        if not swap_items:
+            return []
+
+        # Create simplified swap information
+        swap_details = []
+        # Define mapping of wrapped token addresses to native token symbols
+        WRAPPED_TO_NATIVE = {
+            # Ethereum
+            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "ETH",  # WETH -> ETH
+
+            # Binance Smart Chain
+            "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c": "BNB",  # WBNB -> BNB
+
+            # Polygon
+            "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270": "MATIC",  # WMATIC -> MATIC
+
+            # Avalanche
+            "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7": "AVAX",  # WAVAX -> AVAX
+
+            # Fantom
+            "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83": "FTM",  # WFTM -> FTM
+        }
+
+        # Symbol mapping (alternative approach)
+        WRAPPED_SYMBOLS = {
+            "WETH": "ETH",
+            "WBNB": "BNB",
+            "WMATIC": "MATIC",
+            "WAVAX": "AVAX",
+            "WFTM": "FTM"
+        }
+
+        for item in swap_items:
+            if 'swap_info' in item:
+                # Determine amount of main token involved
+
+                token_in_address = item['swap_info']['token_in']['address'].lower()
+                token_in_symbol = item['swap_info']['token_in']['symbol']
+                token_in_amount = item['swap_info']['amount_in']
+
+                # Check if token_in is a wrapped token and replace with native symbol
+                if token_in_address in WRAPPED_TO_NATIVE:
+                    token_in_symbol = WRAPPED_TO_NATIVE[token_in_address]
+                # Alternative: Check by symbol
+                elif token_in_symbol in WRAPPED_SYMBOLS:
+                    token_in_symbol = WRAPPED_SYMBOLS[token_in_symbol]
+
+                token_out_symbol = item['swap_info']['token_out']['symbol']
+                token_out_amount = item['swap_info']['amount_out']
+
+                swap_details.append({
+                    'depth': item['depth'],
+                    'tx_hash': item['tx_hash'],
+                    'amount_in': {
+                        'value': token_in_amount,
+                        'symbol': token_in_symbol
+                    },
+                    'amount_out': {
+                        'value': token_out_amount,
+                        'symbol': token_out_symbol
+                    },
+                    'protocol': item['swap_info'].get('protocol', 'Unknown'),
+                    'edge_id': item['edge_id']
+                })
+
+        return {
+            'swaps': swap_details
+        }
+
+    def _calculate_max_senders_receivers(self, main_token_items):
+        """Calculate maximum senders and receivers from main_token_items"""
         grouped_by_sender = defaultdict(list)
         grouped_by_receiver = defaultdict(list)
 
-        for item in self.seg_item_list:
+        for item in main_token_items:
             grouped_by_sender[item["sender"]].append(item)
             grouped_by_receiver[item["receiver"]].append(item)
 
@@ -260,6 +383,24 @@ class CatvMetrics:
                 n_list.append(item)
                 seen.append(item[key])
         return n_list
+
+    def calculate_total_amounts(self):
+        """Calculate total amounts in main token currency and USD value"""
+        # Default values
+        total_amount = 0
+        total_amount_usd = 0
+
+        # Check if we have valid items with amount data
+        if not self.item_list:
+            return total_amount, total_amount_usd
+
+        # Filter items for main token and sum in a single pass
+        for item in self.item_list:
+            if item['symbol'] == self.symbol:
+                total_amount += item.get("amount", 0)
+                total_amount_usd += item.get("amount_usd", 0)
+
+        return total_amount, total_amount_usd
 
     def _group_by(self, items, key_func):
         """Helper function to group items by a key function"""

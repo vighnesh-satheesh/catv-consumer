@@ -7,7 +7,7 @@ from django.db import transaction, connection
 
 from api.constants import Constants
 from api.consumers import process_catv_messages
-from api.models import CatvJobQueue, CatvCSVJobQueue
+from api.models import CatvNeoJobQueue, CatvNeoCSVJobQueue
 from api.settings import api_settings
 
 
@@ -16,12 +16,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            print("Connecting to databasejob queue table....")
+            print("[Neo-Catv] Connecting to database job queue table....")
             while True:
                 with transaction.atomic():
-                    pending_jobs = CatvJobQueue.objects.using('default').raw(
+                    pending_jobs = CatvNeoJobQueue.objects.using('default').raw(
                         Constants.QUERIES["SELECT_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
-                    pending_csv_jobs = CatvCSVJobQueue.objects.using('default').raw(
+                    pending_csv_jobs = CatvNeoCSVJobQueue.objects.using('default').raw(
                         Constants.QUERIES["SELECT_CSV_CATV_JOBS"].format(api_settings.CATV_NUM_JOBS_PICK))
 
                 pending_count = 0

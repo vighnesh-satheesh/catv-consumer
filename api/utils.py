@@ -1,4 +1,6 @@
+import ast
 import hashlib
+import json
 import mimetypes
 import random
 import re
@@ -6,23 +8,113 @@ from datetime import datetime, timedelta
 
 from django.core.files.storage import default_storage
 from requests import ReadTimeout
+from google.cloud import storage
+from django.core.exceptions import SuspiciousOperation
+from google.cloud.exceptions import NotFound
 
 from .exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, BitqueryDataNotFoundError, \
     BitqueryMemoryLimitExceeded
 from .models import (
     CatvTokens
 )
+from .settings import api_settings
 
 
 def validate_dateformat(value, date_format):
     datetime.strptime(value, date_format)
 
 
-def validate_dateformat_and_randomize_seconds(value, input_format, output_format):
+def validate_dateformat_and_randomize_seconds(value, output_format):
     random_seconds = random.randint(1, 59)
-    date_obj = datetime.strptime(value, input_format)
+    try:
+        date_obj = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        try:
+            date_obj = datetime.strptime(value, '%Y-%m-%d')
+            date_obj = date_obj.replace(hour=0, minute=0, second=0)
+        except ValueError:
+            raise ValueError(f"Time data '{value}' does not match format '%Y-%m-%d %H:%M:%S' or '%Y-%m-%d'")
     date_obj += timedelta(seconds=random_seconds)
     return date_obj.strftime(output_format)
+
+
+# Expanded skip annotations
+SKIP_ANNOTATIONS = ["exchange", "wallet", "exchange wallet", "user wallet", "fiat gateway",
+                    "proxy contract", "defi", "dex", "smart contract", "token contract",
+                    "router", "contract", "v1", "v2", "v3"]
+
+
+def generate_node_label(address: str, annotation: str) -> str:
+    """
+    Generate a meaningful label for a node based on its address and annotation.
+    Uses a simplified approach that preserves multi-word entity names.
+
+    Args:
+        address: The crypto address of the node
+        annotation: A string containing annotations for the node
+
+    Returns:
+        A string representing the most meaningful label for the node
+    """
+    if not annotation:
+        return address[:8]
+
+    # Split annotations by comma and use the first one as starting point
+    first_annotation = annotation.split(",")[0].strip()
+
+    # Handle domain-style project names
+    if "." in first_annotation:
+        if first_annotation.startswith("DEX."):
+            pass  # Keep DEX.AG intact
+        elif "inch" in first_annotation.lower():
+            first_annotation = "1inch"  # Special case for 1inch.exchange
+        else:
+            first_annotation = first_annotation.split(".")[0]
+
+    # Remove parts after colon or parentheses
+    if ":" in first_annotation:
+        first_annotation = first_annotation.split(":")[0].strip()
+    if "(" in first_annotation:
+        first_annotation = first_annotation.split("(")[0].strip()
+
+    # Replace underscores with spaces
+    first_annotation = first_annotation.replace("_", " ")
+
+    # KEY SIMPLIFICATION: If the cleaned annotation contains multiple words,
+    # keep the entire thing rather than just the first word
+    words = first_annotation.split()
+    if len(words) >= 2:
+        # If there's a trailing number, remove it
+        if words[-1].isdigit():
+            return " ".join(words[:-1])
+        return first_annotation
+
+    # If it's a single word annotation, return it
+    # (this preserves single word names like "Uniswap", "Binance", etc.)
+    if first_annotation.lower() not in SKIP_ANNOTATIONS:
+        return first_annotation
+
+    # Fallback: If result would be in the skip list or empty, use the entire annotation
+    return annotation
+
+
+def format_tx_time(tx_time):
+    """Handle multiple timestamp formats from different vendors"""
+    try:
+        # Split the timestamp string to handle different formats
+        parts = tx_time.replace('Z', '').replace('+00:00', '')
+
+        # Handle format with 'T' separator
+        if 'T' in parts:
+            date_part, time_part = parts.split('T')
+            # Return format: "YYYY-MM-DD HH:MM"
+            return f"{date_part} {time_part[:5]}"
+        else:
+            # If the format is unexpected, return the original
+            return tx_time
+    except Exception:
+        # If any parsing error occurs, return the original
+        return tx_time
 
 
 def create_tracking_cache_pattern(data):
@@ -106,13 +198,24 @@ def pattern_matches_token(address, token_type):
     return re.compile(pattern).match(address)
 
 
-# def upload_content_file_to_s3(content_file):
-#     # default_storage is configured as S3Storage in base.py
-#     return default_storage.save(content_file.name, content_file)
-
 def upload_content_file_to_gcs(content_file):
     # default_storage is configured as GCS Storage in base.py
     return default_storage.save(content_file.name, content_file)
+
+
+def get_gcs_file(filename):
+    client = storage.Client()
+    bucket = client.bucket(api_settings.ATTACHED_FILE_S3_BUCKET_NAME)
+
+    try:
+        blob = bucket.blob(filename)
+        body = blob.download_as_text()
+        results = json.loads(body)
+        if isinstance(results, str):
+            results = ast.literal_eval(results)
+        return results
+    except NotFound:
+        raise SuspiciousOperation(f"The file '{filename}' does not exist in the GCS bucket.")
 
 
 def get_file_meta(file, file_name):
@@ -151,3 +254,33 @@ def get_user_error_message(exception: Exception) -> str:
 
     # Return specific message if exception type matches, otherwise return generic error
     return error_messages.get(type(exception), "Not able to fetch results at this time. Please try again.")
+
+
+def safe_get(dict_obj, *keys, default=None):
+    """
+    Safely get nested values from dictionaries and lists
+    Args:
+        dict_obj: The object to traverse (can be dict or list)
+        *keys: Keys/indices to access nested values
+        default: Default value if path doesn't exist
+    """
+    try:
+        result = dict_obj
+        for key in keys:
+            if isinstance(result, dict):
+                if key not in result:
+                    return default
+                result = result[key]
+            elif isinstance(result, list):
+                if not isinstance(key, int) or key >= len(result):
+                    return default
+                result = result[key]
+            else:
+                return default
+
+            if result in [None, "None"]:
+                return default
+
+        return result
+    except Exception:
+        return default

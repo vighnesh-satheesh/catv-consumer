@@ -15,7 +15,7 @@ from api.models import (
     CatvTokens, CatvSearchType,
     CatvRequestStatus, CatvTaskStatusType,
     ConsumerErrorLogs, CatvResult,
-    CatvJobQueue
+    CatvNeoJobQueue
 )
 from api.rpc.RPCClient import update_s3_attached_file_uid, \
     update_catv_usage_error
@@ -28,10 +28,10 @@ from api.tasks import catv_history_task, catv_path_history_task
 
 __all__ = ('process_catv_messages',)
 
-from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message
+from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message, get_gcs_file
 
 
-def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
+def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
     message = job.message
     request_body = message
     print("Processing message:\n")
@@ -121,6 +121,10 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
         request_instance = None
         request_uid = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
+        # parent_result_file_id = request_body.get("parent_result_file_id", None)
+        # parent_result = None
+        # if parent_result_file_id:
+        #     parent_result = get_gcs_file(f'{api_settings.ATTACHED_FILE_S3_KEY_PREFIX + parent_result_file_id}')
         token_type = request_body.get("token_type", CatvTokens.ETH.value)
         search_type = request_body.get("search_type", CatvSearchType.FLOW.value)
         search_params = request_body.get("search_params", {})
@@ -148,7 +152,6 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
         else:
             core_results = serializer_obj.get_tracking_results(save_to_db=False)
         graph_data = core_results.get("graph", {})
-        calculate_total_amounts(graph_data)
         if 'graph_node_list' in graph_data and graph_data['graph_node_list']:
             if len(graph_data['node_list']) != len(graph_data['graph_node_list']):
                 core_results["messages"][
@@ -197,6 +200,7 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
                 results = catv_metrics.generate_metrics(gt)
                 dist_analysis = results["legacy_metrics"]
                 enhanced_metrics["dist_analysis"] = results["enhanced_metrics"]
+        graph_data['total_amount'], graph_data['total_amount_usd'] = catv_metrics.calculate_total_amounts()
         catv_metrics.save_annotations()
         print("total number of nodes: ", len(graph_data["node_list"]))
         enhanced_metrics["overview"] = catv_metrics.generate_overview_metrics()
@@ -220,6 +224,7 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
     except Exception as e:
+        traceback.print_exc()
         print(f"Inside catvmessages: {type(e)}")
         task_status = CatvTaskStatusType.FAILED
         # revert usage in case of exception
@@ -282,18 +287,3 @@ def process_catv_messages(job: CatvJobQueue, is_csv_job=False):
             if attached_file_pk != 0:
                 CatvResult.objects.filter(request=request_instance).update(result_file_id=attached_file_pk)
             job.delete()
-
-
-def calculate_total_amounts(transaction_data):
-    if "item_list" in transaction_data:
-        if transaction_data["item_list"] and len(transaction_data["item_list"]) > 0 and transaction_data["item_list"][
-            0].get("amount") and transaction_data["item_list"][0].get("amount_usd"):
-            total_amount = 0
-            total_amount_usd = 0
-            for item in transaction_data["item_list"]:
-                total_amount += item.get("amount", 0)
-                total_amount_usd += item.get("amount_usd", 0)
-            transaction_data["total_amount"] = total_amount
-            transaction_data["total_amount_usd"] = total_amount_usd
-    else:
-        return
