@@ -15,6 +15,7 @@ from ..models import (
     CatvTokens
 )
 from ..rpc.RPCClient import fetch_indicators, fetch_cara_report
+from ..utils import get_user_error_message
 
 
 def chunks(iterable, size):
@@ -92,7 +93,6 @@ class TrackingResults:
                 # Log the error but don't raise it - we'll fall back to Bitquery
                 error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
                 print(error_msg)
-                # Don't update error_messages here as we're going to try Bitquery
 
         # Either Tracer API failed, we're processing Klaytn, or Tracer API wasn't applicable
         try:
@@ -116,7 +116,6 @@ class TrackingResults:
         except Exception as e:
             # Both APIs failed or we went straight to Bitquery and it failed
             error_source = "source" if for_source else "distribution"
-            self.error_messages[error_source] = str(e)
             print(f"Bitquery API failed for {error_source}: {str(e)}")
             raise  # Propagate the exception to be handled by get_tracking_data
 
@@ -148,7 +147,7 @@ class TrackingResults:
                     try:
                         self._async_source_result = source_async.get()
                     except Exception as e:
-                        self.error_messages["source"] = str(e)
+                        self.error_messages["source"] = get_user_error_message(e, 'source')
                         self._async_source_result = []
                         # Raise only if source was the only query
                         if self._skip_dist:
@@ -159,7 +158,7 @@ class TrackingResults:
                     try:
                         self._async_dist_result = dist_async.get()
                     except Exception as e:
-                        self.error_messages["distribution"] = str(e)
+                        self.error_messages["distribution"] = get_user_error_message(e, 'distribution')
                         self._async_dist_result = []
 
             else:
@@ -168,7 +167,7 @@ class TrackingResults:
                     try:
                         self._async_dist_result = dist_async.get()
                     except Exception as e:
-                        self.error_messages["distribution"] = str(e)
+                        self.error_messages["distribution"] = get_user_error_message(e, 'distribution')
                         self._async_dist_result = []
                         # If distribution fails, raise immediately
                         raise e
@@ -178,7 +177,7 @@ class TrackingResults:
                     try:
                         self._async_source_result = source_async.get()
                     except Exception as e:
-                        self.error_messages["source"] = str(e)
+                        self.error_messages["source"] = get_user_error_message(e, 'source')
                         self._async_source_result = []
                         # Only raise if source was the only query
                         if self._skip_dist:

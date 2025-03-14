@@ -228,32 +228,40 @@ def get_file_meta(file, file_name):
     return hasher.hexdigest(), size, mime_type
 
 
-def get_user_error_message(exception: Exception) -> str:
+def get_user_error_message(exception: Exception, error_source: str = None) -> str:
     """
-    Convert exceptions to user-friendly error messages, prioritizing existing messages.
+    Convert exceptions to user-friendly error messages, including error source when available.
 
     Args:
         exception: The caught exception
-        messages_dict: Dictionary containing error messages for source and distribution
+        error_source: Source of the error ("source" for incoming, "distribution" for outgoing transactions)
 
     Returns:
         A user-friendly error message string
     """
 
     error_messages = {
-        BitqueryConcurrentRequestError: "The system is currently processing another request. Please try again in a few moments.",
+        BitqueryConcurrentRequestError: "The query took too long to complete. This may be because the number of transactions are too high to provide a response in a short time. Try reducing the time range or depth if this issue persists.",
 
-        BitqueryNetworkTimeoutError: "Transaction volume is too high for the selected date range. Please reduce the date range or try searching for a shorter period.",
+        BitqueryNetworkTimeoutError: "There are too many transactions to display at once. Try narrowing down your search to a smaller date range.",
 
-        BitqueryMemoryLimitExceeded: "Transaction volume exceeds the system limit. Please try: 1) Reducing the date range 2) Limiting the transaction depth.",
+        BitqueryMemoryLimitExceeded: "There are too many transactions to process. Please try: 1) Selecting a shorter time period 2) Reducing the search depth.",
 
-        BitqueryDataNotFoundError: "No transactions found for this wallet address in the specified date range. Please verify the address and date range.",
+        BitqueryDataNotFoundError: "We couldn't find any transactions for this wallet in the time period you selected. Please check the wallet address and dates.",
 
-        ReadTimeout: "Request timed out due to high network traffic. Please wait a moment and try your request again. If the issue persists, consider narrowing your search criteria.",
+        ReadTimeout: "The query took too long to complete. This may be because the number of transactions are too high to provide a response in a short time. Try reducing the time range or depth if this issue persists.",
     }
 
-    # Return specific message if exception type matches, otherwise return generic error
-    return error_messages.get(type(exception), "Not able to fetch results at this time. Please try again.")
+    # Get base message
+    base_message = error_messages.get(type(exception), "Not able to fetch results at this time. Please try again.")
+
+    # If error_source is provided, prepend it to the message
+    if error_source:
+        transaction_type = "Incoming" if error_source == "source" else "Outgoing"
+        return f"Sorry, {transaction_type.lower()} transactions missing: {base_message}"
+
+    # Otherwise return the message as is
+    return base_message
 
 
 def safe_get(dict_obj, *keys, default=None):
