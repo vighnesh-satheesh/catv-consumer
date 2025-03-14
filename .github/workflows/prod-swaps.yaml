@@ -1,9 +1,9 @@
 name: PRD-CATV-CONSUMER-SWAPS
 on:
-#   push:
-#     branches:
-#       - swaps
-#   workflow_dispatch:
+   push:
+     branches:
+       - master-neo
+   workflow_dispatch:
 
 jobs:
   build:

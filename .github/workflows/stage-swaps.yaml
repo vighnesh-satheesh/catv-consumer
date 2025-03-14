@@ -1,8 +1,8 @@
-name: STG-CATV-CONSUMER-SWAPS #Only for staging environment
+name: STG-CATV-CONSUMER-SWAPS
 on:
   push:
     branches:
-      - swaps
+      - stage-neo
   workflow_dispatch:
 
 jobs:
