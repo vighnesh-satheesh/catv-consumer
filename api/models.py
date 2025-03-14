@@ -128,7 +128,6 @@ class CatvRequestStatus(models.Model):
     labels = ArrayField(models.CharField(max_length=100, blank=False), default=list)
     token_type = EnumField(CatvTokens, default=CatvTokens.ETH)
     is_legacy = models.BooleanField(default=False)
-
     # parent_request = models.ForeignKey('self', null=True, blank=True,
     #                                    on_delete=models.CASCADE,
     #                                    related_name='swap_requests')

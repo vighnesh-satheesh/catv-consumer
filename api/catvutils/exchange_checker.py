@@ -147,9 +147,6 @@ class ExchangeChecker:
             elif dist_exchange_nodes and src_exchange_nodes:
                 print("Exchanges found in both source and distribution")
                 self.tracking_exchanges_combined(src_exchange_nodes, dist_exchange_nodes)
-
-                # self.tracking_exchanges(1)
-                # self.tracking_exchanges(-1)
         except Exception as e:
             traceback.print_exc()
             print("The following exception occurred while trying to get exchanges:", e)
