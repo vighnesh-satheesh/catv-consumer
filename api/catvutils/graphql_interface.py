@@ -132,14 +132,11 @@ class GraphQLInterface:
 
     def call_graphql_endpoint(self) -> List[Dict[str, Any]]:
         """Execute GraphQL query and process response."""
-        try:
-            request_body = self._graphql_query_builder()
-            if not request_body:
-                raise InvalidGraphqlQuery("Error while forming query")
-            response = self._graphql_client.execute_query(request_body)
-            return self._process_response(response)
-        except Exception:
-            raise
+        request_body = self._graphql_query_builder()
+        if not request_body:
+            raise InvalidGraphqlQuery("Error while forming query")
+        response = self._graphql_client.execute_query(request_body)
+        return self._process_response(response)
 
     """Process and flatten GraphQL response."""
 
@@ -155,7 +152,7 @@ class GraphQLInterface:
             if len(possible_swaps) > 0:
                 flattened_response = self.update_swap_info(possible_swaps, flattened_response)
             return flattened_response
-        except KeyError as e:
+        except KeyError:
             if response and "errors" in response:
                 print(f"Bitquery error response: {response['errors']}")
                 raise BitqueryServerError(f"API returned errors: {response['errors']}")
@@ -505,6 +502,6 @@ class GraphQLInterface:
                 }}   
                 """
             return GRAPHQL_DEX_QUERY
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
             return None
