@@ -1,4 +1,4 @@
-name: STG-CATV-CONSUMER-SWAPS
+name: STG-CATV-CONSUMER-NEO
 on:
   push:
     branches:
@@ -25,7 +25,7 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
       SCANTISTTOKEN: ${{ secrets.UPPHUBSCANTISTTOKEN }}
       NAMESPACE: backend
-      DEPLOYMENT_NAME: portal-catv-consumer-swaps
+      DEPLOYMENT_NAME: stg-catv-consumer-neo
       DOCKERFILE_PATH: docker/Dockerfile
 
     steps:
@@ -75,12 +75,12 @@ jobs:
       # Update the Kubernetes deployment with the new Docker image
       - name: Update Kubernetes Deployment
         run: |
-          kubectl set image deployment/${{env.DEPLOYMENT_NAME}}-deployment ${{env.DEPLOYMENT_NAME}}-deployment=asia-docker.pkg.dev/uppsala-devops/uppsala-stage-repository/${{env.DEPLOYMENT_NAME}}-service:${{github.sha}} --namespace=backend
+          kubectl set image deployment/${{env.DEPLOYMENT_NAME}} ${{env.DEPLOYMENT_NAME}}=asia-docker.pkg.dev/uppsala-devops/uppsala-stage-repository/${{env.DEPLOYMENT_NAME}}-service:${{github.sha}} --namespace=backend
 
       - name: Restart Deployment and Wait for Stability
         run: |
-          kubectl rollout restart deployment/${{env.DEPLOYMENT_NAME}}-deployment --namespace=backend
-          kubectl rollout status deployment/${{env.DEPLOYMENT_NAME}}-deployment --namespace=backend
+          kubectl rollout restart deployment/${{env.DEPLOYMENT_NAME}} --namespace=backend
+          kubectl rollout status deployment/${{env.DEPLOYMENT_NAME}} --namespace=backend
   
       - name: Slack Notification
         if: ${{ always() }}
