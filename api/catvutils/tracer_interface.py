@@ -12,7 +12,7 @@ class TracerAPIInterface(TransactionAPIInterface):
 
     def __init__(self):
         self._api_url = settings.TRACER_ENDPOINT
-        self._timeout = (60, 300)
+        self._timeout = (60, 600)
 
     def get_transactions(
             self,
