@@ -18,3 +18,4 @@ celerybeat.pid
 /venv
 *.json
 *.json
+test_*

@@ -114,7 +114,8 @@ class TracerAPIInterface(TransactionAPIInterface):
             transactions.extend(reverse_swap_transactions)
             print(f"Added {len(reverse_swap_transactions)} reverse swap transactions")
 
-        return transactions
+        response_data['transactions'] = transactions
+        return response_data
 
     @staticmethod
     def create_reverse_swap_transactions(swap_transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

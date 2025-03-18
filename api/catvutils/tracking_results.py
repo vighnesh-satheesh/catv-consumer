@@ -51,6 +51,8 @@ class TrackingResults:
         self.error_messages = {"source": "", "distribution": ""}
         self.chain = kwargs.get('chain', CatvTokens.ETH.value)
         self.api_used = ""
+        self.dist_annotations_dict = None
+        self.src_annotations_dict = None
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         depth_limit = self.source_depth if for_source else self.distribution_depth
@@ -70,7 +72,7 @@ class TrackingResults:
             try:
                 # Try Tracer API first
                 tracer_interface = TracerAPIInterface()
-                transaction_data = tracer_interface.get_transactions(
+                tracer_response = tracer_interface.get_transactions(
                     self.wallet_address,
                     tx_limit,
                     depth_limit,
@@ -82,6 +84,11 @@ class TrackingResults:
                 )
                 self.ext_api_calls += 1
 
+                transaction_data = tracer_response['transactions']
+                if for_source:
+                    self.src_annotations_dict = tracer_response['annotations'] if 'annotations' in tracer_response else []
+                else:
+                    self.dist_annotations_dict = tracer_response['annotations'] if 'annotations' in tracer_response else []
                 if transaction_data:
                     self.api_used = "tracer"
                     print(f"Tracer API successful: Retrieved {len(transaction_data)} transactions")
@@ -200,104 +207,16 @@ class TrackingResults:
             pool.close()
             pool.join()
 
-    # @staticmethod
-    # def update_annotations(nc, item_list, token_type):
-    #     print(f"{item_list=}")
-    #     addr_list = nc.get_node_enum().keys()
-    #     addr_list_for_portal = [addr.lower() for addr in addr_list]
-    #     request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
-    #     indicators = fetch_indicators(request_dict)
-    #     print("indicators length ", len(indicators))
-    #     # Extremely High Node
-    #     cara_addr_list = [addr for addr in addr_list]
-    #     request_dict_cara = {'addr_list': cara_addr_list}
-    #     new_addresses = fetch_cara_report(request_dict_cara)
-    #     seen_indicators = []
-    #     if len(indicators) > 0:
-    #         try:
-    #             for item in indicators:
-    #                 if "annotation" not in item.keys():
-    #                     item["annotation"] = ""
-    #                 if item['pattern'].lower() in seen_indicators:
-    #                     continue
-    #                 cur_node = nc.get_node(item["pattern"].lower())
-    #                 cur_node = nc.get_node(item["pattern"]) if cur_node is None else cur_node
-    #                 if cur_node is None:
-    #                     continue
-    #                 cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
-    #                                            'security_category': item['security_category'],
-    #                                            'pattern_type': item['pattern_type'],
-    #                                            'pattern_subtype': item['pattern_subtype']})
-    #                 if cur_node.group == "Exchange/DEX/Bridge/Mixer":
-    #                     seen_indicators.append(item['pattern'].lower())
-    #                     continue
-    #                 if item["security_category"].lower() == "graylist":
-    #                     if item["annotation"]:
-    #                         cur_node.update(annotation=item["annotation"])
-    #                         cur_node.set_group_from_annotation()
-    #                     else:
-    #                         cur_node.update(group="No Tag", annotation="")
-    #                 elif item["security_category"].lower() == "blacklist":
-    #                     cur_node.update(group="Blacklist", annotation="Blacklist")
-    #                 elif item["security_category"].lower() == "whitelist":
-    #                     cur_node.update(group="Whitelist", annotation="Whitelist")
-    #                 else:
-    #                     kwargs = {}
-    #                     kwargs["group"] = item["security_category"].title()
-    #                     if item["annotation"]:
-    #                         kwargs["annotation"] = item["annotation"]
-    #                         if "Exchange" in item["annotation"] or "DEX" in item["annotation"] or "Bridge" in item[
-    #                             "annotation"] or "Mixer" in item["annotation"] or "bridge" in item[
-    #                             "annotation"] or "mixer" in item["annotation"]:
-    #                             kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
-    #                         elif "Smart" in item["annotation"] or "Contract" in item["annotation"] or "smart" in item[
-    #                             "annotation"] or "contract" in item["annotation"]:
-    #                             kwargs["group"] = "Smart Contract"
-    #                     else:
-    #                         kwargs["annotation"] = ""
-    #                     cur_node.update(**kwargs)
-    #                 nc.update_node(item['pattern'].lower(), cur_node)
-    #                 for transaction in item_list:
-    #                     if not transaction.get('sender_annotation', None):
-    #                         transaction['sender_annotation'] = ''
-    #                     if not transaction.get('receiver_annotation', None):
-    #                         transaction['receiver_annotation'] = ''
-    #
-    #                     if transaction['sender'].lower() == cur_node.address.lower():
-    #                         transaction['sender_annotation'] = cur_node.annotation
-    #                     elif transaction['receiver'].lower() == cur_node.address.lower():
-    #                         transaction['receiver_annotation'] = cur_node.annotation
-    #                 seen_indicators.append(item['pattern'].lower())
-    #                 if len(new_addresses) > 0 and item["security_category"].lower() == "blacklist" or item[
-    #                     "security_category"].lower() == "whitelist":
-    #                     for result in new_addresses:
-    #                         if item['pattern'].lower() == result[0] or item['pattern'] == result[0]:
-    #                             new_addresses.remove(result)
-    #         except Exception as e:
-    #             traceback.print_exc()
-    #             raise
-    #
-    # if len(new_addresses) > 0:
-    #     for result in new_addresses:
-    #         add_node = nc.get_node(result[0])
-    #         for item in cara_addr_list:
-    #             annotation_group = nc.get_node(item).group
-    #             if add_node is None:
-    #                 continue
-    #             elif 'Exchange/DEX/Bridge/Mixer' in annotation_group or add_node.group == 'Exchange/DEX/Bridge/Mixer':
-    #                 nc.update_node(result[0], add_node)
-    #                 break
-    #             else:
-    #                 add_node.update(group="Suspicious", annotation="Extremely High Risk")
-    #                 nc.update_node(result[0], add_node)
-    #     return nc, item_list
-
     @staticmethod
-    def update_annotations(nc, item_list, token_type):
+    def update_annotations(nc, item_list, token_type, annotations_dict):
         addr_list = nc.get_node_enum().keys()
 
-        # Convert to lowercase once
-        addr_list_for_portal = [addr.lower() for addr in addr_list]
+        if annotations_dict:
+            # tracer
+            addr_list_for_portal = list(annotations_dict.keys())
+        else:
+            # Non-tracer
+            addr_list_for_portal = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
 
         indicators = fetch_indicators(request_dict)
@@ -468,7 +387,8 @@ class TrackingResults:
             if not self._skip_source and self._async_source_graph:
                 tracking_results, nc = self._async_source_graph.get()
                 updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'],
-                                                                                   self.chain)
+                                                                                   self.chain,
+                                                                                   self.src_annotations_dict)
                 tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
                 tracking_results['item_list'] = updated_item_list
                 updated_nc.filter_update_nodes()
@@ -478,7 +398,8 @@ class TrackingResults:
             if not self._skip_dist and self._async_dist_graph:
                 tracking_results, nc = self._async_dist_graph.get()
                 updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'],
-                                                                                   self.chain)
+                                                                                   self.chain,
+                                                                                   self.dist_annotations_dict)
                 tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
                 tracking_results['item_list'] = updated_item_list
                 updated_nc.filter_update_nodes()
