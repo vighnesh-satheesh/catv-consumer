@@ -30,7 +30,7 @@ class TracerAPIInterface(TransactionAPIInterface):
         """
         try:
             # Convert chain to chain_id
-            chain_id = self._get_chain_id(chain)
+            chain_id, chain_type = self._get_chain_info(chain)
             if from_time and 'T' not in from_time:
                 start_datetime = f"{from_time}T00:00:00.000Z"
             else:
@@ -39,7 +39,7 @@ class TracerAPIInterface(TransactionAPIInterface):
             end_datetime = f"{till_time}Z"
             # Prepare request body
             request_body = {
-                "chain_type": "evm",
+                "chain_type": chain_type,
                 "chain_id": chain_id,
                 "start_address": address,
                 "start_datetime": start_datetime,
@@ -61,29 +61,25 @@ class TracerAPIInterface(TransactionAPIInterface):
             response.raise_for_status()  # Raise exception for HTTP errors
 
             # Process and return data in the same format as BitqueryAPIInterface
-            return self._process_response(response.json(), source)
+            return self._process_response(response.json(), chain, source)
 
         except Exception:
             traceback.print_exc()
             raise
 
-    def _get_chain_id(self, chain: str) -> int:
-        """
-        Convert chain name to chain_id.
-        """
+    def _get_chain_info(self, chain: str) -> tuple:
         chain_mapping = {
-            'ETH': 1,  # Ethereum Mainnet
-            'BSC': 56,  # Binance Smart Chain
-            'FTM': 250,  # Fantom
-            'POL': 137,  # Polygon
-            'ETC': 61,  # Ethereum Classic
-            'AVAX': 43114,  # Avalanche
-            'KLAY': 8217,  # Klaytn (not used by Tracer but included for completeness)
-            # Add other chains as needed
+            'ETH': (1, 'evm'),  # Ethereum Mainnet
+            'BSC': (56, 'evm'),  # Binance Smart Chain
+            'FTM': (250, 'evm'),  # Fantom
+            'POL': (137, 'evm'),  # Polygon
+            'ETC': (61, 'evm'),  # Ethereum Classic
+            'AVAX': (43114, 'evm'),  # Avalanche
+            'TRX': (1, 'tron')  # Tron
         }
-        return chain_mapping.get(chain, 1)  # Default to Ethereum
+        return chain_mapping.get(chain, (1, 'evm'))  # Default to Ethereum
 
-    def _process_response(self, response_data: Dict, source: bool) -> List[Dict[str, Any]]:
+    def _process_response(self, response_data: Dict, chain:str, source: bool) -> List[Dict[str, Any]]:
         """
         Process the response from Tracer API to match the format expected by TrackingResults.
         """
@@ -105,14 +101,16 @@ class TracerAPIInterface(TransactionAPIInterface):
             if source:
                 transaction['depth'] = -transaction['depth']
 
-        # Process swaps to create reverse transactions
-        swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
-        reverse_swap_transactions = TracerAPIInterface.create_reverse_swap_transactions(swap_transactions)
+        # bypass swap txns for TRX
+        if chain != 'TRX':
+            # Process swaps to create reverse transactions
+            swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
+            reverse_swap_transactions = TracerAPIInterface.create_reverse_swap_transactions(swap_transactions)
 
-        # Add the reverse swap transactions to the original list
-        if reverse_swap_transactions:
-            transactions.extend(reverse_swap_transactions)
-            print(f"Added {len(reverse_swap_transactions)} reverse swap transactions")
+            # Add the reverse swap transactions to the original list
+            if reverse_swap_transactions:
+                transactions.extend(reverse_swap_transactions)
+                print(f"Added {len(reverse_swap_transactions)} reverse swap transactions")
 
         response_data['transactions'] = transactions
         return response_data
