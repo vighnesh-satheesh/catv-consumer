@@ -59,7 +59,7 @@ class TrackingResults:
         till_date_extend = self.to_date + "T23:59:59"
 
         # Determine if we should use Tracer API first based on chain
-        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX', 'BTC']
+        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX']
 
         # Special case: If chain is BSC and there's a valid token address, don't use tracer first
         if (self.chain == 'BSC' and
@@ -449,9 +449,46 @@ class TrackingResults:
 
 class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
-        bloxy_interface = BitqueryAPIInterface()
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
+        should_use_tracer_first = self.chain in ['BTC']
+
+        if should_use_tracer_first:
+            try:
+                # Try Tracer API first
+                tracer_interface = TracerAPIInterface()
+                tracer_response = tracer_interface.get_transactions(
+                    self.wallet_address,
+                    tx_limit,
+                    depth_limit,
+                    self.from_date,
+                    till_date_extend,
+                    None,
+                    for_source,
+                    self.chain
+                )
+
+                transaction_data = tracer_response['transactions']
+                self.ext_api_calls += 1
+                if for_source:
+                    self.src_annotations_dict = tracer_response[
+                        'annotations'] if 'annotations' in tracer_response else []
+                else:
+                    self.dist_annotations_dict = tracer_response[
+                        'annotations'] if 'annotations' in tracer_response else []
+                if transaction_data:
+                    self.api_used = "tracer"
+                    print(f"Tracer API successful: Retrieved {len(transaction_data)} transactions")
+                    return [item for item in transaction_data if len(item["receiver"]) > 0]
+                else:
+                    print("Tracer API returned no data, falling back to Bitquery")
+
+            except Exception as e:
+                # Log the error but don't raise it - we'll fall back to Bitquery
+                error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
+                print(error_msg)
+
+        bloxy_interface = BitqueryAPIInterface()
         transaction_data = bloxy_interface.get_transactions(
             self.wallet_address,
             tx_limit,
@@ -463,6 +500,7 @@ class BTCCoinpathTrackingResults(TrackingResults):
             chain=self.chain
         )
         self.ext_api_calls += 1
+        self.api_used = "bitquery"
         return transaction_data
 
     def create_graph_data(self, build_lossy_graph=True):
