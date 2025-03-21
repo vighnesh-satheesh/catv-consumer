@@ -75,7 +75,8 @@ class TracerAPIInterface(TransactionAPIInterface):
             'POL': (137, 'evm'),  # Polygon
             'ETC': (61, 'evm'),  # Ethereum Classic
             'AVAX': (43114, 'evm'),  # Avalanche
-            'TRX': (1, 'tron')  # Tron
+            'TRX': (1, 'tron'),  # Tron
+            'BTC': (1, 'btc')
         }
         return chain_mapping.get(chain, (1, 'evm'))  # Default to Ethereum
 
@@ -88,7 +89,7 @@ class TracerAPIInterface(TransactionAPIInterface):
         unwanted_fields = [
             'chain_id', 'block_height', 'direction', 'original_value',
             'tracked_value', 'pending_value', 'receiver_sender_type',
-            'sender_security_category', 'receiver_security_category'
+            'sender_security_category', 'receiver_security_category', 'fee'
         ]
 
         # Process transactions
@@ -102,7 +103,7 @@ class TracerAPIInterface(TransactionAPIInterface):
                 transaction['depth'] = -transaction['depth']
 
         # bypass swap txns for TRX
-        if chain != 'TRX':
+        if chain not in ['TRX', 'BTC']:
             # Process swaps to create reverse transactions
             swap_transactions = [tx for tx in transactions if tx.get('is_swap') and tx.get('swap_info')]
             reverse_swap_transactions = TracerAPIInterface.create_reverse_swap_transactions(swap_transactions)
