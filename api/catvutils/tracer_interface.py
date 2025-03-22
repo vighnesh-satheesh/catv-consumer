@@ -89,7 +89,7 @@ class TracerAPIInterface(TransactionAPIInterface):
         unwanted_fields = [
             'chain_id', 'block_height', 'direction', 'original_value',
             'tracked_value', 'pending_value', 'receiver_sender_type',
-            'sender_security_category', 'receiver_security_category', 'fee'
+            'sender_security_category', 'receiver_security_category', 'fee', 'chain'
         ]
 
         # Process transactions
@@ -97,6 +97,10 @@ class TracerAPIInterface(TransactionAPIInterface):
             # Remove unwanted fields
             for field in unwanted_fields:
                 transaction.pop(field, None)
+
+            # Process token field if it exists and is a dictionary
+            if 'token' in transaction and isinstance(transaction['token'], dict):
+                transaction['token'] = transaction['token'].get('address', '')
 
             # offsetting depth to -(depth) for source transactions
             if source:

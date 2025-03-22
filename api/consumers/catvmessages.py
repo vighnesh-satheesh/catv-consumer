@@ -173,14 +173,14 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
             )
             graph_data = exchange_checker_obj.stop_transfers_at_exchange()
 
-        if token_type in [CatvTokens.ETH.value, CatvTokens.KLAY.value, CatvTokens.BSC.value]:
-            print("Entering SmartContractMethodFinder:")
-            start_time = time.time()
-            smart_contract_data_obj = SmartContractMethodFinder(token_type, graph_data['node_list'],
-                                                                graph_data['edge_list'])
-            graph_data["edge_list"] = smart_contract_data_obj.get_updated_edges()
-            elapsed_time = time.time() - start_time
-            print("Total time taken for SmartContractMethodFinder: ", elapsed_time)
+        # if token_type in [CatvTokens.ETH.value, CatvTokens.KLAY.value, CatvTokens.BSC.value]:
+        #     print("Entering SmartContractMethodFinder:")
+        #     start_time = time.time()
+        #     smart_contract_data_obj = SmartContractMethodFinder(token_type, graph_data['node_list'],
+        #                                                         graph_data['edge_list'])
+        #     graph_data["edge_list"] = smart_contract_data_obj.get_updated_edges()
+        #     elapsed_time = time.time() - start_time
+        #     print("Total time taken for SmartContractMethodFinder: ", elapsed_time)
 
         catv_metrics = CatvMetrics(graph_data, search_params, token_type)
         dist_analysis = {}
