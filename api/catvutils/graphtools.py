@@ -15,6 +15,10 @@ BTC_SOURCE_DEPTH_OFFSET = 1
 
 
 class Node:
+    SKIP_ANNOTATIONS = ["exchange", "wallet", "exchange wallet", "user wallet", "fiat gateway",
+                        "proxy contract", "defi", "dex", "smart contract", "token contract",
+                        "router", "contract", "v1", "v2", "v3"]
+
     def __init__(self, id, address, annotation, type, depth, balance=None,
                  amount_in=None, amount_out=None, trdb_info=None):
         self.id = id
@@ -22,13 +26,62 @@ class Node:
         self.annotation = annotation
         self.type = type
         self.level = depth
-        self.label = generate_node_label(address, annotation)
+        self.label = address[:8]
         self.balance = balance
         self.amount_in = amount_in
         self.amount_out = amount_out
         self.trdb_info = trdb_info
         self.group = ""
         self.set_group_from_annotation()
+
+    def generate_label(self):
+        """
+        Generate a meaningful label for the node based on its address and annotation.
+        Uses a simplified approach that preserves multi-word entity names.
+
+        Returns:
+            A string representing the most meaningful label for the node
+        """
+        if not self.annotation:
+            return self.address[:8]
+
+        # Split annotations by comma and use the first one as starting point
+        first_annotation = self.annotation.split(",")[0].strip()
+
+        # Handle domain-style project names
+        if "." in first_annotation:
+            if first_annotation.startswith("DEX."):
+                pass  # Keep DEX.AG intact
+            elif "inch" in first_annotation.lower():
+                first_annotation = "1inch"  # Special case for 1inch.exchange
+            else:
+                first_annotation = first_annotation.split(".")[0]
+
+        # Remove parts after colon or parentheses
+        if ":" in first_annotation:
+            first_annotation = first_annotation.split(":")[0].strip()
+        if "(" in first_annotation:
+            first_annotation = first_annotation.split("(")[0].strip()
+
+        # Replace underscores with spaces
+        first_annotation = first_annotation.replace("_", " ")
+
+        # KEY SIMPLIFICATION: If the cleaned annotation contains multiple words,
+        # keep the entire thing rather than just the first word
+        words = first_annotation.split()
+        if len(words) >= 2:
+            # If there's a trailing number, remove it
+            if words[-1].isdigit():
+                return " ".join(words[:-1])
+            return first_annotation
+
+        # If it's a single word annotation, return it
+        # (this preserves single word names like "Uniswap", "Binance", etc.)
+        if first_annotation.lower() not in self.SKIP_ANNOTATIONS:
+            return first_annotation
+
+        # Fallback: If result would be in the skip list or empty, use the entire annotation
+        return self.annotation
 
     def set_group_from_annotation(self):
         # Initialize default
@@ -73,8 +126,19 @@ class Node:
             self.group = 'No Tag'
 
     def update(self, **kwargs):
+        # Update all attributes from kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+        # If annotation was updated, update the label
+        # except for blacklist or whitelist security categories
+        if 'annotation' in kwargs and kwargs['annotation']:
+            # Only update label if not blacklist or whitelist
+            if not (self.group == 'Blacklist' or self.group == 'Whitelist'):
+                self.label = self.generate_label()
+            else:
+                # For blacklist or whitelist, keep the default label
+                self.label = self.address[:8]
 
 
 class BTCNode(Node):

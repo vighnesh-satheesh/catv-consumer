@@ -38,66 +38,6 @@ def validate_dateformat_and_randomize_seconds(value, output_format):
     return date_obj.strftime(output_format)
 
 
-# Expanded skip annotations
-SKIP_ANNOTATIONS = ["exchange", "wallet", "exchange wallet", "user wallet", "fiat gateway",
-                    "proxy contract", "defi", "dex", "smart contract", "token contract",
-                    "router", "contract", "v1", "v2", "v3"]
-
-
-def generate_node_label(address: str, annotation: str) -> str:
-    """
-    Generate a meaningful label for a node based on its address and annotation.
-    Uses a simplified approach that preserves multi-word entity names.
-
-    Args:
-        address: The crypto address of the node
-        annotation: A string containing annotations for the node
-
-    Returns:
-        A string representing the most meaningful label for the node
-    """
-    if not annotation:
-        return address[:8]
-
-    # Split annotations by comma and use the first one as starting point
-    first_annotation = annotation.split(",")[0].strip()
-
-    # Handle domain-style project names
-    if "." in first_annotation:
-        if first_annotation.startswith("DEX."):
-            pass  # Keep DEX.AG intact
-        elif "inch" in first_annotation.lower():
-            first_annotation = "1inch"  # Special case for 1inch.exchange
-        else:
-            first_annotation = first_annotation.split(".")[0]
-
-    # Remove parts after colon or parentheses
-    if ":" in first_annotation:
-        first_annotation = first_annotation.split(":")[0].strip()
-    if "(" in first_annotation:
-        first_annotation = first_annotation.split("(")[0].strip()
-
-    # Replace underscores with spaces
-    first_annotation = first_annotation.replace("_", " ")
-
-    # KEY SIMPLIFICATION: If the cleaned annotation contains multiple words,
-    # keep the entire thing rather than just the first word
-    words = first_annotation.split()
-    if len(words) >= 2:
-        # If there's a trailing number, remove it
-        if words[-1].isdigit():
-            return " ".join(words[:-1])
-        return first_annotation
-
-    # If it's a single word annotation, return it
-    # (this preserves single word names like "Uniswap", "Binance", etc.)
-    if first_annotation.lower() not in SKIP_ANNOTATIONS:
-        return first_annotation
-
-    # Fallback: If result would be in the skip list or empty, use the entire annotation
-    return annotation
-
-
 def format_tx_time(tx_time):
     """Handle multiple timestamp formats from different vendors"""
     try:
