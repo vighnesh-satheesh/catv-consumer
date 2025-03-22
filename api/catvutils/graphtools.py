@@ -3,7 +3,7 @@ from itertools import chain, islice
 from math import ceil
 
 from api.settings import api_settings
-from api.utils import format_tx_time, generate_node_label
+from api.utils import format_tx_time
 
 MULTIPLIER = 0.4
 EDGE_WIDTH_MAX = 4
@@ -26,7 +26,7 @@ class Node:
         self.annotation = annotation
         self.type = type
         self.level = depth
-        self.label = address[:8]
+        self.label = self.generate_label()
         self.balance = balance
         self.amount_in = amount_in
         self.amount_out = amount_out
