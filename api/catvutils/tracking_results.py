@@ -448,6 +448,7 @@ class TrackingResults:
 
 
 class BTCCoinpathTrackingResults(TrackingResults):
+
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"

@@ -295,6 +295,11 @@ class GraphQLInterface:
 
             # Ethereum-like chains
             if self.chain in ["ETH", "KLAY", "BSC", "FTM", "POL", "AVAX"]:
+                # Skip items with missing or zero transaction value for EVM chains
+                transaction_value = safe_get(item, "transaction", "value", default=0)
+                if transaction_value == 0:
+                    return
+
                 current_iter_dict.update({
                     "token": token_address,
                     "tx_time": safe_get(item, "transactions", 0, "timestamp", default=""),

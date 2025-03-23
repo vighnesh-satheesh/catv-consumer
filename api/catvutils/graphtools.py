@@ -301,6 +301,8 @@ def create_edge(id, tx, node_enum):
         'to': node_enum[tx['receiver']],
         'data': [{
             'amount': abs(tx['amount']),
+            'from_amount': tx['from_amount'] if 'from_amount' in tx else 0,
+            'to_amount': tx['to_amount'] if 'to_amount' in tx else 0,
             'tx_hash': tx['tx_hash'],
             'depth': tx['depth'],
             'tx_time': format_tx_time(tx['tx_time']),
@@ -366,10 +368,12 @@ def assign_edges(result, mode, node_enum):
 
             edge_dict[(item['sender'], item['receiver'])]['data'].append({
                 'amount': abs(amount),
+                'from_amount': item['from_amount'] if 'from_amount' in item else 0, # for BTC
+                'to_amount': item['to_amount'] if 'to_amount' in item else 0, # for BTC
                 'tx_hash': item['tx_hash'],
                 'depth': item['depth'],
                 'tx_time': formatted_tx_time,
-                'amount_usd': abs(amount_usd),
+                'amount_usd': abs(amount_usd) if amount_usd is not None else 0,
                 'symbol': symbol
             })
             edge_dict[(item['sender'], item['receiver'])]['sum'] += abs(item['amount'])
