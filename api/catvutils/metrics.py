@@ -84,7 +84,7 @@ class CatvMetrics:
 
         # Only use main token transactions for calculations
         main_token_items = [item for item in self.seg_item_list if
-                            item['symbol'] == self.symbol] if self.symbol != 'BTC' else self.seg_node_list
+                            item['symbol'] == self.symbol]
 
         # Top 10 blacklisted wallets by balance
         black_wallets = list(filter(lambda node: node["group"] == 'Blacklist', self.seg_node_list))
@@ -116,15 +116,7 @@ class CatvMetrics:
         highest_by_depth = defaultdict(dict)
 
         # Calculate highest sent/received per level
-        for level, items in grouped_by_depth.items():
-            max_sent_item = max(items, key=lambda item: item["amount"])
-            highest_by_depth[level]["sent"] = {"tx_hash": max_sent_item["tx_hash"], "amount": max_sent_item["amount"]}
-
-            if abs(int(level)) > 1:
-                depth_key = str(abs(int(level)) - 1)
-                depth_key = depth_key if compare_operator == gt else f"-{depth_key}"
-                highest_by_depth[depth_key]["received"] = {"tx_hash": max_sent_item["tx_hash"],
-                                                           "amount": max_sent_item["amount"]}
+        self._calculate_highest_by_depth(main_token_items, grouped_by_depth, highest_by_depth, compare_operator)
 
         # Calculate max sender/receiver
         max_sender, max_receiver = self._calculate_max_senders_receivers(
@@ -137,6 +129,62 @@ class CatvMetrics:
             "max_sender": max_sender,
             "max_receiver": max_receiver
         }
+
+    def _calculate_highest_by_depth(self, main_token_items, grouped_by_depth, highest_by_depth, compare_operator):
+        """Calculate highest sent/received per depth level with special handling for BTC"""
+
+        # Check if it's BTC
+        is_btc = self.symbol == "BTC"
+
+        if not is_btc:
+            # Original logic for non-BTC tokens
+            for level, items in grouped_by_depth.items():
+                max_sent_item = max(items, key=lambda item: item["amount"])
+                highest_by_depth[level]["sent"] = {"tx_hash": max_sent_item["tx_hash"],
+                                                   "amount": max_sent_item["amount"]}
+
+                if abs(int(level)) > 1:
+                    depth_key = str(abs(int(level)) - 1)
+                    depth_key = depth_key if compare_operator == gt else f"-{depth_key}"
+                    highest_by_depth[depth_key]["received"] = {"tx_hash": max_sent_item["tx_hash"],
+                                                               "amount": max_sent_item["amount"]}
+        else:
+            # BTC-specific logic using from_amount and to_amount
+            for level, items in grouped_by_depth.items():
+                # Track unique transaction hashes to avoid duplicates
+                processed_hashes = set()
+
+                # Transform items to include only unique tx_hashes with correct amounts
+                unique_items = []
+                for item in items:
+                    tx_hash = item["tx_hash"]
+                    if tx_hash not in processed_hashes:
+                        # Use amount here not from/to amount
+                        unique_item = item.copy()
+                        unique_item["btc_amount"] = item["amount"]  # Fallback
+                        unique_items.append(unique_item)
+                        processed_hashes.add(tx_hash)
+
+                # Find max sent item based on from_amount (or fallback to amount)
+                if unique_items:
+                    max_sent_item = max(unique_items, key=lambda item: item["btc_amount"])
+                    highest_by_depth[level]["sent"] = {
+                        "tx_hash": max_sent_item["tx_hash"],
+                        "amount": max_sent_item["btc_amount"]
+                    }
+
+                    # For received at the previous level, use to_amount from the same transaction
+                    if abs(int(level)) > 1:
+                        depth_key = str(abs(int(level)) - 1)
+                        depth_key = depth_key if compare_operator == gt else f"-{depth_key}"
+
+                        # If to_amount is available, use it, otherwise fallback to amount
+                        receive_amount = max_sent_item.get("to_amount", max_sent_item["amount"])
+
+                        highest_by_depth[depth_key]["received"] = {
+                            "tx_hash": max_sent_item["tx_hash"],
+                            "amount": receive_amount
+                        }
 
     def _calculate_enhanced_metrics(self, compare_operator):
         """Calculate enhanced metrics using seg_item_list and seg_node_list"""
