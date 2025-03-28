@@ -83,7 +83,8 @@ class CatvMetrics:
         """Calculate legacy metrics using seg_item_list and seg_node_list"""
 
         # Only use main token transactions for calculations
-        main_token_items = [item for item in self.seg_item_list if item['symbol'] == self.symbol]
+        main_token_items = [item for item in self.seg_item_list if
+                            item['symbol'] == self.symbol] if self.symbol != 'BTC' else self.seg_node_list
 
         # Top 10 blacklisted wallets by balance
         black_wallets = list(filter(lambda node: node["group"] == 'Blacklist', self.seg_node_list))
@@ -126,7 +127,8 @@ class CatvMetrics:
                                                            "amount": max_sent_item["amount"]}
 
         # Calculate max sender/receiver
-        max_sender, max_receiver = self._calculate_max_senders_receivers(main_token_items)
+        max_sender, max_receiver = self._calculate_max_senders_receivers(
+            main_token_items) if self.symbol != "BTC" else self._calculate_max_senders_receivers_btc(main_token_items)
 
         return {
             "blacklisted": black_wallets_top,
@@ -187,12 +189,49 @@ class CatvMetrics:
                                 if item['receiver'].lower() == self.origin.lower()
                                 and item['symbol'] == self.symbol]
 
-        # Calculate sums for main token
-        transactions_from_origin_sum = Decimal(sum(item['amount'] for item in main_token_from_origin)).quantize(
-            Decimal('0.01'), rounding=ROUND_DOWN)
+        is_btc = self.symbol == "BTC"
+        if not is_btc:
+            # Calculate sums for main token
+            transactions_from_origin_sum = Decimal(sum(item['amount'] for item in main_token_from_origin)).quantize(
+                Decimal('0.01'), rounding=ROUND_DOWN)
 
-        transactions_to_origin_sum = Decimal(sum(item['amount'] for item in main_token_to_origin)).quantize(
-            Decimal('0.01'), rounding=ROUND_DOWN)
+            transactions_to_origin_sum = Decimal(sum(item['amount'] for item in main_token_to_origin)).quantize(
+                Decimal('0.01'), rounding=ROUND_DOWN)
+        else:
+            # For BTC, handle UTXO model with deduplication
+
+            # For transactions from origin
+            from_origin_amount = 0
+            processed_from_hashes = set()
+
+            for item in main_token_from_origin:
+                tx_hash = item["tx_hash"]
+                if tx_hash not in processed_from_hashes:
+                    if "from_amount" in item:
+                        from_origin_amount += item["from_amount"]
+                    else:
+                        from_origin_amount += item["amount"]  # Fallback to amount if from_amount is missing
+                    processed_from_hashes.add(tx_hash)
+
+            # For transactions to origin
+            to_origin_amount = 0
+            processed_to_hashes = set()
+
+            for item in main_token_to_origin:
+                tx_hash = item["tx_hash"]
+                if tx_hash not in processed_to_hashes:
+                    if "to_amount" in item:
+                        to_origin_amount += item["to_amount"]
+                    else:
+                        to_origin_amount += item["amount"]  # Fallback to amount if to_amount is missing
+                    processed_to_hashes.add(tx_hash)
+
+            # Convert to Decimal with rounding
+            transactions_from_origin_sum = Decimal(from_origin_amount).quantize(
+                Decimal('0.01'), rounding=ROUND_DOWN)
+
+            transactions_to_origin_sum = Decimal(to_origin_amount).quantize(
+                Decimal('0.01'), rounding=ROUND_DOWN)
 
         tokens_involved = {item['symbol'] for item in self.item_list}
 
@@ -372,6 +411,52 @@ class CatvMetrics:
 
         return max_sender, max_receiver
 
+    def _calculate_max_senders_receivers_btc(self, main_token_items):
+        # For BTC, handle UTXO model properly
+        sender_amounts = defaultdict(float)
+        receiver_amounts = defaultdict(float)
+
+        # Track processed transaction hashes for each sender
+        processed_sender_hashes = defaultdict(set)
+        # Track processed transaction hashes for each receiver
+        processed_receiver_hashes = defaultdict(set)
+
+        for item in main_token_items:
+            # Handle sender (use from_amount)
+            sender = item["sender"]
+            tx_hash = item["tx_hash"]
+
+            # Only count each transaction hash once per sender
+            if tx_hash not in processed_sender_hashes[sender]:
+                if "from_amount" in item:
+                    sender_amounts[sender] += item["from_amount"]
+                else:
+                    sender_amounts[sender] += item["amount"]  # Fallback to amount if from_amount is missing
+                processed_sender_hashes[sender].add(tx_hash)
+
+            # Handle receiver (use to_amount)
+            receiver = item["receiver"]
+
+            # Only count each transaction hash once per receiver
+            if tx_hash not in processed_receiver_hashes[receiver]:
+                if "to_amount" in item:
+                    receiver_amounts[receiver] += item["to_amount"]
+                else:
+                    receiver_amounts[receiver] += item["amount"]  # Fallback to amount if to_amount is missing
+                processed_receiver_hashes[receiver].add(tx_hash)
+
+        # Convert to the expected format
+        grouped_by_sender = [{"address": sender, "amount": amount} for sender, amount in sender_amounts.items()]
+        grouped_by_receiver = [{"address": receiver, "amount": amount} for receiver, amount in receiver_amounts.items()]
+
+        # Find max sender and receiver
+        max_sender = max(grouped_by_sender, key=lambda sender: sender["amount"]) if grouped_by_sender else {
+            "address": "", "amount": 0}
+        max_receiver = max(grouped_by_receiver, key=lambda receiver: receiver["amount"]) if grouped_by_receiver else {
+            "address": "", "amount": 0}
+
+        return max_sender, max_receiver
+
     def _pick_n_unique(self, iterable, key, n):
         """Helper function to pick N unique items based on a key"""
         seen = []
@@ -394,11 +479,31 @@ class CatvMetrics:
         if not self.item_list:
             return total_amount, total_amount_usd
 
-        # Filter items for main token and sum in a single pass
-        for item in self.item_list:
-            if item['symbol'] == self.symbol:
-                total_amount += item.get("amount", 0)
-                total_amount_usd += item.get("amount_usd", 0)
+        # Check if this is BTC
+        is_btc = self.symbol == "BTC"
+
+        if not is_btc:
+            # Original logic for non-BTC tokens
+            for item in self.item_list:
+                if item['symbol'] == self.symbol:
+                    total_amount += item.get("amount", 0)
+                    total_amount_usd += item.get("amount_usd", 0)
+        else:
+            # For BTC, handle deduplication based on transaction hash
+            processed_tx_hashes = set()
+
+            for item in self.item_list:
+                if item['symbol'] == self.symbol:
+                    tx_hash = item.get("tx_hash")
+
+                    # Skip if we've already processed this hash
+                    if tx_hash in processed_tx_hashes:
+                        continue
+
+                    # Add to totals and mark as processed
+                    total_amount += item.get("amount", 0)
+                    total_amount_usd += item.get("amount_usd", 0)
+                    processed_tx_hashes.add(tx_hash)
 
         return total_amount, total_amount_usd
 
