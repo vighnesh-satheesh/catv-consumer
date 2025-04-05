@@ -244,13 +244,13 @@ class CatvMetrics:
             if transactions_from_origin_sum >= 1:
                 transactions_from_origin_sum = transactions_from_origin_sum.quantize(Decimal('0.01'),
                                                                                      rounding=ROUND_DOWN)
-            else:
+            elif transactions_from_origin_sum > 0:
                 transactions_from_origin_sum = transactions_from_origin_sum.quantize(Decimal('0.000001'),
                                                                                      rounding=ROUND_DOWN)
             transactions_to_origin_sum = Decimal(sum(item['amount'] for item in main_token_to_origin))
             if transactions_to_origin_sum >= 1:
                 transactions_to_origin_sum = transactions_to_origin_sum.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
-            else:
+            elif transactions_to_origin_sum > 0:
                 transactions_to_origin_sum = transactions_to_origin_sum.quantize(Decimal('0.000001'), rounding=ROUND_DOWN)
         else:
             # For BTC, handle UTXO model with deduplication
@@ -286,13 +286,13 @@ class CatvMetrics:
             if transactions_from_origin_sum >= 1:
                 transactions_from_origin_sum = transactions_from_origin_sum.quantize(Decimal('0.01'),
                                                                                      rounding=ROUND_DOWN)
-            else:
+            elif transactions_from_origin_sum > 0:
                 transactions_from_origin_sum = transactions_from_origin_sum.quantize(Decimal('0.000001'),
                                                                                      rounding=ROUND_DOWN)
             transactions_to_origin_sum = Decimal(to_origin_amount)
             if transactions_to_origin_sum >= 1:
                 transactions_to_origin_sum = transactions_to_origin_sum.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
-            else:
+            elif transactions_to_origin_sum > 0:
                 transactions_to_origin_sum = transactions_to_origin_sum.quantize(Decimal('0.000001'), rounding=ROUND_DOWN)
 
         tokens_involved = {item['symbol'] for item in self.item_list}
