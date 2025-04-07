@@ -10,6 +10,7 @@ from django.utils.timezone import now
 
 from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
+from api.catvutils.node_info_calculator import NodeInfoCalculator
 from api.catvutils.smc_method_finder import SmartContractMethodFinder
 from api.models import (
     CatvTokens, CatvSearchType,
@@ -204,6 +205,10 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
         catv_metrics.save_annotations()
         print("total number of nodes: ", len(graph_data["node_list"]))
         enhanced_metrics["overview"] = catv_metrics.generate_overview_metrics()
+
+        # Update node_list with received/sent from/to values of each node
+        node_info_calculator = NodeInfoCalculator(graph_data, token_type)
+        graph_data["node_list"] = node_info_calculator.process_nodes()
         results = {
             "data": {
                 **graph_data,
