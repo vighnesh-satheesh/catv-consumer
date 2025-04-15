@@ -211,12 +211,12 @@ class TrackingResults:
     def update_annotations(nc, item_list, token_type, annotations_dict):
         addr_list = nc.get_node_enum().keys()
 
-        if annotations_dict:
-            # tracer
-            addr_list_for_portal = list(annotations_dict.keys())
-        else:
-            # Non-tracer
-            addr_list_for_portal = [addr.lower() for addr in addr_list]
+        # if annotations_dict:
+        #     # tracer
+        #     addr_list_for_portal = list(annotations_dict.keys())
+        # else:
+        #     # Non-tracer
+        addr_list_for_portal = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
 
         indicators = fetch_indicators(request_dict)
