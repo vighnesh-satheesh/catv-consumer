@@ -320,6 +320,7 @@ class TrackingResults:
                         cur_node.update(**kwargs)
 
                     nc.update_node(pattern_lower, cur_node)
+                    nc.update_node(cur_node.address, cur_node)
                     updated_nodes += 1
 
                     # Update transaction annotations using our pre-built dictionaries
