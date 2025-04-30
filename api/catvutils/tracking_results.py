@@ -62,11 +62,11 @@ class TrackingResults:
         should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX']
 
         # Special case: If chain is BSC and there's a valid token address, don't use tracer first
-        if (self.chain == 'BSC' and
-                self.token_address is not None and
-                self.token_address != "" and
-                self.token_address != '0x0000000000000000000000000000000000000000'):
-            should_use_tracer_first = False
+        # if (self.chain == 'BSC' and
+        #         self.token_address is not None and
+        #         self.token_address != "" and
+        #         self.token_address != '0x0000000000000000000000000000000000000000'):
+        #     should_use_tracer_first = False
 
         if should_use_tracer_first:
             try:
