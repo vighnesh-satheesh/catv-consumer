@@ -354,6 +354,8 @@ def add_edge_ids_to_item_list(edge_list, result):
 def assign_edges(result, mode, node_enum):
     edge_dict = {}
     counter = 0
+    bidirectional_pairs = {}  # Track potential bidirectional pairs
+
     for item in result:
         try:
             amount = float(item['amount']) if isinstance(item['amount'], str) else item['amount']
@@ -387,8 +389,13 @@ def assign_edges(result, mode, node_enum):
             if 'depth' not in edge_dict[(item['sender'], item['receiver'])]:
                 edge_dict[(item['sender'], item['receiver'])]['depth'] = item['depth']
         except KeyError:
-            edge_dict[(item['sender'], item['receiver'])] = create_edge('{}_{}'.format(counter, mode), item, node_enum)
+            edge_id = '{}_{}'.format(counter, mode)
+            edge_dict[(item['sender'], item['receiver'])] = create_edge(edge_id, item, node_enum)
+            # Track this direction
+            if (item['receiver'], item['sender']) not in bidirectional_pairs:
+                bidirectional_pairs[(item['sender'], item['receiver'])] = edge_id
             counter += 1
+
         width = edge_dict[(item['sender'], item['receiver'])]["sum"] * MULTIPLIER
         if width > EDGE_WIDTH_MAX:
             edge_dict[(item['sender'], item['receiver'])]['width'] = EDGE_WIDTH_MAX
@@ -403,6 +410,23 @@ def assign_edges(result, mode, node_enum):
         edge['sum_list'] = [
             f"{amount} {symbol}" for symbol, amount in edge['sum_dict'].items()
         ]
+        # Check for bidirectional relationships
+        reverse_tuple = (key_tuple[1], key_tuple[0])
+        if reverse_tuple in edge_dict:
+            # Both edges are part of a bidirectional relationship
+            edge['is_bidirectional'] = True
+            edge_dict[reverse_tuple]['is_bidirectional'] = True
+
+            # Determine which is original and which is reverse
+            # We use the bidirectional_pairs map which recorded the first seen edge ID for each direction
+            if key_tuple in bidirectional_pairs:
+                # This direction was seen first, so it's the original
+                # The reverse should reference this edge
+                edge_dict[reverse_tuple]['original_edge_id'] = edge['id']
+            else:
+                # The reverse direction was seen first, so current edge is the reverse
+                # It should reference the original
+                edge['original_edge_id'] = edge_dict[reverse_tuple]['id']
 
     return edge_dict
 
