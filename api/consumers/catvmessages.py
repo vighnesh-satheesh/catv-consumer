@@ -1,5 +1,4 @@
 import json
-import time
 import traceback
 from operator import gt, lt
 from uuid import UUID, uuid4
@@ -11,7 +10,6 @@ from django.utils.timezone import now
 from api.catvutils.exchange_checker import ExchangeChecker
 from api.catvutils.metrics import CatvMetrics
 from api.catvutils.node_info_calculator import NodeInfoCalculator
-from api.catvutils.smc_method_finder import SmartContractMethodFinder
 from api.models import (
     CatvTokens, CatvSearchType,
     CatvRequestStatus, CatvTaskStatusType,
@@ -29,7 +27,7 @@ from api.tasks import catv_history_task, catv_path_history_task
 
 __all__ = ('process_catv_messages',)
 
-from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message, get_gcs_file
+from api.utils import upload_content_file_to_gcs, get_file_meta, get_user_error_message
 
 
 def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
@@ -119,9 +117,11 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
 
     try:
         results = None
-        request_instance = None
         request_uid = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
+        request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
+        is_bounty_track = request_instance.get("is_bounty_track", False)
+        print(f"{is_bounty_track}")
         # parent_result_file_id = request_body.get("parent_result_file_id", None)
         # parent_result = None
         # if parent_result_file_id:
@@ -224,7 +224,7 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
             history_runner.delay(history=search_params, from_history=False)
             task_status = CatvTaskStatusType.RELEASED
         else:
-            res = update_catv_usage_error(user_id)
+            res = update_catv_usage_error(user_id, is_bounty_track)
             print('Node list is empty, setting status as FAILED', res)
             history_runner.delay(history=search_params, from_history=True)
             task_status = CatvTaskStatusType.FAILED
@@ -233,10 +233,8 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
         print(f"Inside catvmessages: {type(e)}")
         task_status = CatvTaskStatusType.FAILED
         # revert usage in case of exception
-        res = update_catv_usage_error(user_id)
+        res = update_catv_usage_error(user_id, is_bounty_track)
         print('Catv error, updating error usage', res)
-
-        request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
 
         # set error log and appropriate error_message
         ConsumerErrorLogs.objects.create(
@@ -263,7 +261,7 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
                     print("Upload to GCS failed for request_uid: ", request_uid)
                     ConsumerErrorLogs.objects.create(
                         request_uid=request_uid,
-                        topic="s3-upload",
+                        topic="gcs-upload",
                         message=request_body,
                         error_trace=traceback.format_exc(),
                         user_error_message=get_user_error_message(e)

@@ -132,6 +132,7 @@ class CatvRequestStatus(models.Model):
     #                                    on_delete=models.CASCADE,
     #                                    related_name='swap_requests')
     # is_swap_request = models.BooleanField(default=False)
+    is_bounty_track = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'api_catv_request_status'
