@@ -120,7 +120,8 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
         request_uid = UUID(request_body["message_id"])
         user_id = request_body["user_id"]
         request_instance = CatvRequestStatus.objects.get(uid=request_uid, user_id=user_id)
-        is_bounty_track = request_instance.get("is_bounty_track", False)
+        # is_bounty_track = request_instance.get("is_bounty_track", False)
+        is_bounty_track = getattr(request_instance, "is_bounty_track", False)
         print(f"{is_bounty_track}")
         # parent_result_file_id = request_body.get("parent_result_file_id", None)
         # parent_result = None
