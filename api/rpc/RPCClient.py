@@ -72,6 +72,7 @@ def fetch_cara_report(request):
     return rpc.call(json.dumps(request), 'rpc_portal_cara_reports')
 
 
-def update_catv_usage_error(user_id):
+def update_catv_usage_error(user_id, is_bounty_track=False):
     rpc = RPCClient()
-    return rpc.call(user_id, 'rpc_catv_update_usage_error')
+    user_req_dict = {"user_id": user_id, "is_bounty_track": is_bounty_track}
+    return rpc.call(user_req_dict, 'rpc_catv_update_usage_error')
