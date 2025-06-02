@@ -4,13 +4,13 @@ from multiprocessing.pool import ThreadPool
 
 from django.conf import settings
 
-from .bitquery_interface import BitqueryAPIInterface
 from .graphtools import (
     generate_nodes_edges, generate_nodes_edges_coinpath, generate_nodes_edges_ethcoinpath,
     generate_nodes_edges_btccoinpath
 )
 from .tracer_interface import TracerAPIInterface
 from .vendor_api import BloxyEthAPIInterface
+from ..exceptions import TracerNetworkTimeoutError
 from ..models import (
     CatvTokens
 )
@@ -51,24 +51,15 @@ class TrackingResults:
         self.error_messages = {"source": "", "distribution": ""}
         self.chain = kwargs.get('chain', CatvTokens.ETH.value)
         self.api_used = ""
-        self.dist_annotations_dict = None
-        self.src_annotations_dict = None
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
 
         # Determine if we should use Tracer API first based on chain
-        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX']
+        is_tracer_supported_chain = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX']
 
-        # Special case: If chain is BSC and there's a valid token address, don't use tracer first
-        # if (self.chain == 'BSC' and
-        #         self.token_address is not None and
-        #         self.token_address != "" and
-        #         self.token_address != '0x0000000000000000000000000000000000000000'):
-        #     should_use_tracer_first = False
-
-        if should_use_tracer_first:
+        if is_tracer_supported_chain:
             try:
                 # Try Tracer API first
                 tracer_interface = TracerAPIInterface()
@@ -85,48 +76,17 @@ class TrackingResults:
                 self.ext_api_calls += 1
 
                 transaction_data = tracer_response['transactions']
-                if for_source:
-                    self.src_annotations_dict = tracer_response['annotations'] if 'annotations' in tracer_response else []
-                else:
-                    self.dist_annotations_dict = tracer_response['annotations'] if 'annotations' in tracer_response else []
                 if transaction_data:
                     self.api_used = "tracer"
                     print(f"Tracer API successful: Retrieved {len(transaction_data)} transactions")
                     return [item for item in transaction_data if len(item["receiver"]) > 0]
                 else:
-                    print("Tracer API returned no data, falling back to Bitquery")
-
+                    raise TracerNetworkTimeoutError(f"Tracer API timed out.")
             except Exception as e:
                 # Log the error but don't raise it - we'll fall back to Bitquery
-                error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
-                print(error_msg)
+                raise TracerNetworkTimeoutError(f"Tracer API timed out.")
 
-        # Either Tracer API failed, we're processing Klaytn, or Tracer API wasn't applicable
-        try:
-            # Fall back to Bitquery or use it directly for Klaytn
-            bloxy_interface = BitqueryAPIInterface()
-            transaction_data = bloxy_interface.get_transactions(
-                self.wallet_address,
-                tx_limit,
-                depth_limit,
-                self.from_date,
-                till_date_extend,
-                self.token_address,
-                for_source,
-                self.chain
-            )
-            self.ext_api_calls += 1
-            self.api_used = "bitquery"
-            if transaction_data:
-                return [item for item in transaction_data if len(item["receiver"]) > 0]
-
-        except Exception as e:
-            # Both APIs failed or we went straight to Bitquery and it failed
-            error_source = "source" if for_source else "distribution"
-            print(f"Bitquery API failed for {error_source}: {str(e)}")
-            raise  # Propagate the exception to be handled by get_tracking_data
-
-        return []  # Return empty list if no data or all filtering removed items
+        return []
 
     def get_tracking_data(self, tx_limit, limit, save_to_db):
         pool = ThreadPool(processes=2)
@@ -208,14 +168,9 @@ class TrackingResults:
             pool.join()
 
     @staticmethod
-    def update_annotations(nc, item_list, token_type, annotations_dict):
+    def update_annotations(nc, item_list, token_type):
         addr_list = nc.get_node_enum().keys()
 
-        # if annotations_dict:
-        #     # tracer
-        #     addr_list_for_portal = list(annotations_dict.keys())
-        # else:
-        #     # Non-tracer
         addr_list_for_portal = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
 
@@ -388,8 +343,7 @@ class TrackingResults:
             if not self._skip_source and self._async_source_graph:
                 tracking_results, nc = self._async_source_graph.get()
                 updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'],
-                                                                                   self.chain,
-                                                                                   self.src_annotations_dict)
+                                                                                   self.chain)
                 tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
                 tracking_results['item_list'] = updated_item_list
                 updated_nc.filter_update_nodes()
@@ -399,8 +353,7 @@ class TrackingResults:
             if not self._skip_dist and self._async_dist_graph:
                 tracking_results, nc = self._async_dist_graph.get()
                 updated_nc, updated_item_list = TrackingResults.update_annotations(nc, tracking_results['item_list'],
-                                                                                   self.chain,
-                                                                                   self.dist_annotations_dict)
+                                                                                   self.chain)
                 tracking_results['node_list'] = list(updated_nc.get_nodes_as_dict().values())
                 tracking_results['item_list'] = updated_item_list
                 updated_nc.filter_update_nodes()
@@ -453,9 +406,9 @@ class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
-        should_use_tracer_first = self.chain in ['BTC']
+        is_tracer_supported_chain = self.chain in ['BTC']
 
-        if should_use_tracer_first:
+        if is_tracer_supported_chain:
             try:
                 # Try Tracer API first
                 tracer_interface = TracerAPIInterface()
@@ -472,38 +425,18 @@ class BTCCoinpathTrackingResults(TrackingResults):
 
                 transaction_data = tracer_response['transactions']
                 self.ext_api_calls += 1
-                if for_source:
-                    self.src_annotations_dict = tracer_response[
-                        'annotations'] if 'annotations' in tracer_response else []
-                else:
-                    self.dist_annotations_dict = tracer_response[
-                        'annotations'] if 'annotations' in tracer_response else []
+
                 if transaction_data:
                     self.api_used = "tracer"
                     print(f"Tracer API successful: Retrieved {len(transaction_data)} transactions")
                     return [item for item in transaction_data if len(item["receiver"]) > 0]
                 else:
-                    print("Tracer API returned no data, falling back to Bitquery")
+                    raise TracerNetworkTimeoutError(f"Tracer API timed out.")
 
-            except Exception as e:
-                # Log the error but don't raise it - we'll fall back to Bitquery
-                error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
-                print(error_msg)
+            except Exception:
+                raise TracerNetworkTimeoutError(f"Tracer API timed out.")
 
-        bloxy_interface = BitqueryAPIInterface()
-        transaction_data = bloxy_interface.get_transactions(
-            self.wallet_address,
-            tx_limit,
-            depth_limit,
-            from_time=self.from_date,
-            till_time=till_date_extend,
-            token_address=None,
-            source=for_source,
-            chain=self.chain
-        )
-        self.ext_api_calls += 1
-        self.api_used = "bitquery"
-        return transaction_data
+        return []
 
     def create_graph_data(self, build_lossy_graph=True):
         pool = Pool(processes=2)
