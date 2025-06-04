@@ -59,7 +59,7 @@ class TrackingResults:
         till_date_extend = self.to_date + "T23:59:59"
 
         # Determine if we should use Tracer API first based on chain
-        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX']
+        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX', 'KLAY', 'LTC']
 
         # Special case: If chain is BSC and there's a valid token address, don't use tracer first
         # if (self.chain == 'BSC' and
