@@ -45,22 +45,12 @@ class BitqueryBaseException(Exception):
     pass
 
 
-class TracerBaseException(Exception):
-    """Base exception for all Tracer related errors"""
-    pass
-
-
 class BitqueryConcurrentRequestError(BitqueryBaseException):
     """Raised when Bitquery rejects concurrent requests"""
     pass
 
 
 class BitqueryNetworkTimeoutError(BitqueryBaseException):
-    """Raised when Bitquery encounters network timeout"""
-    pass
-
-
-class TracerNetworkTimeoutError(TracerBaseException):
     """Raised when Bitquery encounters network timeout"""
     pass
 

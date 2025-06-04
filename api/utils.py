@@ -13,7 +13,7 @@ from django.core.exceptions import SuspiciousOperation
 from google.cloud.exceptions import NotFound
 
 from .exceptions import BitqueryConcurrentRequestError, BitqueryNetworkTimeoutError, BitqueryDataNotFoundError, \
-    BitqueryMemoryLimitExceeded, TracerNetworkTimeoutError
+    BitqueryMemoryLimitExceeded
 from .models import (
     CatvTokens
 )
@@ -190,8 +190,6 @@ def get_user_error_message(exception: Exception, error_source: str = None) -> st
         BitqueryDataNotFoundError: "We couldn't find any transactions for this wallet in the time period you selected. Please check the wallet address and dates.",
 
         ReadTimeout: "The query took too long to complete. This may be because the number of transactions are too high to provide a response in a short time. Try reducing the time range or depth if this issue persists.",
-
-        TracerNetworkTimeoutError: "The query took too long to complete. This may be because the number of transactions are too high to provide a response in a short time. Try reducing the time range or depth if this issue persists."
     }
 
     # Get base message
