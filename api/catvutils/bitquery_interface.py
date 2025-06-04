@@ -12,7 +12,7 @@ class BitqueryAPIInterface(TransactionAPIInterface):
     def __init__(self):
         self._graphql_client = GraphQLClient(
             endpoint=settings.GRAPHQL_ENDPOINT,
-            headers={'X-API-KEY': settings.GRAPHQL_X_API_KEY},
+            headers={'X-API-KEY': settings.GRAPHQL_X_API_KEY, 'Authorization': f'Bearer ory_at_YEIvGv_UFPHpuRRYC6oIhsgREg3PS_pb4ek0OOKN5Uc.Z2DKF2Y1DuE0Wyw6VYqGwGRWl-KKMuVnQxysEsFDEU4'},
             timeout=(60, 300)
         )
 
