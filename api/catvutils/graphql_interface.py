@@ -61,8 +61,6 @@ class GraphQLClient:
                 timeout=self.timeout
             )
 
-            print(f"X-Graphql-Query-Id: {response.headers['x-graphql-query-id']} status: {response.status_code}")
-
             # Raise for any HTTP error status codes
             response.raise_for_status()
 
