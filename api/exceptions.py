@@ -45,6 +45,11 @@ class BitqueryBaseException(Exception):
     pass
 
 
+class TracerBaseException(Exception):
+    """Base exception for all Bitquery related errors"""
+    pass
+
+
 class BitqueryConcurrentRequestError(BitqueryBaseException):
     """Raised when Bitquery rejects concurrent requests"""
     pass
