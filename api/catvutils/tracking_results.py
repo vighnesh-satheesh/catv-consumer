@@ -89,37 +89,37 @@ class TrackingResults:
                     return [item for item in transaction_data if len(item["receiver"]) > 0]
                 else:
                     print("Tracer API returned no data, falling back to Bitquery")
-                    raise TracerBaseException('Tracer API returned no data.')
+                    # raise TracerBaseException('Tracer API returned no data.')
             except Exception as e:
                 # Log the error but don't raise it - we'll fall back to Bitquery
                 error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
                 print(error_msg)
-                raise TracerBaseException('Tracer API returned no data.')
+                # raise TracerBaseException('Tracer API returned no data.')
 
         # Either Tracer API failed, we're processing Klaytn, or Tracer API wasn't applicable
-        # try:
-        #     # Fall back to Bitquery or use it directly for Klaytn
-        #     bloxy_interface = BitqueryAPIInterface()
-        #     transaction_data = bloxy_interface.get_transactions(
-        #         self.wallet_address,
-        #         tx_limit,
-        #         depth_limit,
-        #         self.from_date,
-        #         till_date_extend,
-        #         self.token_address,
-        #         for_source,
-        #         self.chain
-        #     )
-        #     self.ext_api_calls += 1
-        #     self.api_used = "bitquery"
-        #     if transaction_data:
-        #         return [item for item in transaction_data if len(item["receiver"]) > 0]
-        #
-        # except Exception as e:
-        #     # Both APIs failed or we went straight to Bitquery and it failed
-        #     error_source = "source" if for_source else "distribution"
-        #     print(f"Bitquery API failed for {error_source}: {str(e)}")
-        #     raise  # Propagate the exception to be handled by get_tracking_data
+        try:
+            # Fall back to Bitquery or use it directly for Klaytn
+            bloxy_interface = BitqueryAPIInterface()
+            transaction_data = bloxy_interface.get_transactions(
+                self.wallet_address,
+                tx_limit,
+                depth_limit,
+                self.from_date,
+                till_date_extend,
+                self.token_address,
+                for_source,
+                self.chain
+            )
+            self.ext_api_calls += 1
+            self.api_used = "bitquery"
+            if transaction_data:
+                return [item for item in transaction_data if len(item["receiver"]) > 0]
+
+        except Exception as e:
+            # Both APIs failed or we went straight to Bitquery and it failed
+            error_source = "source" if for_source else "distribution"
+            print(f"Bitquery API failed for {error_source}: {str(e)}")
+            raise  # Propagate the exception to be handled by get_tracking_data
 
         return []  # Return empty list if no data or all filtering removed items
 
@@ -479,13 +479,13 @@ class BTCCoinpathTrackingResults(TrackingResults):
                     return [item for item in transaction_data if len(item["receiver"]) > 0]
                 else:
                     print("Tracer API returned no data, falling back to Bitquery")
-                    raise TracerBaseException(f'Tracer API returned no data')
+                    # raise TracerBaseException(f'Tracer API returned no data')
 
             except Exception as e:
                 # Log the error but don't raise it - we'll fall back to Bitquery
                 error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
                 print(error_msg)
-                raise TracerBaseException(f'Tracer API returned no data')
+                # raise TracerBaseException(f'Tracer API returned no data')
 
         bloxy_interface = BitqueryAPIInterface()
         transaction_data = bloxy_interface.get_transactions(
