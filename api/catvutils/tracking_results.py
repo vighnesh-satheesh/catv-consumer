@@ -11,6 +11,7 @@ from .graphtools import (
 )
 from .tracer_interface import TracerAPIInterface
 from .vendor_api import BloxyEthAPIInterface
+from ..exceptions import TracerBaseException
 from ..models import (
     CatvTokens
 )
@@ -59,14 +60,7 @@ class TrackingResults:
         till_date_extend = self.to_date + "T23:59:59"
 
         # Determine if we should use Tracer API first based on chain
-        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX']
-
-        # Special case: If chain is BSC and there's a valid token address, don't use tracer first
-        # if (self.chain == 'BSC' and
-        #         self.token_address is not None and
-        #         self.token_address != "" and
-        #         self.token_address != '0x0000000000000000000000000000000000000000'):
-        #     should_use_tracer_first = False
+        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX', 'KLAY']
 
         if should_use_tracer_first:
             try:
@@ -95,11 +89,12 @@ class TrackingResults:
                     return [item for item in transaction_data if len(item["receiver"]) > 0]
                 else:
                     print("Tracer API returned no data, falling back to Bitquery")
-
+                    # raise TracerBaseException('Tracer API returned no data.')
             except Exception as e:
                 # Log the error but don't raise it - we'll fall back to Bitquery
                 error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
                 print(error_msg)
+                # raise TracerBaseException('Tracer API returned no data.')
 
         # Either Tracer API failed, we're processing Klaytn, or Tracer API wasn't applicable
         try:
@@ -453,7 +448,7 @@ class BTCCoinpathTrackingResults(TrackingResults):
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
-        should_use_tracer_first = self.chain in ['BTC']
+        should_use_tracer_first = self.chain in ['BTC', 'LTC']
 
         if should_use_tracer_first:
             try:
@@ -484,11 +479,13 @@ class BTCCoinpathTrackingResults(TrackingResults):
                     return [item for item in transaction_data if len(item["receiver"]) > 0]
                 else:
                     print("Tracer API returned no data, falling back to Bitquery")
+                    # raise TracerBaseException(f'Tracer API returned no data')
 
             except Exception as e:
                 # Log the error but don't raise it - we'll fall back to Bitquery
                 error_msg = f"Tracer API failed: {str(e)}. Falling back to Bitquery."
                 print(error_msg)
+                # raise TracerBaseException(f'Tracer API returned no data')
 
         bloxy_interface = BitqueryAPIInterface()
         transaction_data = bloxy_interface.get_transactions(
