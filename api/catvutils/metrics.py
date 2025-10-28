@@ -201,6 +201,19 @@ class CatvMetrics:
         # Add overview section for enhanced metrics
         wallet_metrics["overview"] = self._generate_flow_overview(is_outbound)
 
+        main_token_items = [item for item in self.seg_item_list if item['symbol'] == self.symbol]
+
+        if is_outbound:
+            # Distribution side - top 20 receivers
+            top_receivers = self._calculate_top_receivers(
+                main_token_items) if self.symbol != "BTC" else self._calculate_top_receivers_btc(main_token_items)
+            wallet_metrics["top_receivers"] = top_receivers
+        else:
+            # Source side - top 20 senders
+            top_senders = self._calculate_top_senders(
+                main_token_items) if self.symbol != "BTC" else self._calculate_top_senders_btc(main_token_items)
+            wallet_metrics["top_senders"] = top_senders
+
         return wallet_metrics
 
     def _generate_flow_overview(self, is_outbound):
@@ -518,6 +531,204 @@ class CatvMetrics:
             "address": "", "amount": 0}
 
         return max_sender, max_receiver
+
+    def _calculate_top_receivers(self, main_token_items):
+        """Calculate top 20 receivers from main_token_items (distribution side, depth > 0)"""
+        # Group by receiver and sum amounts
+        grouped_by_receiver = defaultdict(float)
+        receiver_depths = {}  # Track depth for each receiver
+
+        for item in main_token_items:
+            if abs(item["depth"]) >= 1:
+                receiver = item["receiver"]
+                grouped_by_receiver[receiver] += item["amount"]
+                # Store the depth (use the first occurrence or update if needed)
+                if receiver not in receiver_depths:
+                    receiver_depths[receiver] = item["depth"]
+
+        # Convert to list format
+        receiver_list = [
+            {"address": receiver, "total_amount": amount}
+            for receiver, amount in grouped_by_receiver.items()
+        ]
+
+        # Sort by total_amount descending and take top 20
+        receiver_list.sort(key=lambda x: x["total_amount"], reverse=True)
+        top_20_receivers = receiver_list[:20]
+
+        # Enrich with node details
+        node_map = {node["address"]: node for node in self.seg_node_list}
+
+        enriched_receivers = []
+        for receiver in top_20_receivers:
+            address = receiver["address"]
+            node = node_map.get(address, {})
+
+            enriched_receivers.append({
+                "id": node.get("id", None),
+                "address": address,
+                "total_amount": receiver["total_amount"],
+                "depth": receiver_depths.get(address, 0),
+                "label": node.get("label", ""),
+                "annotation": node.get("annotation", "")
+            })
+
+        return enriched_receivers
+
+    def _calculate_top_senders(self, main_token_items):
+        """Calculate top 20 senders from main_token_items (source side, depth < 0)"""
+        from collections import defaultdict
+
+        # Group by sender and sum amounts
+        grouped_by_sender = defaultdict(float)
+        sender_depths = {}  # Track depth for each sender
+
+        for item in main_token_items:
+            if abs(item["depth"]) >= 1:
+                sender = item["sender"]
+                grouped_by_sender[sender] += item["amount"]
+                # Store the depth (use the first occurrence or update if needed)
+                if sender not in sender_depths:
+                    sender_depths[sender] = item["depth"]
+
+        # Convert to list format
+        sender_list = [
+            {"address": sender, "total_amount": amount}
+            for sender, amount in grouped_by_sender.items()
+        ]
+
+        # Sort by total_amount descending and take top 20
+        sender_list.sort(key=lambda x: x["total_amount"], reverse=True)
+        top_20_senders = sender_list[:20]
+
+        # Enrich with node details
+        node_map = {node["address"]: node for node in self.seg_node_list}
+
+        enriched_senders = []
+        for sender in top_20_senders:
+            address = sender["address"]
+            node = node_map.get(address, {})
+
+            enriched_senders.append({
+                "id": node.get("id", None),
+                "address": address,
+                "total_amount": sender["total_amount"],
+                "depth": sender_depths.get(address, 0),
+                "label": node.get("label", ""),
+                "annotation": node.get("annotation", "")
+            })
+
+        return enriched_senders
+
+    def _calculate_top_receivers_btc(self, main_token_items):
+        """Calculate top 20 receivers for BTC (distribution side, depth > 0)"""
+        from collections import defaultdict
+
+        receiver_amounts = defaultdict(float)
+        receiver_depths = {}
+        # Track processed transaction hashes for each receiver
+        processed_receiver_hashes = defaultdict(set)
+
+        for item in main_token_items:
+            if abs(item["depth"]) >= 1:
+                receiver = item["receiver"]
+                tx_hash = item["tx_hash"]
+
+                # Only count each transaction hash once per receiver
+                if tx_hash not in processed_receiver_hashes[receiver]:
+                    if "to_amount" in item:
+                        receiver_amounts[receiver] += item["to_amount"]
+                    else:
+                        receiver_amounts[receiver] += item["amount"]  # Fallback
+                    processed_receiver_hashes[receiver].add(tx_hash)
+
+                    # Store the depth (use the first occurrence)
+                    if receiver not in receiver_depths:
+                        receiver_depths[receiver] = item["depth"]
+
+        # Convert to list format
+        receiver_list = [
+            {"address": receiver, "total_amount": amount}
+            for receiver, amount in receiver_amounts.items()
+        ]
+
+        # Sort by total_amount descending and take top 20
+        receiver_list.sort(key=lambda x: x["total_amount"], reverse=True)
+        top_20_receivers = receiver_list[:20]
+
+        # Enrich with node details
+        node_map = {node["address"]: node for node in self.seg_node_list}
+
+        enriched_receivers = []
+        for receiver in top_20_receivers:
+            address = receiver["address"]
+            node = node_map.get(address, {})
+
+            enriched_receivers.append({
+                "id": node.get("id", None),
+                "address": address,
+                "total_amount": receiver["total_amount"],
+                "depth": receiver_depths.get(address, 0),
+                "label": node.get("label", ""),
+                "annotation": node.get("annotation", "")
+            })
+
+        return enriched_receivers
+
+    def _calculate_top_senders_btc(self, main_token_items):
+        """Calculate top 20 senders for BTC (source side, depth < 0)"""
+        from collections import defaultdict
+
+        sender_amounts = defaultdict(float)
+        sender_depths = {}
+        # Track processed transaction hashes for each sender
+        processed_sender_hashes = defaultdict(set)
+
+        for item in main_token_items:
+            if abs(item["depth"]) >= 1:
+                sender = item["sender"]
+                tx_hash = item["tx_hash"]
+
+                # Only count each transaction hash once per sender
+                if tx_hash not in processed_sender_hashes[sender]:
+                    if "from_amount" in item:
+                        sender_amounts[sender] += item["from_amount"]
+                    else:
+                        sender_amounts[sender] += item["amount"]  # Fallback
+                    processed_sender_hashes[sender].add(tx_hash)
+
+                    # Store the depth (use the first occurrence)
+                    if sender not in sender_depths:
+                        sender_depths[sender] = item["depth"]
+
+        # Convert to list format
+        sender_list = [
+            {"address": sender, "total_amount": amount}
+            for sender, amount in sender_amounts.items()
+        ]
+
+        # Sort by total_amount descending and take top 20
+        sender_list.sort(key=lambda x: x["total_amount"], reverse=True)
+        top_20_senders = sender_list[:20]
+
+        # Enrich with node details
+        node_map = {node["address"]: node for node in self.seg_node_list}
+
+        enriched_senders = []
+        for sender in top_20_senders:
+            address = sender["address"]
+            node = node_map.get(address, {})
+
+            enriched_senders.append({
+                "id": node.get("id", None),
+                "address": address,
+                "total_amount": sender["total_amount"],
+                "depth": sender_depths.get(address, 0),
+                "label": node.get("label", ""),
+                "annotation": node.get("annotation", "")
+            })
+
+        return enriched_senders
 
     def _pick_n_unique(self, iterable, key, n):
         """Helper function to pick N unique items based on a key"""
