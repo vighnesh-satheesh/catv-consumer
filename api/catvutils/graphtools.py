@@ -88,7 +88,11 @@ class Node:
         self.group = ""
 
         # Use casefold() for case-insensitive comparison
-        annotation_list = self.annotation.casefold().split(", ")
+        if not self.annotation:
+            annotation_list = []
+        else:
+            # Use casefold() for case-insensitive comparison
+            annotation_list = self.annotation.casefold().split(", ")
 
         if annotation_list:
             # Define term sets for faster lookups
