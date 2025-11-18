@@ -172,7 +172,8 @@ class TrackingResults:
                         self.error_messages["distribution"] = get_user_error_message(e, 'distribution')
                         self._async_dist_result = []
                         # If distribution fails, raise immediately
-                        raise e
+                        if self._skip_source:
+                            raise e
 
                 # Only process source if dist succeeded or wasn't queried
                 if not self._skip_source:
