@@ -1,7 +1,6 @@
-version: "3"
-
 services:
   catvconsumer_service:
+    platform: linux/amd64
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -14,5 +13,6 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secret/uppsala-staging-5d1de3f3e220.json
       - GCP_PROJECT_ID=uppsala-staging
       - GCP_SECRET_NAME=upp-stg-api-catv-consumer-service
+      - PM2_HOME=/tmp/.pm2
     ports:
       - 8300:8000
