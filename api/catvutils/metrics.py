@@ -1,4 +1,3 @@
-from collections import defaultdict
 from operator import gt
 
 from django.utils.timezone import now
@@ -7,6 +6,7 @@ from api.catvutils.tracking_results import chunks
 from api.models import IndicatorExtraAnnotation
 from api.settings import api_settings
 from decimal import Decimal, ROUND_DOWN
+from collections import defaultdict
 
 __all__ = ('CatvMetrics',)
 
@@ -577,8 +577,6 @@ class CatvMetrics:
 
     def _calculate_top_senders(self, main_token_items):
         """Calculate top 20 senders from main_token_items (source side, depth < 0)"""
-        from collections import defaultdict
-
         # Group by sender and sum amounts
         grouped_by_sender = defaultdict(float)
         sender_depths = {}  # Track depth for each sender
@@ -621,35 +619,34 @@ class CatvMetrics:
         return enriched_senders
 
     def _calculate_top_receivers_btc(self, main_token_items):
-        """Calculate top 20 receivers for BTC (distribution side, depth > 0)"""
-        from collections import defaultdict
-
-        receiver_amounts = defaultdict(float)
-        receiver_depths = {}
-        # Track processed transaction hashes for each receiver
-        processed_receiver_hashes = defaultdict(set)
+        """Calculate top 20 receivers for BTC (distribution side, depth > 0)
+        Based on aggregated From Amount for unique From addresses of unique transaction hashes"""
+        sender_amounts = defaultdict(float)  # Using "sender" (From address) for receivers calculation
+        sender_depths = {}
+        # Track processed transaction hashes for each sender
+        processed_sender_hashes = defaultdict(set)
 
         for item in main_token_items:
             if abs(item["depth"]) >= 1:
-                receiver = item["receiver"]
+                sender = item["sender"]  # This is the From address
                 tx_hash = item["tx_hash"]
 
-                # Only count each transaction hash once per receiver
-                if tx_hash not in processed_receiver_hashes[receiver]:
+                # Only count each transaction hash once per sender
+                if tx_hash not in processed_sender_hashes[sender]:
                     if "from_amount" in item:
-                        receiver_amounts[receiver] += item["from_amount"]
+                        sender_amounts[sender] += item["from_amount"]
                     else:
-                        receiver_amounts[receiver] += item["amount"]  # Fallback
-                    processed_receiver_hashes[receiver].add(tx_hash)
+                        sender_amounts[sender] += item["amount"]  # Fallback
+                    processed_sender_hashes[sender].add(tx_hash)
 
                     # Store the depth (use the first occurrence)
-                    if receiver not in receiver_depths:
-                        receiver_depths[receiver] = item["depth"]
+                    if sender not in sender_depths:
+                        sender_depths[sender] = item["depth"]
 
         # Convert to list format
         receiver_list = [
-            {"address": receiver, "total_amount": amount}
-            for receiver, amount in receiver_amounts.items()
+            {"address": sender, "total_amount": amount}
+            for sender, amount in sender_amounts.items()
         ]
 
         # Sort by total_amount descending and take top 20
@@ -668,7 +665,7 @@ class CatvMetrics:
                 "id": node.get("id", None),
                 "address": address,
                 "total_amount": receiver["total_amount"],
-                "depth": receiver_depths.get(address, 0),
+                "depth": sender_depths.get(address, 0),
                 "label": node.get("label", ""),
                 "annotation": node.get("annotation", "")
             })
@@ -676,35 +673,34 @@ class CatvMetrics:
         return enriched_receivers
 
     def _calculate_top_senders_btc(self, main_token_items):
-        """Calculate top 20 senders for BTC (source side, depth < 0)"""
-        from collections import defaultdict
-
-        sender_amounts = defaultdict(float)
-        sender_depths = {}
-        # Track processed transaction hashes for each sender
-        processed_sender_hashes = defaultdict(set)
+        """Calculate top 20 senders for BTC (source side, depth < 0)
+        Based on aggregated To Amount for unique To addresses of unique transaction hashes"""
+        receiver_amounts = defaultdict(float)  # Using "receiver" (To address) for senders calculation
+        receiver_depths = {}
+        # Track processed transaction hashes for each receiver
+        processed_receiver_hashes = defaultdict(set)
 
         for item in main_token_items:
             if abs(item["depth"]) >= 1:
-                sender = item["sender"]
+                receiver = item["receiver"]  # This is the To address
                 tx_hash = item["tx_hash"]
 
-                # Only count each transaction hash once per sender
-                if tx_hash not in processed_sender_hashes[sender]:
+                # Only count each transaction hash once per receiver
+                if tx_hash not in processed_receiver_hashes[receiver]:
                     if "to_amount" in item:
-                        sender_amounts[sender] += item["to_amount"]
+                        receiver_amounts[receiver] += item["to_amount"]
                     else:
-                        sender_amounts[sender] += item["amount"]  # Fallback
-                    processed_sender_hashes[sender].add(tx_hash)
+                        receiver_amounts[receiver] += item["amount"]  # Fallback
+                    processed_receiver_hashes[receiver].add(tx_hash)
 
                     # Store the depth (use the first occurrence)
-                    if sender not in sender_depths:
-                        sender_depths[sender] = item["depth"]
+                    if receiver not in receiver_depths:
+                        receiver_depths[receiver] = item["depth"]
 
         # Convert to list format
         sender_list = [
-            {"address": sender, "total_amount": amount}
-            for sender, amount in sender_amounts.items()
+            {"address": receiver, "total_amount": amount}
+            for receiver, amount in receiver_amounts.items()
         ]
 
         # Sort by total_amount descending and take top 20
@@ -723,7 +719,7 @@ class CatvMetrics:
                 "id": node.get("id", None),
                 "address": address,
                 "total_amount": sender["total_amount"],
-                "depth": sender_depths.get(address, 0),
+                "depth": receiver_depths.get(address, 0),
                 "label": node.get("label", ""),
                 "annotation": node.get("annotation", "")
             })
