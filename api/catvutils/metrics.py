@@ -620,7 +620,14 @@ class CatvMetrics:
 
     def _calculate_top_receivers_btc(self, main_token_items):
         """Calculate top 20 receivers for BTC (distribution side, depth > 0)
-        Based on aggregated from_amount for unique (tx_hash, receiver) pairs"""
+        Based on aggregated from_amount for unique (tx_hash, receiver) pairs
+        Excludes leaf nodes (terminal nodes with no outgoing transactions)"""
+        # First, identify all addresses that have outgoing transactions (non-leaf nodes)
+        addresses_with_outgoing = set()
+        for item in main_token_items:
+            if abs(item["depth"]) >= 1:
+                addresses_with_outgoing.add(item["sender"])
+
         receiver_amounts = defaultdict(float)
         receiver_depths = {}
         # Track processed (transaction_hash, receiver) pairs
@@ -630,6 +637,10 @@ class CatvMetrics:
             if abs(item["depth"]) >= 1:
                 receiver = item["receiver"]
                 tx_hash = item["tx_hash"]
+
+                # Skip leaf nodes - only include receivers that also appear as senders
+                if receiver not in addresses_with_outgoing:
+                    continue
 
                 # Only count each (tx_hash, receiver) pair once
                 if tx_hash not in processed_receiver_txs[receiver]:
