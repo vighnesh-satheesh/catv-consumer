@@ -687,8 +687,8 @@ class CatvMetrics:
 
                 # Only count each transaction hash once per receiver
                 if tx_hash not in processed_receiver_hashes[receiver]:
-                    if "to_amount" in item:
-                        receiver_amounts[receiver] += item["to_amount"]
+                    if "from_amount" in item:
+                        receiver_amounts[receiver] += item["from_amount"]
                     else:
                         receiver_amounts[receiver] += item["amount"]  # Fallback
                     processed_receiver_hashes[receiver].add(tx_hash)

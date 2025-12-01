@@ -371,6 +371,8 @@ def assign_edges(result, mode, node_enum):
             item['tx_time'] = formatted_tx_time
             item['amount_usd'] = amount_usd
             symbol = item.get('symbol', '')
+            if symbol == "BTC":
+                amount = item['from_amount'] if 'from_amount' in item else amount
 
             edge_dict[(item['sender'], item['receiver'])]['data'].append({
                 'amount': abs(amount),
