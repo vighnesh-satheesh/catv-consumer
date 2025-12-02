@@ -620,39 +620,43 @@ class CatvMetrics:
 
     def _calculate_top_receivers_btc(self, main_token_items):
         """Calculate top 20 receivers for BTC (distribution side, depth > 0)
-        Based on aggregated from_amount for unique (tx_hash, receiver) pairs
-        Excludes leaf nodes (terminal nodes with no outgoing transactions)"""
-        # First, identify all addresses that have outgoing transactions (non-leaf nodes)
-        addresses_with_outgoing = set()
-        for item in main_token_items:
-            if abs(item["depth"]) >= 1:
-                addresses_with_outgoing.add(item["sender"])
-
+        Based on aggregated from_amount going OUT from each receiver address
+        (i.e., for addresses that received funds, calculate how much they sent out)
+        Excludes origin wallet"""
         receiver_amounts = defaultdict(float)
         receiver_depths = {}
-        # Track processed (transaction_hash, receiver) pairs
+        # Track processed (transaction_hash, sender) pairs where sender was originally a receiver
         processed_receiver_txs = defaultdict(set)
 
+        # First pass: identify all receiver addresses
+        all_receivers = set()
         for item in main_token_items:
-            if abs(item["depth"]) >= 1:
-                receiver = item["receiver"]
-                tx_hash = item["tx_hash"]
+            all_receivers.add(item["receiver"])
 
-                # Skip leaf nodes - only include receivers that also appear as senders
-                if receiver not in addresses_with_outgoing:
-                    continue
+        # Second pass: for each receiver, calculate total from_amount going OUT (where they are the sender)
+        for item in main_token_items:
+            sender = item["sender"]
+            tx_hash = item["tx_hash"]
 
-                # Only count each (tx_hash, receiver) pair once
-                if tx_hash not in processed_receiver_txs[receiver]:
-                    if "from_amount" in item:
-                        receiver_amounts[receiver] += item["from_amount"]
-                    else:
-                        receiver_amounts[receiver] += item["amount"]  # Fallback
-                    processed_receiver_txs[receiver].add(tx_hash)
+            # Skip if this sender is not in our receivers set
+            if sender not in all_receivers:
+                continue
 
-                    # Store the depth (use the first occurrence)
-                    if receiver not in receiver_depths:
-                        receiver_depths[receiver] = item["depth"]
+            # Skip origin wallet
+            if sender.lower() == self.origin.lower():
+                continue
+
+            # Only count each (tx_hash, sender) pair once
+            if tx_hash not in processed_receiver_txs[sender]:
+                if "from_amount" in item:
+                    receiver_amounts[sender] += item["from_amount"]
+                else:
+                    receiver_amounts[sender] += item["amount"]  # Fallback
+                processed_receiver_txs[sender].add(tx_hash)
+
+                # Store the depth (use the first occurrence)
+                if sender not in receiver_depths:
+                    receiver_depths[sender] = item["depth"]
 
         # Convert to list format
         receiver_list = [
