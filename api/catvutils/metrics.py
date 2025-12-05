@@ -330,11 +330,72 @@ class CatvMetrics:
 
         wallet_amounts = defaultdict(lambda: {'total_amount': 0, 'depth': None})
 
-        # Calculate total amounts in a single pass
-        for item in main_token_items:
-            wallet = item['receiver'] if is_outbound else item['sender']
-            wallet_amounts[wallet]['total_amount'] += item['amount']
-            wallet_amounts[wallet]['depth'] = item['depth']
+        # Check if we need special BTC/LTC logic
+        is_btc_ltc = self.symbol in ["BTC", "LTC"]
+
+        if is_btc_ltc and is_outbound:
+            # Special logic for BTC/LTC distribution side
+
+            # Identify addresses with outgoing transactions (non-leaf nodes)
+            addresses_with_outgoing = set()
+            for item in main_token_items:
+                addresses_with_outgoing.add(item['sender'])
+
+            # Identify all receiver addresses
+            all_receivers = set()
+            for item in main_token_items:
+                all_receivers.add(item['receiver'])
+
+            # Track processed transactions per address
+            processed_txs = defaultdict(set)
+            processed_leaf_txs = defaultdict(set)
+
+            # Process non-leaf nodes: sum from_amount where they are sender
+            for item in main_token_items:
+                sender = item['sender']
+                tx_hash = item['tx_hash']
+
+                # Only process if sender was also a receiver
+                if sender not in all_receivers:
+                    continue
+
+                # Skip origin
+                if sender.lower() == self.origin.lower():
+                    continue
+
+                # Deduplicate by tx_hash per sender
+                if tx_hash not in processed_txs[sender]:
+                    amount = item.get('from_amount', item.get('amount', 0))
+                    wallet_amounts[sender]['total_amount'] += amount
+                    wallet_amounts[sender]['depth'] = item['depth']
+                    processed_txs[sender].add(tx_hash)
+
+            # Process leaf nodes: sum to_amount where they are receiver
+            for item in main_token_items:
+                receiver = item['receiver']
+                tx_hash = item['tx_hash']
+
+                # Only process leaf nodes
+                if receiver in addresses_with_outgoing:
+                    continue
+
+                # Skip origin
+                if receiver.lower() == self.origin.lower():
+                    continue
+
+                # Deduplicate by tx_hash per receiver
+                if tx_hash not in processed_leaf_txs[receiver]:
+                    amount = item.get('to_amount', item.get('amount', 0))
+                    wallet_amounts[receiver]['total_amount'] += amount
+                    wallet_amounts[receiver]['depth'] = item['depth']
+                    processed_leaf_txs[receiver].add(tx_hash)
+
+        else:
+            # Original logic for non-BTC/LTC or source side
+            for item in main_token_items:
+                wallet = item['receiver'] if is_outbound else item['sender']
+                wallet_amounts[wallet]['total_amount'] += item['amount']
+                wallet_amounts[wallet]['depth'] = item['depth']
 
         # Initialize wallet categories
         wallet_metrics = {
@@ -620,25 +681,31 @@ class CatvMetrics:
 
     def _calculate_top_receivers_btc(self, main_token_items):
         """Calculate top 20 receivers for BTC (distribution side, depth > 0)
-        Based on aggregated from_amount going OUT from each receiver address
-        (i.e., for addresses that received funds, calculate how much they sent out)
+        For non-leaf nodes: Sum from_amount going OUT (where they are sender)
+        For leaf nodes: Sum to_amount coming IN (where they are receiver)
         Excludes origin wallet"""
-        receiver_amounts = defaultdict(float)
-        receiver_depths = {}
-        # Track processed (transaction_hash, sender) pairs where sender was originally a receiver
-        processed_receiver_txs = defaultdict(set)
+        from collections import defaultdict
 
-        # First pass: identify all receiver addresses
+        # Identify all addresses that have outgoing transactions (non-leaf nodes)
+        addresses_with_outgoing = set()
+        for item in main_token_items:
+            addresses_with_outgoing.add(item["sender"])
+
+        # Identify all receiver addresses
         all_receivers = set()
         for item in main_token_items:
             all_receivers.add(item["receiver"])
 
-        # Second pass: for each receiver, calculate total from_amount going OUT (where they are the sender)
+        receiver_amounts = defaultdict(float)
+        receiver_depths = {}
+        processed_txs = defaultdict(set)
+
+        # Process non-leaf nodes: sum from_amount where they are sender
         for item in main_token_items:
             sender = item["sender"]
             tx_hash = item["tx_hash"]
 
-            # Skip if this sender is not in our receivers set
+            # Only process if sender was also a receiver (making them a valid receiver node)
             if sender not in all_receivers:
                 continue
 
@@ -647,16 +714,40 @@ class CatvMetrics:
                 continue
 
             # Only count each (tx_hash, sender) pair once
-            if tx_hash not in processed_receiver_txs[sender]:
+            if tx_hash not in processed_txs[sender]:
                 if "from_amount" in item:
                     receiver_amounts[sender] += item["from_amount"]
                 else:
                     receiver_amounts[sender] += item["amount"]  # Fallback
-                processed_receiver_txs[sender].add(tx_hash)
+                processed_txs[sender].add(tx_hash)
 
-                # Store the depth (use the first occurrence)
                 if sender not in receiver_depths:
                     receiver_depths[sender] = item["depth"]
+
+        # Process leaf nodes: sum to_amount where they are receiver
+        processed_leaf_txs = defaultdict(set)
+        for item in main_token_items:
+            receiver = item["receiver"]
+            tx_hash = item["tx_hash"]
+
+            # Only process leaf nodes (receivers that don't have outgoing transactions)
+            if receiver in addresses_with_outgoing:
+                continue
+
+            # Skip origin wallet
+            if receiver.lower() == self.origin.lower():
+                continue
+
+            # Only count each (tx_hash, receiver) pair once
+            if tx_hash not in processed_leaf_txs[receiver]:
+                if "to_amount" in item:
+                    receiver_amounts[receiver] += item["to_amount"]
+                else:
+                    receiver_amounts[receiver] += item["amount"]  # Fallback
+                processed_leaf_txs[receiver].add(tx_hash)
+
+                if receiver not in receiver_depths:
+                    receiver_depths[receiver] = item["depth"]
 
         # Convert to list format
         receiver_list = [
