@@ -130,11 +130,86 @@ class ExchangeChecker:
         # node address that will be part of the final data
         self.required_node_addresses = []
 
+    def _annotate_exchange_user_wallets(self, dist_exchange_nodes):
+        """
+        Annotate wallets that directly send to exchanges as '[Exchange] User Wallet'.
+        Only processes distribution side exchanges.
+
+        Args:
+            dist_exchange_nodes: List of exchange nodes on the distribution side
+        """
+        if not dist_exchange_nodes:
+            return
+
+        # Build exchange address to label mapping (lowercase for comparison)
+        exchange_addr_to_label = {
+            node["address"].lower(): node.get("label", node["address"][:8])
+            for node in dist_exchange_nodes
+        }
+
+        # Build node address map for quick lookup
+        node_address_map = {node["address"].lower(): node for node in self.node_list}
+
+        # Track which exchanges each sender wallet sends to
+        sender_to_exchanges = {}  # {sender_address_lower: set of exchange labels}
+
+        for tx in self.item_list:
+            receiver_lower = tx["receiver"].lower()
+            sender_lower = tx["sender"].lower()
+
+            # Check if receiver is a distribution exchange
+            if receiver_lower not in exchange_addr_to_label:
+                continue
+
+            # Get sender node and verify it's on distribution side (level > 0)
+            sender_node = node_address_map.get(sender_lower)
+            if not sender_node or sender_node.get("level", 0) <= 0:
+                continue
+
+            # Skip if sender is also an exchange
+            if sender_node.get("group") == "Exchange/DEX/Bridge/Mixer":
+                continue
+
+            # Collect exchange label for this sender
+            exchange_label = exchange_addr_to_label[receiver_lower]
+            if sender_lower not in sender_to_exchanges:
+                sender_to_exchanges[sender_lower] = set()
+            sender_to_exchanges[sender_lower].add(exchange_label)
+
+        # Update annotations for sender wallets
+        for sender_addr, exchange_labels in sender_to_exchanges.items():
+            sender_node = node_address_map.get(sender_addr)
+            if not sender_node:
+                continue
+
+            # Build the exchange user wallet annotation
+            exchange_user_annotation = "/".join(sorted(exchange_labels)) + " User Wallet"
+
+            # Append to existing annotation
+            existing_annotation = sender_node.get("annotation", "")
+            if existing_annotation:
+                new_annotation = f"{existing_annotation}, {exchange_user_annotation}"
+            else:
+                new_annotation = exchange_user_annotation
+
+            # Update node
+            sender_node["annotation"] = new_annotation
+            sender_node["group"] = "Annotated"
+
+            # Update transaction annotations where this address is sender or receiver
+            for tx in self.item_list:
+                if tx["sender"].lower() == sender_addr:
+                    tx["sender_annotation"] = new_annotation
+                if tx["receiver"].lower() == sender_addr:
+                    tx["receiver_annotation"] = new_annotation
+
     def stop_transfers_at_exchange(self):
         try:
             self.exchange_nodes_obj = ExchangeNodeList(self.src_node_list, self.dist_node_list)
             dist_exchange_nodes, src_exchange_nodes = self.exchange_nodes_obj.find_exchange_nodes(self.send_count,
                                                                                                   self.receive_count)
+            # Annotate wallets that send directly to distribution exchanges
+            self._annotate_exchange_user_wallets(dist_exchange_nodes)
 
             if not dist_exchange_nodes and not src_exchange_nodes:
                 print("No exchanges found")
