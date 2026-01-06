@@ -78,7 +78,8 @@ class TracerAPIInterface(TransactionAPIInterface):
             'TRX': (1, 'tron'),  # Tron
             'BTC': (1, 'btc'),
             'LTC': (1, 'ltc'),
-            'KLAY': (8217, 'klaytn')
+            'KLAY': (8217, 'klaytn'),
+            'SOL': (1, 'solana')
         }
         return chain_mapping.get(chain, (1, 'evm'))  # Default to Ethereum
 

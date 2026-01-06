@@ -130,7 +130,8 @@ def pattern_matches_token(address, token_type):
         CatvTokens.AVAX.value: "^0x[a-fA-F0-9]{40}$",
         CatvTokens.DOGE.value: "^(D|A|9)[a-km-zA-HJ-NP-Z1-9]{33,34}$",
         CatvTokens.ZEC.value: "^(t)[A-Za-z0-9]{34}$",
-        CatvTokens.DASH.value: "^[X|7][0-9A-Za-z]{33}$"
+        CatvTokens.DASH.value: "^[X|7][0-9A-Za-z]{33}$",
+        CatvTokens.SOL.value: "^[1-9A-HJ-NP-Za-km-z]{32,44}$"
     }
     pattern = token_regex_map.get(token_type, None)
     if not pattern:

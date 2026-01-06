@@ -112,6 +112,10 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
         CatvTokens.DASH.value: {
             CatvSearchType.FLOW.value: CATVBTCSerializer,
             CatvSearchType.PATH.value: CATVBTCPathSerializer
+        },
+        CatvTokens.SOL.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         }
     }
 
