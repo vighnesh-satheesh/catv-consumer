@@ -132,8 +132,8 @@ class ExchangeChecker:
 
     def _annotate_exchange_user_wallets(self, dist_exchange_nodes):
         """
-        Annotate wallets that directly send to exchanges as '[Exchange] User Wallet'.
-        Only processes distribution side exchanges.
+        Annotate wallets that directly send to exchange hot wallets as '[Exchange] User Wallet'.
+        Only processes distribution side exchanges that are identified as hot wallets.
 
         Args:
             dist_exchange_nodes: List of exchange nodes on the distribution side
@@ -141,11 +141,17 @@ class ExchangeChecker:
         if not dist_exchange_nodes:
             return
 
-        # Build exchange address to label mapping (lowercase for comparison)
-        exchange_addr_to_label = {
-            node["address"].lower(): node.get("label", node["address"][:8])
-            for node in dist_exchange_nodes
-        }
+        # Filter to only hot wallet exchanges and build address to label mapping
+        exchange_addr_to_label = {}
+        for node in dist_exchange_nodes:
+            annotation = node.get("annotation", "")
+            # Check if "hot wallet" phrase exists in annotation (case-insensitive)
+            if "hot wallet" in annotation.lower():
+                exchange_addr_to_label[node["address"].lower()] = node.get("label", node["address"][:8])
+
+        # Exit early if no hot wallet exchanges found
+        if not exchange_addr_to_label:
+            return
 
         # Build node address map for quick lookup
         node_address_map = {node["address"].lower(): node for node in self.node_list}
@@ -157,7 +163,7 @@ class ExchangeChecker:
             receiver_lower = tx["receiver"].lower()
             sender_lower = tx["sender"].lower()
 
-            # Check if receiver is a distribution exchange
+            # Check if receiver is a distribution exchange hot wallet
             if receiver_lower not in exchange_addr_to_label:
                 continue
 
