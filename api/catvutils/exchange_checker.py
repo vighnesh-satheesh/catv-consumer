@@ -145,8 +145,11 @@ class ExchangeChecker:
         exchange_addr_to_label = {}
         for node in dist_exchange_nodes:
             annotation = node.get("annotation", "")
-            # Check if "hot wallet" phrase exists in annotation (case-insensitive)
-            if "hot wallet" in annotation.lower():
+            trdb_info = node.get("trdb_info", {})
+            wallet_types = trdb_info.get("wallet_types", [])
+
+            # Check if "hot wallet" phrase exists in annotation OR "hot_wallet" is in wallet_types
+            if "hot wallet" in annotation.lower() or "hot_wallet" in wallet_types:
                 exchange_addr_to_label[node["address"].lower()] = node.get("label", node["address"][:8])
 
         # Exit early if no hot wallet exchanges found
