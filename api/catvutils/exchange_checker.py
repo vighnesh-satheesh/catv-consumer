@@ -145,7 +145,7 @@ class ExchangeChecker:
         exchange_addr_to_label = {}
         for node in dist_exchange_nodes:
             annotation = node.get("annotation", "")
-            node_type = node.get("type", "Wallet")
+            node_type = node.get("type", "Wallet").lower()
             trdb_info = node.get("trdb_info") or {}
             wallet_types = trdb_info.get("wallet_types", [])
 
