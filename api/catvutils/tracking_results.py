@@ -278,7 +278,8 @@ class TrackingResults:
                     cur_node.update(trdb_info={**item, 'uid': str(item['uid']),
                                                'security_category': item['security_category'],
                                                'pattern_type': item['pattern_type'],
-                                               'pattern_subtype': item['pattern_subtype']})
+                                               'pattern_subtype': item['pattern_subtype'],
+                                               'wallet_types': item.get('wallet_types', []), })
 
                     # Skip further updates if Exchange/DEX/Bridge/Mixer
                     if cur_node.group == "Exchange/DEX/Bridge/Mixer":

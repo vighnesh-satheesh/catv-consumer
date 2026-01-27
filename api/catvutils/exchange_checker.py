@@ -145,13 +145,20 @@ class ExchangeChecker:
         exchange_addr_to_label = {}
         for node in dist_exchange_nodes:
             annotation = node.get("annotation", "")
-            # Check if "hot wallet" phrase exists in annotation (case-insensitive)
-            if "hot wallet" in annotation.lower():
+            node_type = node.get("type", "Wallet")
+            trdb_info = node.get("trdb_info") or {}
+            wallet_types = trdb_info.get("wallet_types", [])
+
+            # Check if "hot wallet" phrase exists in annotation OR "hot_wallet" is in wallet_types
+            if "hot wallet" in annotation.lower() or "hot_wallet" in wallet_types or 'hot' in node_type:
                 exchange_addr_to_label[node["address"].lower()] = node.get("label", node["address"][:8])
 
         # Exit early if no hot wallet exchanges found
         if not exchange_addr_to_label:
+            print("No hot wallet exchanges found after filtering")
             return
+
+        print(f"Found {len(exchange_addr_to_label)} hot wallet exchanges: {list(exchange_addr_to_label.values())}")
 
         # Build node address map for quick lookup
         node_address_map = {node["address"].lower(): node for node in self.node_list}
@@ -167,6 +174,8 @@ class ExchangeChecker:
             if receiver_lower not in exchange_addr_to_label:
                 continue
 
+            print(f"Found tx to hot wallet: {sender_lower[:10]}... -> {receiver_lower[:10]}...")
+
             # Get sender node and verify it's on distribution side (level > 0)
             sender_node = node_address_map.get(sender_lower)
             if not sender_node or sender_node.get("level", 0) <= 0:
@@ -181,6 +190,8 @@ class ExchangeChecker:
             if sender_lower not in sender_to_exchanges:
                 sender_to_exchanges[sender_lower] = set()
             sender_to_exchanges[sender_lower].add(exchange_label)
+
+        print(f"Found {len(sender_to_exchanges)} senders to annotate")
 
         # Update annotations for sender wallets
         for sender_addr, exchange_labels in sender_to_exchanges.items():
