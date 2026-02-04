@@ -116,6 +116,130 @@ def process_catv_messages(job: CatvNeoJobQueue, is_csv_job=False):
         CatvTokens.SOL.value: {
             CatvSearchType.FLOW.value: CATVETHSerializer,
             CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.ARB.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.ARBNOVA.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.OP.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.BASE.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.LINEA.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.BLAST.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.SCROLL.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.MANTLE.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.OPBNB.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.BTT.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.CELO.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.FRAXTAL.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.GNOSIS.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.MEMECORE.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.MOONBEAM.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.MOONRIVER.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.TAIKO.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.XDC.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.APECHAIN.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.WORLD.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.SONIC.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.UNICHAIN.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.ABSTRACT.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.BERACHAIN.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.SWELLCHAIN.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.MONAD.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.HYPEREVM.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.KATANA.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.SEI.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.STABLE.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
+        },
+        CatvTokens.PLASMA.value: {
+            CatvSearchType.FLOW.value: CATVETHSerializer,
+            CatvSearchType.PATH.value: CATVETHPathSerializer
         }
     }
 
