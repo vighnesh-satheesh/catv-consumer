@@ -60,7 +60,14 @@ class TrackingResults:
         till_date_extend = self.to_date + "T23:59:59"
 
         # Determine if we should use Tracer API first based on chain
-        should_use_tracer_first = self.chain in ['ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX', 'KLAY', 'SOL']
+        should_use_tracer_first = self.chain in [
+            'ETH', 'BSC', 'FTM', 'POL', 'ETC', 'TRX', 'KLAY', 'SOL',
+            'XRP', 'ARB', 'ARBNOVA', 'OP', 'BASE', 'LINEA', 'BLAST', 'SCROLL',
+            'MANTLE', 'OPBNB', 'BTT', 'CELO', 'FRAXTAL', 'GNOSIS', 'MEMECORE',
+            'MOONBEAM', 'MOONRIVER', 'TAIKO', 'XDC', 'APECHAIN', 'WORLD', 'SONIC',
+            'UNICHAIN', 'ABSTRACT', 'BERACHAIN', 'SWELLCHAIN', 'MONAD', 'HYPEREVM',
+            'KATANA', 'SEI', 'STABLE', 'PLASMA'
+        ]
 
         if should_use_tracer_first:
             try:
