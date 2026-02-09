@@ -512,6 +512,9 @@ def process_kyt_catv_job(job, request_body):
         if source_txs or (origin_txs and source_depth > 0):
             src_input = source_txs + origin_txs
             if src_input:
+                # Normalize depths to positive - generate_nodes_edges handles sign via mode
+                for tx in src_input:
+                    tx['depth'] = abs(tx['depth'])
                 src_result, src_nc = generate_nodes_edges(src_input, -1, True, token_type)
                 src_nc, src_items = TrackingResults.update_annotations(
                     src_nc, src_result['item_list'], token_type, annotations_dict)
