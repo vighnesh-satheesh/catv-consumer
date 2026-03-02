@@ -56,8 +56,10 @@ class CATVETHSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Incorrect date format, should be YYYY-MM-DD.")
 
-    def get_tracking_results(self, tx_limit=10000, limit=10000, save_to_db=True, build_lossy_graph=True):
-        tracking_results = TrackingResults(**self.data, chain=self._token_type)
+    def get_tracking_results(self, tx_limit=10000, limit=10000, save_to_db=True, build_lossy_graph=True,
+                             pre_fetched_tracer_data=None):
+        tracking_results = TrackingResults(**self.data, chain=self._token_type,
+                                           pre_fetched_tracer_data=pre_fetched_tracer_data)
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
             tracking_results.create_graph_data(build_lossy_graph)
@@ -162,9 +164,11 @@ class CATVBTCSerializer(CATVETHSerializer):
                 "Wallet address is an invalid Bitcoin address")
         return value
 
-    def get_tracking_results(self, tx_limit=10000, limit=10000, save_to_db=True, build_lossy_graph=True):
+    def get_tracking_results(self, tx_limit=10000, limit=10000, save_to_db=True, build_lossy_graph=True,
+                             pre_fetched_tracer_data=None):
         serializer_data = self.data
-        tracking_results = BTCCoinpathTrackingResults(**serializer_data, chain=self._token_type)
+        tracking_results = BTCCoinpathTrackingResults(**serializer_data, chain=self._token_type,
+                                                      pre_fetched_tracer_data=pre_fetched_tracer_data)
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
             tracking_results.create_graph_data(build_lossy_graph)
