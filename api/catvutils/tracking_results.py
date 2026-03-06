@@ -342,7 +342,8 @@ class TrackingResults:
                             kwargs["annotation"] = item["annotation"]
 
                             annotation_lower = item["annotation"].lower()
-                            if any(term in annotation_lower for term in ["exchange", "dex", "bridge", "mixer"]):
+                            if 'non-exchange' not in annotation_lower and any(
+                                    term in annotation_lower for term in ["exchange", "dex", "bridge", "mixer"]):
                                 kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
                             elif any(term in annotation_lower for term in ["smart", "contract"]):
                                 kwargs["group"] = "Smart Contract"
