@@ -63,8 +63,7 @@ class CATVETHSerializer(serializers.Serializer):
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
             tracking_results.create_graph_data(build_lossy_graph)
-            tracking_results.set_annotations_from_db(
-                token_type=models.CatvTokens.ETH.value)
+            tracking_results.set_annotations_from_db()
             return {
                 "graph": tracking_results.make_graph_dict(),
                 "api_calls": tracking_results.ext_api_calls,
@@ -134,8 +133,7 @@ class CATVETHPathSerializer(serializers.Serializer):
         try:
             tracking_instance.get_tracking_data()
             tracking_instance.create_graph_data()
-            tracking_instance.set_annotations_from_db(
-                token_type=self._token_type)
+            tracking_instance.set_annotations_from_db()
             return {
                 "graph": tracking_instance.make_graph_dict(),
                 "api_calls": tracking_instance.ext_api_calls,
@@ -172,8 +170,7 @@ class CATVBTCSerializer(CATVETHSerializer):
         try:
             tracking_results.get_tracking_data(tx_limit, limit, save_to_db)
             tracking_results.create_graph_data(build_lossy_graph)
-            tracking_results.set_annotations_from_db(
-                token_type=models.CatvTokens.BTC.value)
+            tracking_results.set_annotations_from_db()
             return {
                 "graph": tracking_results.make_graph_dict(),
                 "api_calls": tracking_results.ext_api_calls,

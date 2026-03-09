@@ -249,9 +249,9 @@ class TrackingResults:
         #     # Non-tracer
         addr_list_for_portal = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
-
+        print(f"{token_type=}")
         indicators = fetch_indicators(request_dict)
-        print(f"{len(indicators)=}")
+        print(f"{indicators=}")
         request_dict_cara = {'addr_list': list(addr_list)}
 
         addresses_with_cara_report = fetch_cara_report(request_dict_cara)
@@ -416,7 +416,7 @@ class TrackingResults:
 
         return nc, item_list
 
-    def set_annotations_from_db(self, token_type='ETH'):
+    def set_annotations_from_db(self):
         try:
             if not self._skip_source and self._async_source_graph:
                 tracking_results, nc = self._async_source_graph.get()
