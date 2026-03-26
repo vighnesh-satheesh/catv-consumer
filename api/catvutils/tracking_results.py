@@ -251,7 +251,7 @@ class TrackingResults:
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
         print(f"{token_type=}")
         indicators = fetch_indicators(request_dict)
-        print(f"{indicators=}")
+        print(f"{len(indicators)=}")
         request_dict_cara = {'addr_list': list(addr_list)}
 
         addresses_with_cara_report = fetch_cara_report(request_dict_cara)
