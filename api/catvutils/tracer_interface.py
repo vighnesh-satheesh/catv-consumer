@@ -61,7 +61,7 @@ class TracerAPIInterface(TransactionAPIInterface):
             response.raise_for_status()  # Raise exception for HTTP errors
 
             # Process and return data in the same format as BitqueryAPIInterface
-            return self._process_response(response.json(), chain, source)
+            return self.process_response(response.json(), chain, source)
 
         except Exception:
             traceback.print_exc()
@@ -108,14 +108,14 @@ class TracerAPIInterface(TransactionAPIInterface):
             'SWELLCHAIN': (1923, 'evm'),
             'MONAD': (143, 'evm'),
             'HYPEREVM': (999, 'evm'),
-            'KATANA': (9745, 'evm'),
+            'KATANA': (747474, 'evm'),
             'SEI': (1329, 'evm'),
-            'STABLE': (1, 'evm'),
-            'PLASMA': (747474, 'evm')
+            'STABLE': (988, 'evm'),
+            'PLASMA': (9745, 'evm')
         }
         return chain_mapping.get(chain, (1, 'evm'))  # Default to Ethereum
 
-    def _process_response(self, response_data: Dict, chain:str, source: bool) -> List[Dict[str, Any]]:
+    def process_response(self, response_data: Dict, chain:str, source: bool) -> List[Dict[str, Any]]:
         """
         Process the response from Tracer API to match the format expected by TrackingResults.
         """

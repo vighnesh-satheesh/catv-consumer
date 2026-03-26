@@ -54,8 +54,36 @@ class TrackingResults:
         self.api_used = ""
         self.dist_annotations_dict = None
         self.src_annotations_dict = None
+        self.pre_fetched_tracer_data = kwargs.get('pre_fetched_tracer_data', None)
+
+    def _use_pre_fetched_data(self, for_source: bool) -> list:
+        """
+        Process pre-fetched tracer data (raw HTTP response from Tracer API)
+        the same way TracerAPIInterface.get_transactions would, but without
+        making the HTTP call. KYT jobs only carry source transactions.
+        """
+        tracer_interface = TracerAPIInterface()
+        processed = tracer_interface.process_response(
+            self.pre_fetched_tracer_data, self.chain, for_source
+        )
+
+        transactions = processed.get('transactions', [])
+        annotations = processed.get('annotations', {})
+
+        if for_source:
+            self.src_annotations_dict = annotations
+        else:
+            self.dist_annotations_dict = annotations
+
+        self.api_used = "tracer"
+        print(
+            f"Using pre-fetched tracer data ({'source' if for_source else 'distribution'}): {len(transactions)} transactions")
+        return [tx for tx in transactions if len(tx.get('receiver', '')) > 0]
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
+        if self.pre_fetched_tracer_data:
+            return self._use_pre_fetched_data(for_source)
+
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
 
@@ -221,7 +249,7 @@ class TrackingResults:
         #     # Non-tracer
         addr_list_for_portal = [addr.lower() for addr in addr_list]
         request_dict = {'addr_list': addr_list_for_portal, 'token_type': str(token_type)}
-
+        print(f"{token_type=}")
         indicators = fetch_indicators(request_dict)
         print(f"{len(indicators)=}")
         request_dict_cara = {'addr_list': list(addr_list)}
@@ -314,7 +342,8 @@ class TrackingResults:
                             kwargs["annotation"] = item["annotation"]
 
                             annotation_lower = item["annotation"].lower()
-                            if any(term in annotation_lower for term in ["exchange", "dex", "bridge", "mixer"]):
+                            if 'non-exchange' not in annotation_lower and any(
+                                    term in annotation_lower for term in ["exchange", "dex", "bridge", "mixer"]):
                                 kwargs["group"] = "Exchange/DEX/Bridge/Mixer"
                             elif any(term in annotation_lower for term in ["smart", "contract"]):
                                 kwargs["group"] = "Smart Contract"
@@ -387,7 +416,7 @@ class TrackingResults:
 
         return nc, item_list
 
-    def set_annotations_from_db(self, token_type='ETH'):
+    def set_annotations_from_db(self):
         try:
             if not self._skip_source and self._async_source_graph:
                 tracking_results, nc = self._async_source_graph.get()
@@ -455,6 +484,8 @@ class TrackingResults:
 class BTCCoinpathTrackingResults(TrackingResults):
 
     def fetch_results(self, tx_limit, limit, save_to_db, for_source=False):
+        if self.pre_fetched_tracer_data:
+            return self._use_pre_fetched_data(for_source)
         depth_limit = self.source_depth if for_source else self.distribution_depth
         till_date_extend = self.to_date + "T23:59:59"
         should_use_tracer_first = self.chain in ['BTC', 'LTC']

@@ -108,7 +108,7 @@ class Node:
                     break
 
                 # Check for exchange-related terms
-                elif any(term in annotation for term in exchange_terms):
+                elif 'non-exchange' not in annotation and any(term in annotation for term in exchange_terms):
                     self.group = 'Exchange/DEX/Bridge/Mixer'
                     break
 
@@ -167,7 +167,7 @@ class BTCNode(Node):
                     break
 
                 # Check for exchange-related terms
-                elif any(term in annotation for term in exchange_terms):
+                elif 'non-exchange' not in annotation and any(term in annotation for term in exchange_terms):
                     self.group = 'Exchange/DEX/Bridge/Mixer'
                     break
 
